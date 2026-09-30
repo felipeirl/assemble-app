@@ -87,10 +87,15 @@ object CompatibilityCalculator {
         return WEIGHT_FAME * (1.0 - abs(preferred - fame))
     }
 
+    /**
+     * peso × (itens em comum ÷ menor entre escolhidos e os do personagem).
+     * Assim, escolher várias opções não pune quem tem só uma (ex.: uma origem).
+     */
     private fun <T> matchSet(chosen: Set<T>, characterValues: Set<T>, weight: Int): CategoryMatch<T> {
         if (chosen.isEmpty()) return CategoryMatch(matched = emptySet(), points = weight.toDouble(), isAny = true)
+        if (characterValues.isEmpty()) return CategoryMatch(matched = emptySet(), points = 0.0, isAny = false)
         val matched = chosen intersect characterValues
-        val points = weight * matched.size.toDouble() / chosen.size
+        val points = weight * matched.size.toDouble() / minOf(chosen.size, characterValues.size)
         return CategoryMatch(matched = matched, points = points, isAny = false)
     }
 }

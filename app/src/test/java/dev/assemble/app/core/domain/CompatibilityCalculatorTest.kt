@@ -62,18 +62,30 @@ class CompatibilityCalculatorTest {
     }
 
     @Test
-    fun partialOverlap_usesCommonOverChosen() {
+    fun partialOverlap_dividesByTheSmallerSet() {
         val partial = prefs(
-            origins = setOf(Origin.Mutant, Origin.Human), // 1/2 × 25 = 12.5
-            powers = setOf(PowerFamily.Mind), // 1/1 × 30 = 30
+            origins = setOf(Origin.Mutant, Origin.Human), // 1 ÷ min(2, 1) × 25 = 25
+            powers = setOf(PowerFamily.Mind, PowerFamily.Speed, PowerFamily.Magic), // 1 ÷ min(3, 2) × 30 = 15
             teams = setOf(Team.Avengers), // 0
-            styles = setOf(Style.Leadership, Style.Idealist, Style.Rebel, Style.Dark), // 2/4 × 20 = 10
+            styles = setOf(Style.Leadership, Style.Idealist, Style.Rebel, Style.Dark), // 2 ÷ min(4, 2) × 20 = 20
             fame = 0.5f, // 10
         )
-        assertEquals(63, CompatibilityCalculator.score(partial, hero)) // 62.5 arredonda para 63
+        assertEquals(70, CompatibilityCalculator.score(partial, hero))
         val breakdown = CompatibilityCalculator.breakdown(partial, hero)
         assertEquals(setOf(Origin.Mutant), breakdown.origin.matched)
         assertEquals(setOf(Style.Leadership, Style.Idealist), breakdown.styles.matched)
+    }
+
+    @Test
+    fun roundsHalfUp() {
+        val half = prefs(
+            origins = setOf(Origin.Robot), // 0
+            powers = setOf(PowerFamily.Mind, PowerFamily.Speed), // 1 ÷ 2 × 30 = 15
+            teams = setOf(Team.Avengers), // 0
+            styles = setOf(Style.Humor), // 0
+            fame = 0.75f, // 10 × (1 − 0.25) = 7.5 (exato em binário)
+        )
+        assertEquals(23, CompatibilityCalculator.score(half, hero)) // 22.5 → 23
     }
 
     @Test
