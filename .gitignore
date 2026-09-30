@@ -12,6 +12,10 @@ captures/
 *.aab
 google-services.json
 
+# Segredos locais (chaves de API)
+.env
+*.env
+
 # Kotlin (dados de sessão do compilador)
 .kotlin/
 
