@@ -29,10 +29,11 @@ sealed interface TopBarNavigation {
     data object None : TopBarNavigation
 }
 
-/** Conteúdo central: texto em display ou só o logo (Discover; mínimo de 32dp). */
+/** Conteúdo central: texto em display, só o logo (Discover; mínimo de 32dp) ou nada. */
 sealed interface TopBarTitle {
     data class Text(val value: String) : TopBarTitle
     data object Logo : TopBarTitle
+    data object None : TopBarTitle
 }
 
 private val LogoSize = 32.dp
@@ -61,6 +62,7 @@ fun AssembleTopBar(
                     contentDescription = stringResource(R.string.app_name),
                     modifier = Modifier.size(LogoSize),
                 )
+                TopBarTitle.None -> Unit
             }
         },
         navigationIcon = {

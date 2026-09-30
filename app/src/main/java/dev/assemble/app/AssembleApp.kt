@@ -23,6 +23,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
@@ -42,8 +43,11 @@ import dev.assemble.app.feature.chat.ChatListScreen
 import dev.assemble.app.feature.chat.ConversationScreen
 import dev.assemble.app.feature.discover.DiscoverScreen
 import dev.assemble.app.feature.help.HelpScreen
-import dev.assemble.app.feature.login.LoginScreen
-import dev.assemble.app.feature.onboarding.OnboardingScreen
+import dev.assemble.app.feature.login.LoginRoute
+import dev.assemble.app.feature.login.LoginViewModel
+import dev.assemble.app.feature.onboarding.OnboardingRoute
+import dev.assemble.app.feature.onboarding.OnboardingStep
+import dev.assemble.app.feature.onboarding.OnboardingViewModel
 import dev.assemble.app.feature.profile.EditProfileScreen
 import dev.assemble.app.feature.profile.ProfileScreen
 import dev.assemble.app.feature.settings.SettingsScreen
@@ -67,11 +71,9 @@ import dev.assemble.app.navigation.Splash
 import dev.assemble.app.navigation.TopLevelRoutes
 import dev.assemble.app.navigation.rememberNavigationState
 import dev.assemble.app.navigation.toEntries
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
-import java.io.IOException
 
 private enum class AppFlow { Entry, Onboarding, Main }
 
@@ -98,7 +100,6 @@ fun AssembleApp(container: AppContainer) {
 
 @Composable
 private fun EntryFlow(userRepository: UserRepository) {
-    val scope = rememberCoroutineScope()
     val backStack = rememberNavBackStack(Splash)
     NavDisplay(
         backStack = backStack,
@@ -112,14 +113,15 @@ private fun EntryFlow(userRepository: UserRepository) {
         predictivePopTransitionSpec = { backTransition() },
         entryProvider = entryProvider {
             entry<Splash> { SplashScreen(onFinished = { backStack[backStack.lastIndex] = Login }) }
-            entry<Login> { LoginScreen(onContinue = { scope.launchPlaceholderAction { userRepository.logIn() } }) }
+            entry<Login> { LoginRoute(viewModel = viewModel { LoginViewModel(userRepository) }) }
         },
     )
 }
 
 @Composable
 private fun OnboardingFlow(userRepository: UserRepository) {
-    val scope = rememberCoroutineScope()
+    // Um ViewModel para os 5 passos: as escolhas sobrevivem ao ir e voltar entre eles.
+    val onboardingViewModel = viewModel { OnboardingViewModel(userRepository) }
     val backStack = rememberNavBackStack(Onboarding(step = 0))
     NavDisplay(
         backStack = backStack,
@@ -133,15 +135,12 @@ private fun OnboardingFlow(userRepository: UserRepository) {
         predictivePopTransitionSpec = { backTransition() },
         entryProvider = entryProvider {
             entry<Onboarding> { key ->
-                OnboardingScreen(
-                    step = key.step,
-                    onNext = { backStack.add(Onboarding(key.step + 1)) },
+                val step = OnboardingStep.at(key.step)
+                OnboardingRoute(
+                    step = step,
+                    viewModel = onboardingViewModel,
+                    onNext = { if (!step.isLast) backStack.add(Onboarding(key.step + 1)) },
                     onBack = { backStack.removeLastOrNull() },
-                    onFinish = {
-                        scope.launchPlaceholderAction {
-                            userRepository.completeOnboarding(userRepository.preferences.value)
-                        }
-                    },
                 )
             }
         },
@@ -278,15 +277,4 @@ private fun AssembleTab.toRoute(): NavKey = when (this) {
     AssembleTab.Discover -> Discover
     AssembleTab.Chat -> ChatList
     AssembleTab.Profile -> Profile
-}
-
-/** Ações dos placeholders da etapa 5. Falha simulada é ignorada aqui; as telas reais (etapa 6) mostram o erro. */
-private fun CoroutineScope.launchPlaceholderAction(action: suspend () -> Unit) {
-    launch {
-        try {
-            action()
-        } catch (_: IOException) {
-            // Placeholder: sem UI de erro até a etapa 6.
-        }
-    }
 }

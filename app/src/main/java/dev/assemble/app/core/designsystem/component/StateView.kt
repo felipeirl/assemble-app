@@ -7,13 +7,11 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -21,7 +19,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -68,8 +65,6 @@ private val StateMaxWidth = 280.dp
 private val StateIconSize = 40.dp
 private val SkeletonLargeHeight = 120.dp
 private val SkeletonLineHeight = 16.dp
-private val MinTouchTarget = 48.dp
-private val ButtonBorderWidth = 1.dp
 
 @Composable
 fun StateView(type: StateViewType, modifier: Modifier = Modifier) {
@@ -158,22 +153,11 @@ private fun MessageContent(
         textAlign = TextAlign.Center,
     )
     if (actionLabel != null && onAction != null) {
-        TextButton(
+        SecondaryButton(
+            text = actionLabel,
             onClick = onAction,
-            modifier = Modifier
-                .padding(top = AssembleTheme.spacing.space2)
-                .defaultMinSize(minHeight = MinTouchTarget)
-                .border(ButtonBorderWidth, colors.border, AssembleTheme.shapes.pill)
-                .clip(AssembleTheme.shapes.pill)
-                .background(colors.surface),
-            shape = AssembleTheme.shapes.pill,
-        ) {
-            Text(
-                text = actionLabel,
-                style = AssembleTheme.typography.caption.copy(fontWeight = FontWeight.SemiBold),
-                color = colors.text,
-            )
-        }
+            modifier = Modifier.padding(top = AssembleTheme.spacing.space2),
+        )
     }
 }
 

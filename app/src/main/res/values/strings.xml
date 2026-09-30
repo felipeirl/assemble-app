@@ -55,4 +55,54 @@
     <string name="onboarding_step_fame">Fame</string>
     <string name="onboarding_skip">Skip</string>
     <string name="onboarding_start">Start discovering</string>
+    <string name="login_headline">FIND YOUR CHARACTERS.</string>
+    <string name="login_subtitle">Discover characters. Start the conversation.</string>
+    <string name="login_error">Couldn\'t sign in. Check your connection and try again.</string>
+    <string name="onboarding_helper">We use these to estimate compatibility. You can change them anytime.</string>
+    <string name="onboarding_any">Any</string>
+    <string name="onboarding_next">Next</string>
+    <plurals name="onboarding_min_choices">
+        <item quantity="one">Pick at least %1$d option in total.</item>
+        <item quantity="other">Pick at least %1$d options in total.</item>
+    </plurals>
+    <string name="onboarding_error">Couldn\'t save your preferences. Check your connection and try again.</string>
+    <string name="fame_icons">Icons</string>
+    <string name="fame_hidden_gems">Hidden gems</string>
+
+    <!-- Traços -->
+    <string name="origin_human">Human</string>
+    <string name="origin_mutant">Mutant</string>
+    <string name="origin_alien">Alien</string>
+    <string name="origin_robot">Robot</string>
+    <string name="origin_radiation">Radiation</string>
+    <string name="origin_god_eternal">God / Eternal</string>
+    <string name="origin_animal">Animal</string>
+    <string name="origin_cosmic">Cosmic</string>
+    <string name="origin_infection">Infection</string>
+    <string name="origin_other">Other</string>
+    <string name="power_strength">Strength</string>
+    <string name="power_flight">Flight</string>
+    <string name="power_speed">Speed</string>
+    <string name="power_mind">Mind</string>
+    <string name="power_energy">Energy</string>
+    <string name="power_magic">Magic</string>
+    <string name="power_agility_combat">Agility &amp; combat</string>
+    <string name="power_healing">Healing</string>
+    <string name="power_shapeshifting">Shapeshifting</string>
+    <string name="power_tech_gadgets">Tech &amp; gadgets</string>
+    <string name="team_avengers">Avengers</string>
+    <string name="team_x_men">X-Men</string>
+    <string name="team_fantastic_four">Fantastic Four</string>
+    <string name="team_guardians">Guardians</string>
+    <string name="team_shield">S.H.I.E.L.D.</string>
+    <string name="team_defenders">Defenders</string>
+    <string name="team_solo">Solo</string>
+    <string name="style_science">Science</string>
+    <string name="style_humor">Humor</string>
+    <string name="style_leadership">Leadership</string>
+    <string name="style_loner">Loner</string>
+    <string name="style_dark">Dark</string>
+    <string name="style_idealist">Idealist</string>
+    <string name="style_rebel">Rebel</string>
+    <string name="style_strategist">Strategist</string>
 </resources>

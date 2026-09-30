@@ -24,5 +24,3 @@ import kotlinx.serialization.Serializable
 
 /** Abas da bottom bar, na ordem de exibição. */
 val TopLevelRoutes: Set<NavKey> = linkedSetOf(Discover, ChatList, Profile)
-
-const val ONBOARDING_STEP_COUNT = 5
