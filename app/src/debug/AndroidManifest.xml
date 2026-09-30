@@ -6,6 +6,7 @@
             android:name=".catalog.DesignSystemCatalogActivity"
             android:exported="true"
             android:label="@string/catalog_launcher_label"
+            android:taskAffinity="dev.assemble.app.catalog"
             android:theme="@style/Theme.Assemble">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
