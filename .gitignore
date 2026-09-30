@@ -15,9 +15,22 @@ google-services.json
 # Backend (Maven)
 backend/target/
 
-# Ferramentas locais de agentes
-.claude/session-logs/
+# Kotlin (dados de sessão do compilador)
+.kotlin/
+
+# Ferramentas de IA / agentes (em qualquer pasta)
+**/.claude/
 .maestri/
+**/.codex/
+**/.cursor/
+**/.gemini/
+**/.windsurf/
+**/.continue/
+.aider*
+
+# Fora do app: documentação e código arquivado (ficam só no disco local)
+docs/
+_archive/
 
 # OS
 .DS_Store
