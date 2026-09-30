@@ -17,6 +17,9 @@ import dev.assemble.app.core.domain.CompatibilityCalculator
 import dev.assemble.app.core.model.AppSettings
 import dev.assemble.app.core.model.Connection
 import dev.assemble.app.feature.discover.AssembleService
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import java.time.Clock
 import java.time.Instant
 
@@ -24,6 +27,9 @@ import java.time.Instant
 class AppContainer(context: Context) {
     private val appContext = context.applicationContext
     private val clock: Clock = Clock.systemDefaultZone()
+
+    /** Trabalho que deve sobreviver à tela (ex.: resposta da IA depois que o usuário sai da conversa). */
+    val applicationScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
     /** Liga/desliga o modo falha de todos os repositórios falsos. */
     val fakeNetwork = FakeNetwork()

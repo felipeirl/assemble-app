@@ -21,6 +21,14 @@
     <!-- Chat -->
     <string name="ai_label">AI-generated · fictional</string>
     <string name="chat_typing">Typing…</string>
+    <string name="chat_list_error_title">Couldn\'t load your chats</string>
+    <string name="chat_list_empty_title">No connections yet</string>
+    <string name="chat_list_empty_message">Assemble with characters in Discover to start a chat.</string>
+    <string name="chat_list_go_to_discover">Go to Discover</string>
+    <string name="chat_list_unread">Unread</string>
+    <string name="conversation_error_title">Couldn\'t load this conversation</string>
+    <string name="conversation_input_placeholder">Message</string>
+    <string name="conversation_send">Send</string>
     <string name="toast_new_message">%1$s sent a message</string>
     <plurals name="chat_unread_count">
         <item quantity="one">%d unread</item>

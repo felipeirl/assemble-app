@@ -10,7 +10,11 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.DrawerValue
@@ -21,6 +25,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -41,8 +46,11 @@ import dev.assemble.app.feature.character.CharacterPreviewRoute
 import dev.assemble.app.feature.character.CharacterPreviewViewModel
 import dev.assemble.app.feature.character.CharacterProfileRoute
 import dev.assemble.app.feature.character.CharacterProfileViewModel
-import dev.assemble.app.feature.chat.ChatListScreen
-import dev.assemble.app.feature.chat.ConversationScreen
+import dev.assemble.app.feature.chat.ChatListRoute
+import dev.assemble.app.feature.chat.ChatListViewModel
+import dev.assemble.app.feature.chat.ConversationRoute
+import dev.assemble.app.feature.chat.ConversationViewModel
+import dev.assemble.app.feature.chat.IncomingMessageToastHost
 import dev.assemble.app.feature.discover.DiscoverRoute
 import dev.assemble.app.feature.discover.DiscoverViewModel
 import dev.assemble.app.feature.help.HelpScreen
@@ -189,100 +197,125 @@ private fun MainFlow(container: AppContainer) {
             )
         },
     ) {
-        Scaffold(
-            containerColor = AssembleTheme.colors.bg,
-            contentWindowInsets = WindowInsets(0),
-            bottomBar = {
-                if (navigationState.isAtTopLevel) {
-                    AssembleBottomBar(
-                        selectedTab = navigationState.topLevelRoute.toTab(),
-                        onTabSelected = { tab -> navigator.navigate(tab.toRoute()) },
-                        unreadChats = unreadChats,
-                    )
-                }
-            },
-        ) { padding ->
-            NavDisplay(
-                entries = navigationState.toEntries(
-                    entryProvider {
-                        entry<Discover> {
-                            DiscoverRoute(
-                                viewModel = viewModel {
-                                    DiscoverViewModel(
-                                        characterRepository = container.characterRepository,
-                                        userRepository = container.userRepository,
-                                        connectionRepository = container.connectionRepository,
-                                        assembleService = container.assembleService,
-                                    )
-                                },
-                                onOpenMenu = openDrawer,
-                                onOpenPreview = { id -> navigator.navigate(CharacterPreview(id)) },
-                                onAdjustPreferences = { navigator.navigate(Profile) },
-                                onStartChat = { connectionId -> navigator.navigate(Conversation(connectionId)) },
-                            )
-                        }
-                        entry<CharacterPreview> { key ->
-                            CharacterPreviewRoute(
-                                viewModel = viewModel {
-                                    CharacterPreviewViewModel(
-                                        characterId = key.characterId,
-                                        characterRepository = container.characterRepository,
-                                        userRepository = container.userRepository,
-                                        assembleService = container.assembleService,
-                                    )
-                                },
-                                onBack = navigator::goBack,
-                            )
-                        }
-                        entry<CharacterProfile> { key ->
-                            CharacterProfileRoute(
-                                viewModel = viewModel {
-                                    CharacterProfileViewModel(
-                                        characterId = key.characterId,
-                                        characterRepository = container.characterRepository,
-                                        connectionRepository = container.connectionRepository,
-                                        userRepository = container.userRepository,
-                                    )
-                                },
-                                onBack = navigator::goBack,
-                                onOpenChat = { connectionId -> navigator.navigate(Conversation(connectionId)) },
-                            )
-                        }
-                        entry<ChatList> {
-                            ChatListScreen(
-                                onOpenMenu = openDrawer,
-                                onOpenConversation = { id -> navigator.navigate(Conversation(id)) },
-                            )
-                        }
-                        entry<Conversation> { key ->
-                            ConversationScreen(
-                                connectionId = key.connectionId,
-                                onBack = navigator::goBack,
-                                onOpenCharacter = {
-                                    navigator.navigate(CharacterProfile(key.connectionId.removePrefix("connection-")))
-                                },
-                            )
-                        }
-                        entry<Profile> {
-                            ProfileScreen(
-                                onOpenMenu = openDrawer,
-                                onEditProfile = { navigator.navigate(EditProfile) },
-                                onOpenCharacter = { id -> navigator.navigate(CharacterProfile(id)) },
-                            )
-                        }
-                        entry<EditProfile> { EditProfileScreen(onBack = navigator::goBack) }
-                        entry<Settings> { SettingsScreen(onBack = navigator::goBack) }
-                        entry<About> { AboutScreen(onBack = navigator::goBack) }
-                        entry<Help> { HelpScreen(onBack = navigator::goBack) }
-                    },
-                ),
-                onBack = navigator::goBack,
+        Box(Modifier.fillMaxSize()) {
+            Scaffold(
+                containerColor = AssembleTheme.colors.bg,
+                contentWindowInsets = WindowInsets(0),
+                bottomBar = {
+                    if (navigationState.isAtTopLevel) {
+                        AssembleBottomBar(
+                            selectedTab = navigationState.topLevelRoute.toTab(),
+                            onTabSelected = { tab -> navigator.navigate(tab.toRoute()) },
+                            unreadChats = unreadChats,
+                        )
+                    }
+                },
+            ) { padding ->
+                NavDisplay(
+                    entries = navigationState.toEntries(
+                        entryProvider {
+                            entry<Discover> {
+                                DiscoverRoute(
+                                    viewModel = viewModel {
+                                        DiscoverViewModel(
+                                            characterRepository = container.characterRepository,
+                                            userRepository = container.userRepository,
+                                            connectionRepository = container.connectionRepository,
+                                            assembleService = container.assembleService,
+                                        )
+                                    },
+                                    onOpenMenu = openDrawer,
+                                    onOpenPreview = { id -> navigator.navigate(CharacterPreview(id)) },
+                                    onAdjustPreferences = { navigator.navigate(Profile) },
+                                    onStartChat = { connectionId -> navigator.navigate(Conversation(connectionId)) },
+                                )
+                            }
+                            entry<CharacterPreview> { key ->
+                                CharacterPreviewRoute(
+                                    viewModel = viewModel {
+                                        CharacterPreviewViewModel(
+                                            characterId = key.characterId,
+                                            characterRepository = container.characterRepository,
+                                            userRepository = container.userRepository,
+                                            assembleService = container.assembleService,
+                                        )
+                                    },
+                                    onBack = navigator::goBack,
+                                )
+                            }
+                            entry<CharacterProfile> { key ->
+                                CharacterProfileRoute(
+                                    viewModel = viewModel {
+                                        CharacterProfileViewModel(
+                                            characterId = key.characterId,
+                                            characterRepository = container.characterRepository,
+                                            connectionRepository = container.connectionRepository,
+                                            userRepository = container.userRepository,
+                                        )
+                                    },
+                                    onBack = navigator::goBack,
+                                    onOpenChat = { connectionId -> navigator.navigate(Conversation(connectionId)) },
+                                )
+                            }
+                            entry<ChatList> {
+                                ChatListRoute(
+                                    viewModel = viewModel {
+                                        ChatListViewModel(
+                                            characterRepository = container.characterRepository,
+                                            connectionRepository = container.connectionRepository,
+                                            chatRepository = container.chatRepository,
+                                        )
+                                    },
+                                    onOpenMenu = openDrawer,
+                                    onOpenConversation = { id -> navigator.navigate(Conversation(id)) },
+                                    onGoToDiscover = { navigator.navigate(Discover) },
+                                )
+                            }
+                            entry<Conversation> { key ->
+                                ConversationRoute(
+                                    viewModel = viewModel {
+                                        ConversationViewModel(
+                                            connectionId = key.connectionId,
+                                            characterRepository = container.characterRepository,
+                                            connectionRepository = container.connectionRepository,
+                                            chatRepository = container.chatRepository,
+                                            applicationScope = container.applicationScope,
+                                        )
+                                    },
+                                    onBack = navigator::goBack,
+                                    onOpenCharacter = { characterId -> navigator.navigate(CharacterProfile(characterId)) },
+                                )
+                            }
+                            entry<Profile> {
+                                ProfileScreen(
+                                    onOpenMenu = openDrawer,
+                                    onEditProfile = { navigator.navigate(EditProfile) },
+                                    onOpenCharacter = { id -> navigator.navigate(CharacterProfile(id)) },
+                                )
+                            }
+                            entry<EditProfile> { EditProfileScreen(onBack = navigator::goBack) }
+                            entry<Settings> { SettingsScreen(onBack = navigator::goBack) }
+                            entry<About> { AboutScreen(onBack = navigator::goBack) }
+                            entry<Help> { HelpScreen(onBack = navigator::goBack) }
+                        },
+                    ),
+                    onBack = navigator::goBack,
+                    modifier = Modifier
+                        .padding(padding)
+                        .consumeWindowInsets(padding),
+                    transitionSpec = { forwardTransition() },
+                    popTransitionSpec = { backTransition() },
+                    predictivePopTransitionSpec = { backTransition() },
+                )
+            }
+            IncomingMessageToastHost(
+                container = container,
+                openConnectionId = (navigationState.currentRoute as? Conversation)?.connectionId,
+                onOpenConversation = { id -> navigator.navigate(Conversation(id)) },
                 modifier = Modifier
-                    .padding(padding)
-                    .consumeWindowInsets(padding),
-                transitionSpec = { forwardTransition() },
-                popTransitionSpec = { backTransition() },
-                predictivePopTransitionSpec = { backTransition() },
+                    .align(Alignment.TopCenter)
+                    .windowInsetsPadding(WindowInsets.statusBars)
+                    .padding(top = AssembleTheme.spacing.space2),
             )
         }
     }
