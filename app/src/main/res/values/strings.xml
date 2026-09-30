@@ -143,7 +143,7 @@
     <string name="help_discover_title">Discover</string>
     <string name="help_discover_body">Swipe a card left or tap Pass to skip a character. Swipe right or tap Assemble to show interest. Undo brings back your last Pass. Pull down to refresh.</string>
     <string name="help_match_title">Connections</string>
-    <string name="help_match_body">Assemble becomes a connection only when your compatibility reaches the minimum set in Settings. It means your interest plus enough in common, not that the character chose you back.</string>
+    <string name="help_match_body">Assemble shows your interest. The character decides too: compatibility is one of the factors, so not every Assemble becomes a connection. It is all fiction, never dating.</string>
     <string name="help_chat_title">Chat</string>
     <string name="help_chat_body">Each connection opens a chat with a fictional, AI-generated version of the character. If a message fails, tap Try again.</string>
     <string name="help_preferences_title">Preferences</string>
