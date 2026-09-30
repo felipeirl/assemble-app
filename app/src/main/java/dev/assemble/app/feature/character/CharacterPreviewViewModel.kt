@@ -70,7 +70,7 @@ class CharacterPreviewViewModel(
         return CharacterPreviewUiState.Content(
             name = name,
             imageUrl = imageUrl,
-            band = CompatibilityCalculator.band(breakdown.score, userRepository.settings.value.minimumCompatibility),
+            band = CompatibilityCalculator.band(breakdown.score),
             traitsInCommon = breakdown.matchedTraits(),
         )
     }

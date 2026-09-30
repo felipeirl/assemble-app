@@ -108,9 +108,6 @@
     <string name="settings_notifications">Notifications</string>
     <string name="settings_notify_connections">New connections</string>
     <string name="settings_notify_messages">New messages</string>
-    <string name="settings_discovery">Discovery</string>
-    <string name="settings_min_compatibility">Minimum compatibility</string>
-    <string name="settings_min_compatibility_hint">Higher means fewer but closer connections</string>
     <string name="settings_data">Data</string>
     <string name="settings_reset_preferences">Reset preferences</string>
     <string name="settings_clear_seen">Clear seen characters</string>

@@ -28,7 +28,7 @@ class AssembleService(
 
     suspend fun assemble(character: Character) {
         userRepository.markSeen(character.id)
-        val threshold = userRepository.settings.value.minimumCompatibility
+        val threshold = CompatibilityCalculator.MATCH_THRESHOLD
         val breakdown = CompatibilityCalculator.breakdown(userRepository.preferences.value, character)
         if (breakdown.score < threshold) {
             messageState.value = DiscoverMessage.NotEnoughInCommon

@@ -37,25 +37,16 @@ class SettingsDataStoreTest {
     @Test
     fun update_persistsAllFields() = runBlocking {
         store.update {
-            it.copy(theme = ThemePreference.Dark, minimumCompatibility = 80, notifyNewMessages = false)
+            it.copy(theme = ThemePreference.Dark, notifyNewMessages = false)
         }
         val saved = store.settings.first()
         assertEquals(ThemePreference.Dark, saved.theme)
-        assertEquals(80, saved.minimumCompatibility)
         assertFalse(saved.notifyNewMessages)
     }
 
     @Test
-    fun minimumCompatibility_isClampedTo50Through90() = runBlocking {
-        store.update { it.copy(minimumCompatibility = 120) }
-        assertEquals(AppSettings.MAX_MINIMUM_COMPATIBILITY, store.settings.first().minimumCompatibility)
-        store.update { it.copy(minimumCompatibility = 10) }
-        assertEquals(AppSettings.MIN_MINIMUM_COMPATIBILITY, store.settings.first().minimumCompatibility)
-    }
-
-    @Test
     fun reset_restoresDefaults() = runBlocking {
-        store.update { it.copy(theme = ThemePreference.Light, minimumCompatibility = 60) }
+        store.update { it.copy(theme = ThemePreference.Light, notifyNewConnections = false) }
         store.reset()
         assertEquals(AppSettings(), store.settings.first())
     }

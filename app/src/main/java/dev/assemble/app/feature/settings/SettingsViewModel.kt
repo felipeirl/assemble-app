@@ -35,9 +35,6 @@ class SettingsViewModel(
 
     fun setNotifyNewMessages(enabled: Boolean) = updateSettings { it.copy(notifyNewMessages = enabled) }
 
-    /** O Discover recalcula faixas e resultados de Assemble com o novo limiar. */
-    fun setMinimumCompatibility(value: Int) = updateSettings { it.copy(minimumCompatibility = value) }
-
     fun resetPreferences() = runAction(SettingsMessage.PreferencesReset) { userRepository.resetPreferences() }
 
     fun clearSeenCharacters() = runAction(SettingsMessage.SeenCleared) { userRepository.clearSeen() }

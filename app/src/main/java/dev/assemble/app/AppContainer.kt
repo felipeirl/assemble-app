@@ -16,7 +16,6 @@ import dev.assemble.app.core.data.fake.MockCatalog
 import dev.assemble.app.core.data.mock.CHARACTERS_ASSET_PATH
 import dev.assemble.app.core.data.mock.MockSeed
 import dev.assemble.app.core.domain.CompatibilityCalculator
-import dev.assemble.app.core.model.AppSettings
 import dev.assemble.app.core.model.Connection
 import dev.assemble.app.feature.discover.AssembleService
 import kotlinx.coroutines.CoroutineScope
@@ -85,7 +84,7 @@ class AppContainer(context: Context) {
                 id = seed.id,
                 characterId = seed.characterId,
                 score = CompatibilityCalculator.score(MockSeed.initialPreferences, character),
-                threshold = AppSettings.DEFAULT_MINIMUM_COMPATIBILITY,
+                threshold = CompatibilityCalculator.MATCH_THRESHOLD,
                 createdAt = now - seed.age,
                 profileUnlockSeen = true,
             )

@@ -17,8 +17,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
-import androidx.compose.material3.Slider
-import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Switch
@@ -28,7 +26,6 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -39,7 +36,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -54,7 +50,6 @@ import dev.assemble.app.core.designsystem.component.TopBarTitle
 import dev.assemble.app.core.designsystem.theme.AssembleTheme
 import dev.assemble.app.core.model.AppSettings
 import dev.assemble.app.core.model.ThemePreference
-import kotlin.math.roundToInt
 
 private val MinRowHeight = 48.dp
 
@@ -72,7 +67,6 @@ fun SettingsRoute(viewModel: SettingsViewModel, onBack: () -> Unit, modifier: Mo
             onThemeChange = viewModel::setTheme,
             onNotifyConnectionsChange = viewModel::setNotifyNewConnections,
             onNotifyMessagesChange = viewModel::setNotifyNewMessages,
-            onMinimumCompatibilityChange = viewModel::setMinimumCompatibility,
             onResetPreferences = viewModel::resetPreferences,
             onClearSeen = viewModel::clearSeenCharacters,
             onDeleteChats = viewModel::deleteChats,
@@ -88,7 +82,6 @@ data class SettingsActions(
     val onThemeChange: (ThemePreference) -> Unit,
     val onNotifyConnectionsChange: (Boolean) -> Unit,
     val onNotifyMessagesChange: (Boolean) -> Unit,
-    val onMinimumCompatibilityChange: (Int) -> Unit,
     val onResetPreferences: () -> Unit,
     val onClearSeen: () -> Unit,
     val onDeleteChats: () -> Unit,
@@ -149,9 +142,6 @@ fun SettingsScreen(
             Section(stringResource(R.string.settings_notifications)) {
                 SwitchRow(stringResource(R.string.settings_notify_connections), settings.notifyNewConnections, actions.onNotifyConnectionsChange)
                 SwitchRow(stringResource(R.string.settings_notify_messages), settings.notifyNewMessages, actions.onNotifyMessagesChange)
-            }
-            Section(stringResource(R.string.settings_discovery)) {
-                MinimumCompatibilitySlider(settings.minimumCompatibility, actions.onMinimumCompatibilityChange)
             }
             Section(stringResource(R.string.settings_data)) {
                 ActionRow(stringResource(R.string.settings_reset_preferences), enabled = !busy, onClick = actions.onResetPreferences)
@@ -251,39 +241,6 @@ private fun SwitchRow(label: String, checked: Boolean, onCheckedChange: (Boolean
     }
 }
 
-/** 50–90, de 1 em 1. Grava ao soltar; enquanto arrasta, só a tela muda. */
-@Composable
-private fun MinimumCompatibilitySlider(value: Int, onValueChange: (Int) -> Unit) {
-    val colors = AssembleTheme.colors
-    var dragging by remember(value) { mutableFloatStateOf(value.toFloat()) }
-    val shown = dragging.roundToInt()
-    val label = stringResource(R.string.settings_min_compatibility)
-    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Text(label, style = AssembleTheme.typography.body, color = colors.text, modifier = Modifier.weight(1f))
-        Text(
-            stringResource(R.string.score_ring_value, shown),
-            style = AssembleTheme.typography.body.copy(fontWeight = FontWeight.SemiBold),
-            color = colors.text,
-        )
-    }
-    Slider(
-        value = dragging,
-        onValueChange = { dragging = it },
-        onValueChangeFinished = { onValueChange(dragging.roundToInt()) },
-        valueRange = AppSettings.MIN_MINIMUM_COMPATIBILITY.toFloat()..AppSettings.MAX_MINIMUM_COMPATIBILITY.toFloat(),
-        steps = AppSettings.MAX_MINIMUM_COMPATIBILITY - AppSettings.MIN_MINIMUM_COMPATIBILITY - 1,
-        modifier = Modifier.semantics { contentDescription = label },
-        colors = SliderDefaults.colors(
-            thumbColor = colors.actionAssemble,
-            activeTrackColor = colors.actionAssemble,
-            inactiveTrackColor = colors.border,
-            activeTickColor = Color.Transparent,
-            inactiveTickColor = Color.Transparent,
-        ),
-    )
-    Text(stringResource(R.string.settings_min_compatibility_hint), style = AssembleTheme.typography.caption, color = colors.textMuted)
-}
-
 @Composable
 private fun ActionRow(label: String, enabled: Boolean, onClick: () -> Unit, color: Color = AssembleTheme.colors.text) {
     Text(
@@ -322,7 +279,7 @@ private fun DeleteAccountDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) {
     )
 }
 
-private val PreviewActions = SettingsActions({}, {}, {}, {}, {}, {}, {}, {}, {})
+private val PreviewActions = SettingsActions({}, {}, {}, {}, {}, {}, {}, {})
 
 @PreviewLightDark
 @Composable

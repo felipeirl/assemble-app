@@ -45,7 +45,8 @@ object CompatibilityCalculator {
     const val WEIGHT_STYLE = 20
     const val WEIGHT_FAME = 10
 
-    /** Largura das faixas abaixo do limiar: Possible = [L-20, L-1]. */
+    /** Faixas fixas do card: High ≥ 70, Possible 50–69, Low < 50 (não há ajuste pelo usuário). */
+    const val MATCH_THRESHOLD = 70
     const val POSSIBLE_BAND_WIDTH = 20
 
     /** Escala log de fama: 100 aparições = Hidden gems (1), 10.000 = Icons (0). */
@@ -64,10 +65,10 @@ object CompatibilityCalculator {
             famePoints = famePoints(preferences.fame, character.issueAppearances),
         )
 
-    /** High ≥ L; Possible entre L−20 e L−1; Low < L−20. */
-    fun band(score: Int, threshold: Int): MatchBand = when {
-        score >= threshold -> MatchBand.High
-        score >= threshold - POSSIBLE_BAND_WIDTH -> MatchBand.Possible
+    /** High ≥ 70; Possible 50–69; Low < 50. */
+    fun band(score: Int): MatchBand = when {
+        score >= MATCH_THRESHOLD -> MatchBand.High
+        score >= MATCH_THRESHOLD - POSSIBLE_BAND_WIDTH -> MatchBand.Possible
         else -> MatchBand.Low
     }
 

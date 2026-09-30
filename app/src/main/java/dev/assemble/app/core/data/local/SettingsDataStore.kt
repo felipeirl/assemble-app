@@ -5,7 +5,6 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
-import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import dev.assemble.app.core.model.AppSettings
@@ -20,7 +19,7 @@ private const val SETTINGS_STORE_NAME = "settings"
 
 val Context.settingsDataStore: DataStore<StoredPreferences> by preferencesDataStore(name = SETTINGS_STORE_NAME)
 
-/** Configurações locais do Settings (tema, limiar, notificações) persistidas em DataStore. */
+/** Configurações locais do Settings (tema e notificações) persistidas em DataStore. */
 class SettingsDataStore(private val dataStore: DataStore<StoredPreferences>) {
 
     val settings: Flow<AppSettings> = dataStore.data
@@ -32,9 +31,8 @@ class SettingsDataStore(private val dataStore: DataStore<StoredPreferences>) {
 
     suspend fun update(transform: (AppSettings) -> AppSettings) {
         dataStore.edit { stored ->
-            val updated = transform(stored.toAppSettings()).normalized()
+            val updated = transform(stored.toAppSettings())
             stored[Keys.THEME] = updated.theme.name
-            stored[Keys.MINIMUM_COMPATIBILITY] = updated.minimumCompatibility
             stored[Keys.NOTIFY_CONNECTIONS] = updated.notifyNewConnections
             stored[Keys.NOTIFY_MESSAGES] = updated.notifyNewMessages
         }
@@ -46,7 +44,6 @@ class SettingsDataStore(private val dataStore: DataStore<StoredPreferences>) {
 
     private object Keys {
         val THEME = stringPreferencesKey("theme")
-        val MINIMUM_COMPATIBILITY = intPreferencesKey("minimum_compatibility")
         val NOTIFY_CONNECTIONS = booleanPreferencesKey("notify_new_connections")
         val NOTIFY_MESSAGES = booleanPreferencesKey("notify_new_messages")
     }
@@ -55,16 +52,8 @@ class SettingsDataStore(private val dataStore: DataStore<StoredPreferences>) {
         val defaults = AppSettings()
         return AppSettings(
             theme = this[Keys.THEME]?.let { name -> ThemePreference.entries.firstOrNull { it.name == name } } ?: defaults.theme,
-            minimumCompatibility = this[Keys.MINIMUM_COMPATIBILITY] ?: defaults.minimumCompatibility,
             notifyNewConnections = this[Keys.NOTIFY_CONNECTIONS] ?: defaults.notifyNewConnections,
             notifyNewMessages = this[Keys.NOTIFY_MESSAGES] ?: defaults.notifyNewMessages,
-        ).normalized()
+        )
     }
-
-    private fun AppSettings.normalized(): AppSettings = copy(
-        minimumCompatibility = minimumCompatibility.coerceIn(
-            AppSettings.MIN_MINIMUM_COMPATIBILITY,
-            AppSettings.MAX_MINIMUM_COMPATIBILITY,
-        ),
-    )
 }

@@ -46,10 +46,9 @@ class DiscoverViewModel(
     private val deck = combine(
         catalog,
         userRepository.preferences,
-        userRepository.settings,
         userRepository.seenCharacterIds,
         connectedCharacterIds,
-    ) { catalog, preferences, settings, seen, connected ->
+    ) { catalog, preferences, seen, connected ->
         when (catalog) {
             Catalog.Loading -> DeckState.Loading
             Catalog.Failed -> DeckState.Error
@@ -57,7 +56,6 @@ class DiscoverViewModel(
                 val cards = buildDeck(
                     characters = catalog.characters,
                     preferences = preferences,
-                    threshold = settings.minimumCompatibility,
                     excludedIds = seen + connected,
                 )
                 if (cards.isEmpty()) DeckState.Empty else DeckState.Content(cards)
@@ -134,7 +132,6 @@ class DiscoverViewModel(
 internal fun buildDeck(
     characters: List<Character>,
     preferences: Preferences,
-    threshold: Int,
     excludedIds: Set<String>,
 ): List<DiscoverCard> = characters
     .filter { it.id !in excludedIds }
@@ -145,7 +142,7 @@ internal fun buildDeck(
             characterId = character.id,
             name = character.name,
             imageUrl = character.imageUrl,
-            band = CompatibilityCalculator.band(breakdown.score, threshold),
+            band = CompatibilityCalculator.band(breakdown.score),
             traitsInCommon = breakdown.matchedTraits(),
         )
     }

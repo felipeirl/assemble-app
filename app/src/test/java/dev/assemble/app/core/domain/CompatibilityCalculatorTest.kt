@@ -123,23 +123,13 @@ class CompatibilityCalculatorTest {
     }
 
     @Test
-    fun band_limitsAtDefaultThreshold() {
-        val threshold = 70
-        assertEquals(MatchBand.High, CompatibilityCalculator.band(100, threshold))
-        assertEquals(MatchBand.High, CompatibilityCalculator.band(70, threshold))
-        assertEquals(MatchBand.Possible, CompatibilityCalculator.band(69, threshold))
-        assertEquals(MatchBand.Possible, CompatibilityCalculator.band(50, threshold))
-        assertEquals(MatchBand.Low, CompatibilityCalculator.band(49, threshold))
-        assertEquals(MatchBand.Low, CompatibilityCalculator.band(0, threshold))
-    }
-
-    @Test
-    fun band_followsCustomThreshold() {
-        assertEquals(MatchBand.Possible, CompatibilityCalculator.band(89, 90))
-        assertEquals(MatchBand.Possible, CompatibilityCalculator.band(70, 90))
-        assertEquals(MatchBand.Low, CompatibilityCalculator.band(69, 90))
-        assertEquals(MatchBand.High, CompatibilityCalculator.band(50, 50))
-        assertEquals(MatchBand.Low, CompatibilityCalculator.band(29, 50))
+    fun band_usesFixedLimits() {
+        assertEquals(MatchBand.High, CompatibilityCalculator.band(100))
+        assertEquals(MatchBand.High, CompatibilityCalculator.band(70))
+        assertEquals(MatchBand.Possible, CompatibilityCalculator.band(69))
+        assertEquals(MatchBand.Possible, CompatibilityCalculator.band(50))
+        assertEquals(MatchBand.Low, CompatibilityCalculator.band(49))
+        assertEquals(MatchBand.Low, CompatibilityCalculator.band(0))
     }
 
     @Test
