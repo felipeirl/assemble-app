@@ -3,7 +3,6 @@ package dev.assemble.app.feature.discover
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dev.assemble.app.core.data.CharacterRepository
-import dev.assemble.app.core.data.ChatRepository
 import dev.assemble.app.core.data.ConnectionRepository
 import dev.assemble.app.core.data.UserRepository
 import dev.assemble.app.core.domain.CompatibilityBreakdown
@@ -16,7 +15,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.io.IOException
 
@@ -30,7 +28,7 @@ class DiscoverViewModel(
     private val characterRepository: CharacterRepository,
     private val userRepository: UserRepository,
     private val connectionRepository: ConnectionRepository,
-    private val chatRepository: ChatRepository,
+    private val assembleService: AssembleService,
 ) : ViewModel() {
 
     private sealed interface Catalog {
@@ -42,8 +40,6 @@ class DiscoverViewModel(
     private val catalog = MutableStateFlow<Catalog>(Catalog.Loading)
     private val connectedCharacterIds = MutableStateFlow<Set<String>>(emptySet())
     private val lastPassedId = MutableStateFlow<String?>(null)
-    private val match = MutableStateFlow<DiscoverMatch?>(null)
-    private val message = MutableStateFlow<DiscoverMessage?>(null)
     private val refreshing = MutableStateFlow(false)
 
     private val deck = combine(
@@ -68,7 +64,7 @@ class DiscoverViewModel(
         }
     }
 
-    val uiState: StateFlow<DiscoverUiState> = combine(deck, lastPassedId, match, message, refreshing) {
+    val uiState: StateFlow<DiscoverUiState> = combine(deck, lastPassedId, assembleService.match, assembleService.message, refreshing) {
             deck, lastPassed, match, message, refreshing ->
         DiscoverUiState(
             deck = deck,
@@ -103,7 +99,7 @@ class DiscoverViewModel(
 
     fun pass(characterId: String) {
         viewModelScope.launch {
-            userRepository.markSeen(characterId)
+            assembleService.pass(characterId)
             lastPassedId.value = characterId
         }
     }
@@ -115,47 +111,16 @@ class DiscoverViewModel(
         viewModelScope.launch { userRepository.unmarkSeen(characterId) }
     }
 
-    /**
-     * Assemble = interesse do usuário. Vira conexão só se o score atingir o limiar;
-     * abaixo dele o card sai e nada é criado.
-     */
+    /** Assemble: vira conexão só se o score atingir o limiar (ver [AssembleService]). */
     fun assemble(characterId: String) {
         val character = (catalog.value as? Catalog.Loaded)?.characters?.firstOrNull { it.id == characterId } ?: return
         lastPassedId.value = null
-        viewModelScope.launch {
-            userRepository.markSeen(characterId)
-            val threshold = userRepository.settings.value.minimumCompatibility
-            val breakdown = CompatibilityCalculator.breakdown(userRepository.preferences.value, character)
-            if (breakdown.score < threshold) {
-                message.value = DiscoverMessage.NotEnoughInCommon
-                return@launch
-            }
-            try {
-                val connection = connectionRepository.connect(characterId, breakdown.score, threshold)
-                connectedCharacterIds.update { it + characterId }
-                chatRepository.startConversation(connection.id)
-                match.value = DiscoverMatch(
-                    characterId = character.id,
-                    name = character.name,
-                    imageUrl = character.imageUrl,
-                    score = breakdown.score,
-                    connectionId = connection.id,
-                    traitsInCommon = breakdown.matchedTraits(),
-                )
-            } catch (_: IOException) {
-                userRepository.unmarkSeen(characterId)
-                message.value = DiscoverMessage.AssembleFailed
-            }
-        }
+        viewModelScope.launch { assembleService.assemble(character) }
     }
 
-    fun onMatchDismissed() {
-        match.value = null
-    }
+    fun onMatchDismissed() = assembleService.dismissMatch()
 
-    fun onMessageShown() {
-        message.value = null
-    }
+    fun onMessageShown() = assembleService.consumeMessage()
 }
 
 /**

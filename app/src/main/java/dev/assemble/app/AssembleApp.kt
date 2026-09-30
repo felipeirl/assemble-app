@@ -37,8 +37,10 @@ import dev.assemble.app.core.designsystem.theme.AssembleTheme
 import dev.assemble.app.core.model.MessageAuthor
 import dev.assemble.app.core.model.UserProfile
 import dev.assemble.app.feature.about.AboutScreen
-import dev.assemble.app.feature.character.CharacterPreviewScreen
-import dev.assemble.app.feature.character.CharacterProfileScreen
+import dev.assemble.app.feature.character.CharacterPreviewRoute
+import dev.assemble.app.feature.character.CharacterPreviewViewModel
+import dev.assemble.app.feature.character.CharacterProfileRoute
+import dev.assemble.app.feature.character.CharacterProfileViewModel
 import dev.assemble.app.feature.chat.ChatListScreen
 import dev.assemble.app.feature.chat.ConversationScreen
 import dev.assemble.app.feature.discover.DiscoverRoute
@@ -210,22 +212,40 @@ private fun MainFlow(container: AppContainer) {
                                         characterRepository = container.characterRepository,
                                         userRepository = container.userRepository,
                                         connectionRepository = container.connectionRepository,
-                                        chatRepository = container.chatRepository,
+                                        assembleService = container.assembleService,
                                     )
                                 },
                                 onOpenMenu = openDrawer,
                                 onOpenPreview = { id -> navigator.navigate(CharacterPreview(id)) },
                                 onAdjustPreferences = { navigator.navigate(Profile) },
+                                onStartChat = { connectionId -> navigator.navigate(Conversation(connectionId)) },
                             )
                         }
                         entry<CharacterPreview> { key ->
-                            CharacterPreviewScreen(characterId = key.characterId, onBack = navigator::goBack)
+                            CharacterPreviewRoute(
+                                viewModel = viewModel {
+                                    CharacterPreviewViewModel(
+                                        characterId = key.characterId,
+                                        characterRepository = container.characterRepository,
+                                        userRepository = container.userRepository,
+                                        assembleService = container.assembleService,
+                                    )
+                                },
+                                onBack = navigator::goBack,
+                            )
                         }
                         entry<CharacterProfile> { key ->
-                            CharacterProfileScreen(
-                                characterId = key.characterId,
+                            CharacterProfileRoute(
+                                viewModel = viewModel {
+                                    CharacterProfileViewModel(
+                                        characterId = key.characterId,
+                                        characterRepository = container.characterRepository,
+                                        connectionRepository = container.connectionRepository,
+                                        userRepository = container.userRepository,
+                                    )
+                                },
                                 onBack = navigator::goBack,
-                                onOpenChat = { navigator.navigate(Conversation("connection-${key.characterId}")) },
+                                onOpenChat = { connectionId -> navigator.navigate(Conversation(connectionId)) },
                             )
                         }
                         entry<ChatList> {

@@ -48,6 +48,29 @@
     <string name="discover_not_enough_in_common">Not enough in common this time</string>
     <string name="discover_assemble_failed">Couldn\'t assemble. Check your connection and try again.</string>
 
+    <!-- Match -->
+    <string name="match_assembled">ASSEMBLED!</string>
+    <string name="match_subtitle">You and %1$s assembled.</string>
+    <string name="why_you_match">Why you match</string>
+    <string name="match_start_chat">Start chat</string>
+    <string name="match_keep_discovering">Keep discovering</string>
+
+    <!-- Personagem -->
+    <string name="preview_loading">Loading character…</string>
+    <string name="preview_error_title">Couldn\'t load this character</string>
+    <string name="profile_loading">Loading profile…</string>
+    <string name="profile_error_title">Couldn\'t load this profile</string>
+    <string name="character_unavailable_title">Character unavailable</string>
+    <string name="character_unavailable_message">Comic Vine didn\'t return this character. It may have been removed.</string>
+    <string name="profile_bio">Bio</string>
+    <string name="profile_real_name">Real name</string>
+    <string name="profile_origin">Origin</string>
+    <string name="profile_powers">Powers</string>
+    <string name="profile_teams">Teams</string>
+    <string name="profile_style">Style</string>
+    <string name="profile_first_appearance">First appearance</string>
+    <string name="profile_issue_appearances">Issue appearances</string>
+
     <!-- Telas e drawer -->
     <string name="settings_title">Settings</string>
     <string name="about_title">About &amp; data sources</string>

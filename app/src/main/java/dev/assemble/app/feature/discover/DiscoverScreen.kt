@@ -62,6 +62,7 @@ fun DiscoverRoute(
     onOpenMenu: () -> Unit,
     onOpenPreview: (characterId: String) -> Unit,
     onAdjustPreferences: () -> Unit,
+    onStartChat: (connectionId: String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -80,6 +81,11 @@ fun DiscoverRoute(
         onRetry = { viewModel.load() },
         onAdjustPreferences = onAdjustPreferences,
         onMessageShown = viewModel::onMessageShown,
+        onStartChat = { connectionId ->
+            viewModel.onMatchDismissed()
+            onStartChat(connectionId)
+        },
+        onKeepDiscovering = viewModel::onMatchDismissed,
         modifier = modifier,
     )
 }
@@ -96,8 +102,17 @@ fun DiscoverScreen(
     onRetry: () -> Unit,
     onAdjustPreferences: () -> Unit,
     onMessageShown: () -> Unit,
+    onStartChat: (connectionId: String) -> Unit = {},
+    onKeepDiscovering: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
+    state.match?.let { match ->
+        MatchOverlay(
+            match = match,
+            onStartChat = { onStartChat(match.connectionId) },
+            onKeepDiscovering = onKeepDiscovering,
+        )
+    }
     val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
     LaunchedEffect(state.message) {

@@ -16,6 +16,7 @@ import dev.assemble.app.core.data.mock.MockSeed
 import dev.assemble.app.core.domain.CompatibilityCalculator
 import dev.assemble.app.core.model.AppSettings
 import dev.assemble.app.core.model.Connection
+import dev.assemble.app.feature.discover.AssembleService
 import java.time.Clock
 import java.time.Instant
 
@@ -51,6 +52,8 @@ class AppContainer(context: Context) {
         connections = connectionRepository,
         initialMessages = MockSeed.initialMessages(Instant.now(clock)),
     )
+
+    val assembleService = AssembleService(userRepository, connectionRepository, chatRepository)
 
     /** Conexões iniciais com o score calculado pelas preferências iniciais do mock. */
     private suspend fun seedConnections(): List<Connection> {
