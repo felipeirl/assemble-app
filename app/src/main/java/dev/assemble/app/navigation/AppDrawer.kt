@@ -15,7 +15,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import dev.assemble.app.R
-import dev.assemble.app.core.designsystem.component.CharacterAvatar
+import dev.assemble.app.core.designsystem.component.AvatarPreset
+import dev.assemble.app.core.designsystem.component.UserAvatar
 import dev.assemble.app.core.designsystem.theme.AssembleTheme
 
 enum class DrawerItem(@StringRes val label: Int) {
@@ -29,6 +30,7 @@ enum class DrawerItem(@StringRes val label: Int) {
 @Composable
 fun AppDrawer(
     userName: String?,
+    avatarPreset: AvatarPreset,
     onItemClick: (DrawerItem) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -45,8 +47,7 @@ fun AppDrawer(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             if (userName != null) {
-                // Avatar provisório; presets do perfil chegam na etapa 10.
-                CharacterAvatar(name = userName, imageUrl = null)
+                UserAvatar(preset = avatarPreset)
                 Text(text = userName, style = AssembleTheme.typography.h2, color = colors.text)
             }
         }
@@ -69,5 +70,5 @@ fun AppDrawer(
 @PreviewLightDark
 @Composable
 private fun AppDrawerPreview() {
-    AssembleTheme { AppDrawer(userName = "Felipe", onItemClick = {}) }
+    AssembleTheme { AppDrawer(userName = "Felipe", avatarPreset = AvatarPreset.Energy, onItemClick = {}) }
 }

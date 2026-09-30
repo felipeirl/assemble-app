@@ -13,6 +13,9 @@ interface UserRepository {
     val preferences: StateFlow<Preferences>
     val seenCharacterIds: StateFlow<Set<String>>
 
+    /** Perfil em memória, sem latência (drawer, avatar no match). Telas de perfil usam [observeProfile]. */
+    val currentProfile: StateFlow<UserProfile>
+
     /** Perfil do usuário. O primeiro valor pode falhar com IOException. */
     fun observeProfile(): Flow<UserProfile>
 

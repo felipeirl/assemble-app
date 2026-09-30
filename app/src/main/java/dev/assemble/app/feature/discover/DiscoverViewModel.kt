@@ -9,6 +9,7 @@ import dev.assemble.app.core.domain.CompatibilityBreakdown
 import dev.assemble.app.core.domain.CompatibilityCalculator
 import dev.assemble.app.core.model.Character
 import dev.assemble.app.core.model.Preferences
+import dev.assemble.app.core.model.UserProfile
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -74,6 +75,9 @@ class DiscoverViewModel(
             message = message,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), DiscoverUiState())
+
+    /** Para o avatar do usuário no pop-up de match. */
+    val userProfile: StateFlow<UserProfile> = userRepository.currentProfile
 
     init {
         load()

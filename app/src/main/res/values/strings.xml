@@ -85,6 +85,20 @@
     <string name="help_title">Help</string>
     <string name="drawer_log_out">Log out</string>
     <string name="profile_edit">Edit profile</string>
+    <string name="profile_stat_seen">Characters seen</string>
+    <string name="profile_stat_connections">Connections</string>
+    <string name="profile_stat_average">Avg. match</string>
+    <string name="profile_my_preferences">My preferences</string>
+    <string name="profile_top_traits">Your top traits</string>
+    <string name="profile_preferences_updated">Your Discover results will update</string>
+    <string name="user_profile_error_title">Couldn\'t load your profile</string>
+    <string name="edit_profile_avatar">Avatar</string>
+    <string name="edit_profile_avatar_option">Avatar %1$d</string>
+    <string name="edit_profile_name">Name</string>
+    <string name="edit_profile_name_required">Enter a name.</string>
+    <string name="edit_profile_save_error">Couldn\'t save your profile. Check your connection and try again.</string>
+    <string name="action_save">Save</string>
+    <string name="value_none">—</string>
 
     <!-- Login e onboarding -->
     <string name="login_continue_google">Continue with Google</string>
@@ -109,6 +123,7 @@
     <string name="onboarding_error">Couldn\'t save your preferences. Check your connection and try again.</string>
     <string name="fame_icons">Icons</string>
     <string name="fame_hidden_gems">Hidden gems</string>
+    <string name="fame_range">Icons ↔ Hidden gems</string>
 
     <!-- Traços -->
     <string name="origin_human">Human</string>

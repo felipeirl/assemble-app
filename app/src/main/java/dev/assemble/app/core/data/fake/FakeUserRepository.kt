@@ -29,6 +29,7 @@ class FakeUserRepository(
     override val settings: StateFlow<AppSettings> = settingsState.asStateFlow()
     override val preferences: StateFlow<Preferences> = preferencesState.asStateFlow()
     override val seenCharacterIds: StateFlow<Set<String>> = seen.asStateFlow()
+    override val currentProfile: StateFlow<UserProfile> = profile.asStateFlow()
 
     override fun observeProfile(): Flow<UserProfile> = flow {
         network.call()

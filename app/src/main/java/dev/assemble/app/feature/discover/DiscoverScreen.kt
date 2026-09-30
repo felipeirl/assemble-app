@@ -40,6 +40,7 @@ import dev.assemble.app.R
 import dev.assemble.app.core.designsystem.component.ActionButton
 import dev.assemble.app.core.designsystem.component.ActionButtonType
 import dev.assemble.app.core.designsystem.component.AssembleTopBar
+import dev.assemble.app.core.designsystem.component.AvatarPreset
 import dev.assemble.app.core.designsystem.component.StateView
 import dev.assemble.app.core.designsystem.component.StateViewType
 import dev.assemble.app.core.designsystem.component.TopBarNavigation
@@ -66,8 +67,10 @@ fun DiscoverRoute(
     modifier: Modifier = Modifier,
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val profile by viewModel.userProfile.collectAsStateWithLifecycle()
     DiscoverScreen(
         state = state,
+        userAvatarPreset = AvatarPreset.fromIndex(profile.avatarPreset),
         onOpenMenu = onOpenMenu,
         onCardClick = onOpenPreview,
         onSwiped = { card, direction ->
@@ -94,6 +97,7 @@ fun DiscoverRoute(
 @Composable
 fun DiscoverScreen(
     state: DiscoverUiState,
+    userAvatarPreset: AvatarPreset = AvatarPreset.Energy,
     onOpenMenu: () -> Unit,
     onCardClick: (characterId: String) -> Unit,
     onSwiped: (DiscoverCard, SwipeDirection) -> Unit,
@@ -109,6 +113,7 @@ fun DiscoverScreen(
     state.match?.let { match ->
         MatchOverlay(
             match = match,
+            userAvatarPreset = userAvatarPreset,
             onStartChat = { onStartChat(match.connectionId) },
             onKeepDiscovering = onKeepDiscovering,
         )

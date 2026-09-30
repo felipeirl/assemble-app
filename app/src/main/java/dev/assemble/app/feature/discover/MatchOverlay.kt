@@ -53,11 +53,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import dev.assemble.app.R
+import dev.assemble.app.core.designsystem.component.AvatarPreset
 import dev.assemble.app.core.designsystem.component.CharacterAvatar
 import dev.assemble.app.core.designsystem.component.PrimaryButton
 import dev.assemble.app.core.designsystem.component.ScoreRing
 import dev.assemble.app.core.designsystem.component.SecondaryButton
 import dev.assemble.app.core.designsystem.component.TraitChip
+import dev.assemble.app.core.designsystem.component.UserAvatar
 import dev.assemble.app.core.designsystem.component.energyGradient
 import dev.assemble.app.core.designsystem.component.halftone
 import dev.assemble.app.core.designsystem.icon.AssembleIcons
@@ -91,6 +93,7 @@ private val ScoreRingSize = 120.dp
 @Composable
 fun MatchOverlay(
     match: DiscoverMatch,
+    userAvatarPreset: AvatarPreset,
     onStartChat: () -> Unit,
     onKeepDiscovering: () -> Unit,
 ) {
@@ -99,7 +102,7 @@ fun MatchOverlay(
         properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false),
     ) {
         AssembleTheme(ThemeMode.Dark) {
-            MatchOverlayContent(match = match, onStartChat = onStartChat, onKeepDiscovering = onKeepDiscovering)
+            MatchOverlayContent(match = match, userAvatarPreset = userAvatarPreset, onStartChat = onStartChat, onKeepDiscovering = onKeepDiscovering)
         }
     }
 }
@@ -108,6 +111,7 @@ fun MatchOverlay(
 @Composable
 internal fun MatchOverlayContent(
     match: DiscoverMatch,
+    userAvatarPreset: AvatarPreset,
     onStartChat: () -> Unit,
     onKeepDiscovering: () -> Unit,
     modifier: Modifier = Modifier,
@@ -162,7 +166,7 @@ internal fun MatchOverlayContent(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(spacing.space5, Alignment.CenterVertically),
         ) {
-            Arena(match = match, slide = slide.value, burst = burst.value, travelPx = with(density) { AvatarTravel.toPx() })
+            Arena(match = match, userAvatarPreset = userAvatarPreset, slide = slide.value, burst = burst.value, travelPx = with(density) { AvatarTravel.toPx() })
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(spacing.space2),
@@ -231,7 +235,7 @@ internal fun MatchOverlayContent(
 
 /** Os dois avatares entram pelos lados e se encontram; no encontro, círculos expandem e somem. */
 @Composable
-private fun Arena(match: DiscoverMatch, slide: Float, burst: Float, travelPx: Float) {
+private fun Arena(match: DiscoverMatch, userAvatarPreset: AvatarPreset, slide: Float, burst: Float, travelPx: Float) {
     val colors = AssembleTheme.colors
     Box(
         modifier = Modifier
@@ -255,7 +259,11 @@ private fun Arena(match: DiscoverMatch, slide: Float, burst: Float, travelPx: Fl
         }
         Row(horizontalArrangement = Arrangement.spacedBy(AssembleTheme.spacing.space2)) {
             Box(Modifier.graphicsLayer { translationX = -slide * travelPx }) {
-                UserAvatar()
+                UserAvatar(
+                    preset = userAvatarPreset,
+                    size = AvatarSize,
+                    modifier = Modifier.border(AvatarBorder, colors.actionAssemble, AssembleTheme.shapes.pill),
+                )
             }
             Box(Modifier.graphicsLayer { translationX = slide * travelPx }) {
                 CharacterAvatar(
@@ -266,24 +274,5 @@ private fun Arena(match: DiscoverMatch, slide: Float, burst: Float, travelPx: Fl
                 )
             }
         }
-    }
-}
-
-@Composable
-private fun UserAvatar() {
-    val colors = AssembleTheme.colors
-    Box(
-        modifier = Modifier
-            .size(AvatarSize)
-            .energyGradient(colors, AssembleTheme.shapes.pill)
-            .border(AvatarBorder, colors.actionAssemble, AssembleTheme.shapes.pill),
-        contentAlignment = Alignment.Center,
-    ) {
-        Icon(
-            imageVector = AssembleIcons.ProfileFilled,
-            contentDescription = null,
-            tint = Color.White,
-            modifier = Modifier.size(AvatarSize / 2),
-        )
     }
 }

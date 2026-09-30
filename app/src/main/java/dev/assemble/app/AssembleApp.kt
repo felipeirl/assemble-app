@@ -38,9 +38,9 @@ import androidx.navigation3.ui.NavDisplay
 import dev.assemble.app.core.data.UserRepository
 import dev.assemble.app.core.designsystem.component.AssembleBottomBar
 import dev.assemble.app.core.designsystem.component.AssembleTab
+import dev.assemble.app.core.designsystem.component.AvatarPreset
 import dev.assemble.app.core.designsystem.theme.AssembleTheme
 import dev.assemble.app.core.model.MessageAuthor
-import dev.assemble.app.core.model.UserProfile
 import dev.assemble.app.feature.about.AboutScreen
 import dev.assemble.app.feature.character.CharacterPreviewRoute
 import dev.assemble.app.feature.character.CharacterPreviewViewModel
@@ -57,10 +57,13 @@ import dev.assemble.app.feature.help.HelpScreen
 import dev.assemble.app.feature.login.LoginRoute
 import dev.assemble.app.feature.login.LoginViewModel
 import dev.assemble.app.feature.onboarding.OnboardingRoute
-import dev.assemble.app.feature.onboarding.OnboardingStep
+import dev.assemble.app.feature.onboarding.isLastStep
+import dev.assemble.app.feature.onboarding.onboardingStepAt
 import dev.assemble.app.feature.onboarding.OnboardingViewModel
-import dev.assemble.app.feature.profile.EditProfileScreen
-import dev.assemble.app.feature.profile.ProfileScreen
+import dev.assemble.app.feature.profile.EditProfileRoute
+import dev.assemble.app.feature.profile.EditProfileViewModel
+import dev.assemble.app.feature.profile.ProfileRoute
+import dev.assemble.app.feature.profile.ProfileViewModel
 import dev.assemble.app.feature.settings.SettingsScreen
 import dev.assemble.app.feature.splash.SplashScreen
 import dev.assemble.app.navigation.About
@@ -82,7 +85,6 @@ import dev.assemble.app.navigation.Splash
 import dev.assemble.app.navigation.TopLevelRoutes
 import dev.assemble.app.navigation.rememberNavigationState
 import dev.assemble.app.navigation.toEntries
-import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
@@ -146,11 +148,11 @@ private fun OnboardingFlow(userRepository: UserRepository) {
         predictivePopTransitionSpec = { backTransition() },
         entryProvider = entryProvider {
             entry<Onboarding> { key ->
-                val step = OnboardingStep.at(key.step)
+                val step = onboardingStepAt(key.step)
                 OnboardingRoute(
                     step = step,
                     viewModel = onboardingViewModel,
-                    onNext = { if (!step.isLast) backStack.add(Onboarding(key.step + 1)) },
+                    onNext = { if (!step.isLastStep) backStack.add(Onboarding(key.step + 1)) },
                     onBack = { backStack.removeLastOrNull() },
                 )
             }
@@ -166,11 +168,7 @@ private fun MainFlow(container: AppContainer) {
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val openDrawer: () -> Unit = { scope.launch { drawerState.open() } }
 
-    val userName by remember(container) {
-        container.userRepository.observeProfile()
-            .map<UserProfile, String?> { it.name }
-            .catch { emit(null) }
-    }.collectAsStateWithLifecycle(initialValue = null)
+    val profile by container.userRepository.currentProfile.collectAsStateWithLifecycle()
     val unreadChats by remember(container) {
         container.chatRepository.allMessages.map { messages ->
             messages.count { it.author == MessageAuthor.Character && !it.read }
@@ -184,7 +182,8 @@ private fun MainFlow(container: AppContainer) {
         gesturesEnabled = drawerState.isOpen || navigationState.isAtTopLevel,
         drawerContent = {
             AppDrawer(
-                userName = userName,
+                userName = profile.name,
+                avatarPreset = AvatarPreset.fromIndex(profile.avatarPreset),
                 onItemClick = { item ->
                     scope.launch { drawerState.close() }
                     when (item) {
@@ -287,13 +286,25 @@ private fun MainFlow(container: AppContainer) {
                                 )
                             }
                             entry<Profile> {
-                                ProfileScreen(
+                                ProfileRoute(
+                                    viewModel = viewModel {
+                                        ProfileViewModel(
+                                            characterRepository = container.characterRepository,
+                                            connectionRepository = container.connectionRepository,
+                                            userRepository = container.userRepository,
+                                        )
+                                    },
                                     onOpenMenu = openDrawer,
                                     onEditProfile = { navigator.navigate(EditProfile) },
                                     onOpenCharacter = { id -> navigator.navigate(CharacterProfile(id)) },
                                 )
                             }
-                            entry<EditProfile> { EditProfileScreen(onBack = navigator::goBack) }
+                            entry<EditProfile> {
+                                EditProfileRoute(
+                                    viewModel = viewModel { EditProfileViewModel(container.userRepository) },
+                                    onBack = navigator::goBack,
+                                )
+                            }
                             entry<Settings> { SettingsScreen(onBack = navigator::goBack) }
                             entry<About> { AboutScreen(onBack = navigator::goBack) }
                             entry<Help> { HelpScreen(onBack = navigator::goBack) }

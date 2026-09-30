@@ -2,9 +2,6 @@ package dev.assemble.app.feature.onboarding
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -15,8 +12,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Slider
-import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -25,12 +20,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
-import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.assemble.app.R
@@ -39,13 +32,14 @@ import dev.assemble.app.core.designsystem.component.AssembleTopBar
 import dev.assemble.app.core.designsystem.component.PrimaryButton
 import dev.assemble.app.core.designsystem.component.TopBarNavigation
 import dev.assemble.app.core.designsystem.component.TopBarTitle
-import dev.assemble.app.core.designsystem.component.TraitChip
 import dev.assemble.app.core.designsystem.theme.AssembleTheme
-import dev.assemble.app.core.ui.traitLabel
+import dev.assemble.app.core.model.PreferenceCategory
+import dev.assemble.app.core.ui.PreferenceEditor
+import dev.assemble.app.core.ui.title
 
 @Composable
 fun OnboardingRoute(
-    step: OnboardingStep,
+    step: PreferenceCategory,
     viewModel: OnboardingViewModel,
     onNext: () -> Unit,
     onBack: () -> Unit,
@@ -67,7 +61,7 @@ fun OnboardingRoute(
 
 @Composable
 fun OnboardingScreen(
-    step: OnboardingStep,
+    step: PreferenceCategory,
     state: OnboardingUiState,
     onToggle: (Enum<*>) -> Unit,
     onSelectAny: () -> Unit,
@@ -87,7 +81,7 @@ fun OnboardingScreen(
                 title = TopBarTitle.None,
                 navigation = if (step.ordinal > 0) TopBarNavigation.Back(onBack) else TopBarNavigation.None,
                 actions = {
-                    if (!step.isLast) {
+                    if (!step.isLastStep) {
                         TextButton(onClick = onNext) {
                             Text(
                                 text = stringResource(R.string.onboarding_skip),
@@ -112,7 +106,7 @@ fun OnboardingScreen(
             verticalArrangement = Arrangement.spacedBy(spacing.space4),
         ) {
             LinearProgressIndicator(
-                progress = { (step.ordinal + 1f) / OnboardingStep.entries.size },
+                progress = { (step.ordinal + 1f) / PreferenceCategory.entries.size },
                 modifier = Modifier.fillMaxWidth(),
                 color = colors.actionAssemble,
                 trackColor = colors.border,
@@ -129,63 +123,12 @@ fun OnboardingScreen(
                 style = AssembleTheme.typography.body,
                 color = colors.textMuted,
             )
-            if (step == OnboardingStep.Fame) {
-                FameSlider(value = state.preferences.fame, onValueChange = onFameChange)
-            } else {
-                TraitOptions(step = step, state = state, onToggle = onToggle, onSelectAny = onSelectAny)
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun TraitOptions(
-    step: OnboardingStep,
-    state: OnboardingUiState,
-    onToggle: (Enum<*>) -> Unit,
-    onSelectAny: () -> Unit,
-) {
-    FlowRow(
-        horizontalArrangement = Arrangement.spacedBy(AssembleTheme.spacing.space2),
-    ) {
-        TraitChip(
-            label = stringResource(R.string.onboarding_any),
-            selected = state.isAny(step),
-            onSelectedChange = { onSelectAny() },
-        )
-        state.optionsFor(step).forEach { (trait, selected) ->
-            TraitChip(
-                label = stringResource(traitLabel(trait)),
-                selected = selected,
-                onSelectedChange = { onToggle(trait) },
-            )
-        }
-    }
-}
-
-@Composable
-private fun FameSlider(value: Float, onValueChange: (Float) -> Unit) {
-    val colors = AssembleTheme.colors
-    val description = stringResource(R.string.onboarding_step_fame)
-    Column(verticalArrangement = Arrangement.spacedBy(AssembleTheme.spacing.space2)) {
-        Slider(
-            value = value,
-            onValueChange = onValueChange,
-            modifier = Modifier.semantics { contentDescription = description },
-            colors = SliderDefaults.colors(
-                thumbColor = colors.actionAssemble,
-                activeTrackColor = colors.actionAssemble,
-                inactiveTrackColor = colors.border,
-            ),
-        )
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            Text(stringResource(R.string.fame_icons), style = AssembleTheme.typography.caption, color = colors.text)
-            Text(
-                stringResource(R.string.fame_hidden_gems),
-                style = AssembleTheme.typography.caption,
-                color = colors.text,
-                textAlign = TextAlign.End,
+            PreferenceEditor(
+                category = step,
+                preferences = state.preferences,
+                onToggle = onToggle,
+                onSelectAny = onSelectAny,
+                onFameChange = onFameChange,
             )
         }
     }
@@ -193,7 +136,7 @@ private fun FameSlider(value: Float, onValueChange: (Float) -> Unit) {
 
 @Composable
 private fun OnboardingFooter(
-    step: OnboardingStep,
+    step: PreferenceCategory,
     state: OnboardingUiState,
     onNext: () -> Unit,
     onFinish: () -> Unit,
@@ -206,7 +149,7 @@ private fun OnboardingFooter(
             .padding(spacing.space4),
         verticalArrangement = Arrangement.spacedBy(spacing.space2),
     ) {
-        if (step.isLast) {
+        if (step.isLastStep) {
             if (!state.canFinish) {
                 Text(
                     text = pluralStringResource(
@@ -248,7 +191,7 @@ private fun OnboardingFooter(
 private fun OnboardingChipsPreview() {
     AssembleTheme {
         OnboardingScreen(
-            step = OnboardingStep.Powers,
+            step = PreferenceCategory.Powers,
             state = OnboardingUiState(MockSeed.initialPreferences),
             onToggle = {}, onSelectAny = {}, onFameChange = {}, onNext = {}, onBack = {}, onFinish = {},
         )
@@ -260,7 +203,7 @@ private fun OnboardingChipsPreview() {
 private fun OnboardingFamePreview() {
     AssembleTheme {
         OnboardingScreen(
-            step = OnboardingStep.Fame,
+            step = PreferenceCategory.Fame,
             state = OnboardingUiState(MockSeed.initialPreferences.copy(origins = emptySet(), powers = emptySet())),
             onToggle = {}, onSelectAny = {}, onFameChange = {}, onNext = {}, onBack = {}, onFinish = {},
         )
