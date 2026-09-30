@@ -12,9 +12,10 @@ class MainActivity : ComponentActivity() {
         installSplashScreen()
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        val container = (application as MyApplication).container
         setContent {
             AssembleTheme {
-                AssembleApp()
+                AssembleApp(container)
             }
         }
     }

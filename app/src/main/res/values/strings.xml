@@ -37,4 +37,22 @@
 
     <!-- Estados -->
     <string name="state_try_again">Try again</string>
+
+    <!-- Telas e drawer -->
+    <string name="settings_title">Settings</string>
+    <string name="about_title">About &amp; data sources</string>
+    <string name="help_title">Help</string>
+    <string name="drawer_log_out">Log out</string>
+    <string name="profile_edit">Edit profile</string>
+
+    <!-- Login e onboarding -->
+    <string name="login_continue_google">Continue with Google</string>
+    <string name="login_continue_email">Continue with email</string>
+    <string name="onboarding_step_origin">Origin</string>
+    <string name="onboarding_step_powers">Powers</string>
+    <string name="onboarding_step_teams">Teams</string>
+    <string name="onboarding_step_style">Style</string>
+    <string name="onboarding_step_fame">Fame</string>
+    <string name="onboarding_skip">Skip</string>
+    <string name="onboarding_start">Start discovering</string>
 </resources>
