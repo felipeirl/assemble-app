@@ -12,9 +12,6 @@ captures/
 *.aab
 google-services.json
 
-# Backend (Maven)
-backend/target/
-
 # Kotlin (dados de sessão do compilador)
 .kotlin/
 
