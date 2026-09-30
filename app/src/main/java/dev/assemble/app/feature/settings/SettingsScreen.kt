@@ -36,7 +36,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -106,10 +106,10 @@ fun SettingsScreen(
     modifier: Modifier = Modifier,
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
-    val context = LocalContext.current
+    val resources = LocalResources.current
     LaunchedEffect(message) {
         val current = message ?: return@LaunchedEffect
-        val text = context.getString(
+        val text = resources.getString(
             when (current) {
                 SettingsMessage.PreferencesReset -> R.string.settings_msg_preferences_reset
                 SettingsMessage.SeenCleared -> R.string.settings_msg_seen_cleared

@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.ime
@@ -54,6 +55,7 @@ import dev.assemble.app.core.designsystem.component.ChatBubble
 import dev.assemble.app.core.designsystem.component.StateView
 import dev.assemble.app.core.designsystem.component.StateViewType
 import dev.assemble.app.core.designsystem.component.TypingIndicator
+import dev.assemble.app.core.designsystem.component.scaledTopBarHeight
 import dev.assemble.app.core.designsystem.icon.AssembleIcons
 import dev.assemble.app.core.designsystem.theme.AssembleTheme
 import dev.assemble.app.core.model.Message
@@ -65,6 +67,7 @@ private const val SendingAlpha = 0.6f
 private const val TypingItemKey = "typing"
 private val TopBarAvatarSize = 36.dp
 private val ErrorIconSize = 16.dp
+private val MinTouchTarget = 48.dp
 
 @Composable
 fun ConversationRoute(
@@ -112,6 +115,7 @@ fun ConversationScreen(
         containerColor = colors.bg,
         topBar = {
             TopAppBar(
+                expandedHeight = scaledTopBarHeight(),
                 title = { if (content != null) ConversationTitle(content, onOpenCharacter) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
@@ -156,6 +160,7 @@ private fun ConversationTitle(content: ConversationUiState.Content, onOpenCharac
     val spacing = AssembleTheme.spacing
     Row(
         modifier = Modifier
+            .defaultMinSize(minHeight = MinTouchTarget)
             .clickable(role = Role.Button, onClick = { onOpenCharacter(content.characterId) })
             .semantics(mergeDescendants = true) {}
             .padding(vertical = spacing.space1),

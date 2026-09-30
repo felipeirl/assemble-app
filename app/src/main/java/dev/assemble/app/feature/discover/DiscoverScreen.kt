@@ -30,7 +30,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.tooling.preview.PreviewLightDark
@@ -97,7 +97,6 @@ fun DiscoverRoute(
 @Composable
 fun DiscoverScreen(
     state: DiscoverUiState,
-    userAvatarPreset: AvatarPreset = AvatarPreset.Energy,
     onOpenMenu: () -> Unit,
     onCardClick: (characterId: String) -> Unit,
     onSwiped: (DiscoverCard, SwipeDirection) -> Unit,
@@ -106,9 +105,10 @@ fun DiscoverScreen(
     onRetry: () -> Unit,
     onAdjustPreferences: () -> Unit,
     onMessageShown: () -> Unit,
+    modifier: Modifier = Modifier,
+    userAvatarPreset: AvatarPreset = AvatarPreset.Energy,
     onStartChat: (connectionId: String) -> Unit = {},
     onKeepDiscovering: () -> Unit = {},
-    modifier: Modifier = Modifier,
 ) {
     state.match?.let { match ->
         MatchOverlay(
@@ -119,12 +119,12 @@ fun DiscoverScreen(
         )
     }
     val snackbarHostState = remember { SnackbarHostState() }
-    val context = LocalContext.current
+    val resources = LocalResources.current
     LaunchedEffect(state.message) {
         val message = state.message ?: return@LaunchedEffect
         val text = when (message) {
-            DiscoverMessage.NotEnoughInCommon -> context.getString(R.string.discover_not_enough_in_common)
-            DiscoverMessage.AssembleFailed -> context.getString(R.string.discover_assemble_failed)
+            DiscoverMessage.NotEnoughInCommon -> resources.getString(R.string.discover_not_enough_in_common)
+            DiscoverMessage.AssembleFailed -> resources.getString(R.string.discover_assemble_failed)
         }
         // Limpar a mensagem só depois: mudar a chave antes cancelaria este efeito.
         snackbarHostState.showSnackbar(text)

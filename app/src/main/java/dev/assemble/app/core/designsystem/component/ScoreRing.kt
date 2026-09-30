@@ -4,24 +4,22 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.tooling.preview.PreviewLightDark
+import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import dev.assemble.app.R
@@ -35,6 +33,7 @@ private const val FullSweep = 360f
 private const val CountUpMillis = 800
 private val DefaultRingSize = 112.dp
 private val DefaultStrokeWidth = 8.dp
+private val TextInset = 8.dp
 
 /** Anel de compatibilidade (score) com a porcentagem exata no centro. Só depois da conexão. */
 @Composable
@@ -58,41 +57,49 @@ fun ScoreRing(
 
     val colors = AssembleTheme.colors
     val description = stringResource(R.string.score_ring_description, target)
-    Box(
-        modifier = modifier
-            .size(size)
-            .clearAndSetSemantics { contentDescription = description },
-        contentAlignment = Alignment.Center,
-    ) {
-        Canvas(Modifier.fillMaxSize()) {
-            val stroke = strokeWidth.toPx()
-            val inset = stroke / 2
-            val arcSize = Size(this.size.width - stroke, this.size.height - stroke)
-            val topLeft = Offset(inset, inset)
-            drawArc(
-                color = colors.border,
-                startAngle = 0f,
-                sweepAngle = FullSweep,
-                useCenter = false,
-                topLeft = topLeft,
-                size = arcSize,
-                style = Stroke(stroke),
+    // Layout próprio: o anel cresce para caber o número quando a fonte do sistema está grande.
+    Layout(
+        modifier = modifier.clearAndSetSemantics { contentDescription = description },
+        content = {
+            Canvas(Modifier) {
+                val stroke = strokeWidth.toPx()
+                val inset = stroke / 2
+                val arcSize = Size(this.size.width - stroke, this.size.height - stroke)
+                val topLeft = Offset(inset, inset)
+                drawArc(
+                    color = colors.border,
+                    startAngle = 0f,
+                    sweepAngle = FullSweep,
+                    useCenter = false,
+                    topLeft = topLeft,
+                    size = arcSize,
+                    style = Stroke(stroke),
+                )
+                drawArc(
+                    color = colors.score,
+                    startAngle = StartAngle,
+                    sweepAngle = FullSweep * progress.value / MaxPercent,
+                    useCenter = false,
+                    topLeft = topLeft,
+                    size = arcSize,
+                    style = Stroke(stroke, cap = StrokeCap.Round),
+                )
+            }
+            Text(
+                text = stringResource(R.string.score_ring_value, progress.value.roundToInt()),
+                style = AssembleTheme.typography.displayMd,
+                color = colors.text,
             )
-            drawArc(
-                color = colors.score,
-                startAngle = StartAngle,
-                sweepAngle = FullSweep * progress.value / MaxPercent,
-                useCenter = false,
-                topLeft = topLeft,
-                size = arcSize,
-                style = Stroke(stroke, cap = StrokeCap.Round),
-            )
+        },
+    ) { measurables, _ ->
+        val label = measurables[1].measure(Constraints())
+        val inset = (strokeWidth + TextInset).roundToPx()
+        val side = maxOf(size.roundToPx(), label.width + 2 * inset, label.height + 2 * inset)
+        val ring = measurables[0].measure(Constraints.fixed(side, side))
+        layout(side, side) {
+            ring.place(0, 0)
+            label.place((side - label.width) / 2, (side - label.height) / 2)
         }
-        Text(
-            text = stringResource(R.string.score_ring_value, progress.value.roundToInt()),
-            style = AssembleTheme.typography.displayMd,
-            color = colors.text,
-        )
     }
 }
 

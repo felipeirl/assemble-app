@@ -10,6 +10,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavEntry
+import androidx.navigation3.runtime.NavEntryDecorator
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.rememberDecoratedNavEntries
 import androidx.navigation3.runtime.rememberNavBackStack
@@ -53,15 +54,19 @@ fun rememberNavigationState(startRoute: NavKey, topLevelRoutes: Set<NavKey>): Na
     }
 }
 
-/** Entradas decoradas (estado salvo + ViewModel por entrada) das pilhas em uso, concatenadas. */
+/** Entradas decoradas (estado salvo, ViewModel por entrada e [extraDecorator]) das pilhas em uso, concatenadas. */
 @Composable
-fun NavigationState.toEntries(entryProvider: (NavKey) -> NavEntry<NavKey>): List<NavEntry<NavKey>> {
+fun NavigationState.toEntries(
+    extraDecorator: NavEntryDecorator<NavKey>,
+    entryProvider: (NavKey) -> NavEntry<NavKey>,
+): List<NavEntry<NavKey>> {
     val decorated = backStacks.mapValues { (_, stack) ->
         rememberDecoratedNavEntries(
             backStack = stack,
             entryDecorators = listOf(
                 rememberSaveableStateHolderNavEntryDecorator(),
                 rememberViewModelStoreNavEntryDecorator(),
+                extraDecorator,
             ),
             entryProvider = entryProvider,
         )

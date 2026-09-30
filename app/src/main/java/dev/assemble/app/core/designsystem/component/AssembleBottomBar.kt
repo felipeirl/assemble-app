@@ -104,6 +104,7 @@ private fun BottomBarItem(
     val colors = AssembleTheme.colors
     val tint = if (selected) colors.accentText else colors.textMuted
     val label = stringResource(tab.labelRes())
+    val crossfadeMillis = if (rememberAnimationsEnabled()) IconCrossfadeMillis else 0
     Column(
         modifier = modifier
             .clip(AssembleTheme.shapes.sm)
@@ -114,7 +115,7 @@ private fun BottomBarItem(
         verticalArrangement = Arrangement.spacedBy(AssembleTheme.spacing.space1),
     ) {
         Box {
-            Crossfade(targetState = selected, animationSpec = tween(IconCrossfadeMillis), label = "tabIcon") { active ->
+            Crossfade(targetState = selected, animationSpec = tween(crossfadeMillis), label = "tabIcon") { active ->
                 Icon(
                     imageVector = tab.icon(active),
                     contentDescription = null,

@@ -1,15 +1,8 @@
 package dev.assemble.app
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.animation.AnimatedContentTransitionScope
-import androidx.compose.animation.ContentTransform
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
@@ -40,6 +33,7 @@ import dev.assemble.app.core.designsystem.component.AssembleBottomBar
 import dev.assemble.app.core.designsystem.component.AssembleTab
 import dev.assemble.app.core.designsystem.component.AvatarPreset
 import dev.assemble.app.core.designsystem.theme.AssembleTheme
+import dev.assemble.app.core.designsystem.theme.rememberAnimationsEnabled
 import dev.assemble.app.core.model.MessageAuthor
 import dev.assemble.app.feature.about.AboutScreen
 import dev.assemble.app.feature.character.CharacterPreviewRoute
@@ -70,6 +64,8 @@ import dev.assemble.app.feature.splash.SplashScreen
 import dev.assemble.app.navigation.About
 import dev.assemble.app.navigation.AppDrawer
 import dev.assemble.app.navigation.CharacterPreview
+import dev.assemble.app.navigation.diagonalTransition
+import dev.assemble.app.navigation.rememberDiagonalRevealDecorator
 import dev.assemble.app.navigation.CharacterProfile
 import dev.assemble.app.navigation.ChatList
 import dev.assemble.app.navigation.Conversation
@@ -92,7 +88,6 @@ import kotlinx.coroutines.launch
 private enum class AppFlow { Entry, Onboarding, Main }
 
 private const val TransitionMillis = 250
-private const val SlideDivisor = 5
 
 /** Raiz da UI: escolhe o fluxo pela sessão (entrada → onboarding → app) e hospeda a navegação. */
 @Composable
@@ -103,7 +98,12 @@ fun AssembleApp(container: AppContainer) {
         !session.hasCompletedOnboarding -> AppFlow.Onboarding
         else -> AppFlow.Main
     }
-    Crossfade(targetState = flow, animationSpec = tween(TransitionMillis), label = "appFlow") { current ->
+    val animationsEnabled = rememberAnimationsEnabled()
+    Crossfade(
+        targetState = flow,
+        animationSpec = tween(if (animationsEnabled) TransitionMillis else 0),
+        label = "appFlow",
+    ) { current ->
         when (current) {
             AppFlow.Entry -> EntryFlow(container.userRepository)
             AppFlow.Onboarding -> OnboardingFlow(container.userRepository)
@@ -114,6 +114,7 @@ fun AssembleApp(container: AppContainer) {
 
 @Composable
 private fun EntryFlow(userRepository: UserRepository) {
+    val animationsEnabled = rememberAnimationsEnabled()
     val backStack = rememberNavBackStack(Splash)
     NavDisplay(
         backStack = backStack,
@@ -121,10 +122,11 @@ private fun EntryFlow(userRepository: UserRepository) {
         entryDecorators = listOf(
             rememberSaveableStateHolderNavEntryDecorator(),
             rememberViewModelStoreNavEntryDecorator(),
+            rememberDiagonalRevealDecorator(animationsEnabled),
         ),
-        transitionSpec = { forwardTransition() },
-        popTransitionSpec = { backTransition() },
-        predictivePopTransitionSpec = { backTransition() },
+        transitionSpec = { diagonalTransition(animationsEnabled) },
+        popTransitionSpec = { diagonalTransition(animationsEnabled) },
+        predictivePopTransitionSpec = { diagonalTransition(animationsEnabled) },
         entryProvider = entryProvider {
             entry<Splash> { SplashScreen(onFinished = { backStack[backStack.lastIndex] = Login }) }
             entry<Login> { LoginRoute(viewModel = viewModel { LoginViewModel(userRepository) }) }
@@ -134,6 +136,7 @@ private fun EntryFlow(userRepository: UserRepository) {
 
 @Composable
 private fun OnboardingFlow(userRepository: UserRepository) {
+    val animationsEnabled = rememberAnimationsEnabled()
     // Um ViewModel para os 5 passos: as escolhas sobrevivem ao ir e voltar entre eles.
     val onboardingViewModel = viewModel { OnboardingViewModel(userRepository) }
     val backStack = rememberNavBackStack(Onboarding(step = 0))
@@ -143,10 +146,11 @@ private fun OnboardingFlow(userRepository: UserRepository) {
         entryDecorators = listOf(
             rememberSaveableStateHolderNavEntryDecorator(),
             rememberViewModelStoreNavEntryDecorator(),
+            rememberDiagonalRevealDecorator(animationsEnabled),
         ),
-        transitionSpec = { forwardTransition() },
-        popTransitionSpec = { backTransition() },
-        predictivePopTransitionSpec = { backTransition() },
+        transitionSpec = { diagonalTransition(animationsEnabled) },
+        popTransitionSpec = { diagonalTransition(animationsEnabled) },
+        predictivePopTransitionSpec = { diagonalTransition(animationsEnabled) },
         entryProvider = entryProvider {
             entry<Onboarding> { key ->
                 val step = onboardingStepAt(key.step)
@@ -163,6 +167,7 @@ private fun OnboardingFlow(userRepository: UserRepository) {
 
 @Composable
 private fun MainFlow(container: AppContainer) {
+    val animationsEnabled = rememberAnimationsEnabled()
     val scope = rememberCoroutineScope()
     val navigationState = rememberNavigationState(startRoute = Discover, topLevelRoutes = TopLevelRoutes)
     val navigator = remember(navigationState) { Navigator(navigationState) }
@@ -213,6 +218,7 @@ private fun MainFlow(container: AppContainer) {
             ) { padding ->
                 NavDisplay(
                     entries = navigationState.toEntries(
+                        extraDecorator = rememberDiagonalRevealDecorator(animationsEnabled),
                         entryProvider {
                             entry<Discover> {
                                 DiscoverRoute(
@@ -326,9 +332,9 @@ private fun MainFlow(container: AppContainer) {
                     modifier = Modifier
                         .padding(padding)
                         .consumeWindowInsets(padding),
-                    transitionSpec = { forwardTransition() },
-                    popTransitionSpec = { backTransition() },
-                    predictivePopTransitionSpec = { backTransition() },
+                    transitionSpec = { diagonalTransition(animationsEnabled) },
+                    popTransitionSpec = { diagonalTransition(animationsEnabled) },
+                    predictivePopTransitionSpec = { diagonalTransition(animationsEnabled) },
                 )
             }
             IncomingMessageToastHost(
@@ -343,15 +349,6 @@ private fun MainFlow(container: AppContainer) {
         }
     }
 }
-
-// Fallback do prompt (fade + slide). O corte diagonal com clipPath fica para a revisão de animações.
-private fun <T> AnimatedContentTransitionScope<T>.forwardTransition(): ContentTransform =
-    (slideInHorizontally(tween(TransitionMillis)) { it / SlideDivisor } + fadeIn(tween(TransitionMillis))) togetherWith
-        fadeOut(tween(TransitionMillis))
-
-private fun <T> AnimatedContentTransitionScope<T>.backTransition(): ContentTransform =
-    fadeIn(tween(TransitionMillis)) togetherWith
-        (slideOutHorizontally(tween(TransitionMillis)) { it / SlideDivisor } + fadeOut(tween(TransitionMillis)))
 
 private fun NavKey.toTab(): AssembleTab = when (this) {
     ChatList -> AssembleTab.Chat

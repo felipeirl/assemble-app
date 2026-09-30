@@ -2,4 +2,6 @@
 <resources>
     <!-- Só para a janela/splash. Cores da UI ficam em core/designsystem/theme. -->
     <color name="midnight">#0B1020</color>
+    <!-- Fundo da janela (bg claro); o escuro fica em values-night. -->
+    <color name="window_background">#F5F1E8</color>
 </resources>

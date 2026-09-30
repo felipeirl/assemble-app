@@ -31,7 +31,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
@@ -112,12 +112,12 @@ fun ProfileScreen(
     modifier: Modifier = Modifier,
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
-    val context = LocalContext.current
+    val resources = LocalResources.current
     LaunchedEffect(message) {
         val current = message ?: return@LaunchedEffect
         val text = when (current) {
-            ProfileMessage.PreferencesUpdated -> context.getString(R.string.profile_preferences_updated)
-            ProfileMessage.PreferencesFailed -> context.getString(R.string.onboarding_error)
+            ProfileMessage.PreferencesUpdated -> resources.getString(R.string.profile_preferences_updated)
+            ProfileMessage.PreferencesFailed -> resources.getString(R.string.onboarding_error)
         }
         // Limpar depois: mudar a chave antes cancelaria este efeito.
         snackbarHostState.showSnackbar(text)
