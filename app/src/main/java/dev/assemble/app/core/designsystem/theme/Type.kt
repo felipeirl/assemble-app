@@ -3,6 +3,7 @@ package dev.assemble.app.core.designsystem.theme
 import androidx.compose.material3.Typography
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
@@ -17,6 +18,7 @@ val BarlowCondensed = FontFamily(
     Font(R.font.barlow_condensed_extrabold_italic, FontWeight.ExtraBold, FontStyle.Italic),
 )
 
+@OptIn(ExperimentalTextApi::class)
 private fun interFont(weight: FontWeight) = Font(
     resId = R.font.inter_variable,
     weight = weight,

@@ -14,13 +14,13 @@ def backendUrl = (localProps.getProperty('BACKEND_URL', '') ?: '').trim().replac
 
 android {
     namespace = 'dev.assemble.app'
-    compileSdk = 37
+    compileSdk = 36
 
     defaultConfig {
         // Base provisória (contrato): applicationId + minSdk 26.
         applicationId = 'dev.assemble.app'
         minSdk = 26
-        targetSdk = 37
+        targetSdk = 36
         versionCode = 1
         versionName = '0.1-dev'
         buildConfigField 'String', 'BACKEND_URL', '"' + backendUrl + '"'
