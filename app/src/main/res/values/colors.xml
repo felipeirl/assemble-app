@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="assemble_pending">#FFA000</color>
+    <!-- Só para a janela/splash. Cores da UI ficam em core/designsystem/theme. -->
+    <color name="midnight">#0B1020</color>
 </resources>

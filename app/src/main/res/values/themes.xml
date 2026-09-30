@@ -1,4 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.Assemble" parent="Theme.Material3.DayNight.NoActionBar" />
+    <!-- Tema da janela. Cores e tipografia da UI vêm do AssembleTheme (Compose). -->
+    <style name="Theme.Assemble" parent="android:Theme.Material.Light.NoActionBar" />
+
+    <!-- Splash Screen API: fundo midnight + foreground do ícone adaptativo. -->
+    <style name="Theme.Assemble.Splash" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/midnight</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item>
+        <item name="postSplashScreenTheme">@style/Theme.Assemble</item>
+    </style>
 </resources>

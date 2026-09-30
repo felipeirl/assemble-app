@@ -1,16 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Assemble</string>
-    <string name="tab_discover">Discover</string>
-    <string name="tab_chat">Chat</string>
-    <string name="tab_profile">Profile</string>
-    <string name="action_pass">Passar (X)</string>
-    <string name="action_assemble">Assemble (coração)</string>
-    <string name="state_loading">Carregando…</string>
-    <string name="state_empty">Nada por aqui ainda.</string>
-    <string name="state_error">Falha de rede. Tentar de novo.</string>
-    <string name="state_pending">Registrado — pendente (sem abrir conversa automática).</string>
-    <string name="card_static_name">Herói Estático Local</string>
-    <string name="card_static_summary">Card estático local para validar navegação e gestos. Sem dados reais.</string>
-    <string name="retry">Tentar de novo</string>
 </resources>
