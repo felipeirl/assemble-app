@@ -50,7 +50,7 @@ sealed interface StateViewType {
     data class Empty(
         val icon: ImageVector,
         val title: String,
-        val message: String,
+        val message: String? = null,
         val actionLabel: String? = null,
         val onAction: (() -> Unit)? = null,
     ) : StateViewType
@@ -131,7 +131,7 @@ private fun LoadingContent(message: String?) {
 private fun MessageContent(
     icon: ImageVector,
     title: String,
-    message: String,
+    message: String?,
     isError: Boolean,
     actionLabel: String? = null,
     onAction: (() -> Unit)? = null,
@@ -146,12 +146,14 @@ private fun MessageContent(
         textAlign = TextAlign.Center,
         modifier = Modifier.semantics { heading() },
     )
-    Text(
-        text = message,
-        style = AssembleTheme.typography.caption,
-        color = colors.textMuted,
-        textAlign = TextAlign.Center,
-    )
+    if (message != null) {
+        Text(
+            text = message,
+            style = AssembleTheme.typography.caption,
+            color = colors.textMuted,
+            textAlign = TextAlign.Center,
+        )
+    }
     if (actionLabel != null && onAction != null) {
         SecondaryButton(
             text = actionLabel,

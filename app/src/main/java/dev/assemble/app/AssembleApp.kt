@@ -41,7 +41,8 @@ import dev.assemble.app.feature.character.CharacterPreviewScreen
 import dev.assemble.app.feature.character.CharacterProfileScreen
 import dev.assemble.app.feature.chat.ChatListScreen
 import dev.assemble.app.feature.chat.ConversationScreen
-import dev.assemble.app.feature.discover.DiscoverScreen
+import dev.assemble.app.feature.discover.DiscoverRoute
+import dev.assemble.app.feature.discover.DiscoverViewModel
 import dev.assemble.app.feature.help.HelpScreen
 import dev.assemble.app.feature.login.LoginRoute
 import dev.assemble.app.feature.login.LoginViewModel
@@ -203,9 +204,18 @@ private fun MainFlow(container: AppContainer) {
                 entries = navigationState.toEntries(
                     entryProvider {
                         entry<Discover> {
-                            DiscoverScreen(
+                            DiscoverRoute(
+                                viewModel = viewModel {
+                                    DiscoverViewModel(
+                                        characterRepository = container.characterRepository,
+                                        userRepository = container.userRepository,
+                                        connectionRepository = container.connectionRepository,
+                                        chatRepository = container.chatRepository,
+                                    )
+                                },
                                 onOpenMenu = openDrawer,
                                 onOpenPreview = { id -> navigator.navigate(CharacterPreview(id)) },
+                                onAdjustPreferences = { navigator.navigate(Profile) },
                             )
                         }
                         entry<CharacterPreview> { key ->

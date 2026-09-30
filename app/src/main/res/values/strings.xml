@@ -37,6 +37,16 @@
 
     <!-- Estados -->
     <string name="state_try_again">Try again</string>
+    <string name="state_error_connection">Check your connection and try again.</string>
+
+    <!-- Discover -->
+    <string name="discover_loading">Loading characters…</string>
+    <string name="discover_error_title">Couldn\'t load characters</string>
+    <string name="discover_empty_title">You\'ve seen everyone for now</string>
+    <string name="discover_adjust_preferences">Adjust preferences</string>
+    <string name="discover_undo">Undo</string>
+    <string name="discover_not_enough_in_common">Not enough in common this time</string>
+    <string name="discover_assemble_failed">Couldn\'t assemble. Check your connection and try again.</string>
 
     <!-- Telas e drawer -->
     <string name="settings_title">Settings</string>
