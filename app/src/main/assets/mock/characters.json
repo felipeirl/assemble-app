@@ -1,0 +1,97 @@
+// Mock local de personagens (etapa sem backend).
+// name, realName e firstAppearance: Comic Vine.
+// origin, powers, teams, styles e issueAppearances: ILUSTRATIVOS, definidos para o mock; não são dados da fonte.
+// bio: null (não inventar). imageUrl: null até a integração com a Comic Vine.
+[
+  {
+    "id": "spider-man",
+    "name": "Spider-Man",
+    "realName": "Peter Parker",
+    "imageUrl": null,
+    "origin": "Radiation",
+    "powers": ["AgilityCombat", "Strength"],
+    "teams": ["Avengers"],
+    "styles": ["Science", "Humor"],
+    "firstAppearance": "Amazing Fantasy #15",
+    "issueAppearances": 9000,
+    "bio": null
+  },
+  {
+    "id": "iron-man",
+    "name": "Iron Man",
+    "realName": "Tony Stark",
+    "imageUrl": null,
+    "origin": "Human",
+    "powers": ["TechGadgets", "Flight"],
+    "teams": ["Avengers"],
+    "styles": ["Science", "Leadership"],
+    "firstAppearance": "Tales of Suspense #39",
+    "issueAppearances": 7000,
+    "bio": null
+  },
+  {
+    "id": "storm",
+    "name": "Storm",
+    "realName": "Ororo Munroe",
+    "imageUrl": null,
+    "origin": "Mutant",
+    "powers": ["Energy", "Flight"],
+    "teams": ["XMen"],
+    "styles": ["Leadership", "Idealist"],
+    "firstAppearance": "Giant-Size X-Men #1",
+    "issueAppearances": 4000,
+    "bio": null
+  },
+  {
+    "id": "captain-america",
+    "name": "Captain America",
+    "realName": "Steve Rogers",
+    "imageUrl": null,
+    "origin": "Human",
+    "powers": ["Strength", "AgilityCombat"],
+    "teams": ["Avengers"],
+    "styles": ["Leadership", "Idealist"],
+    "firstAppearance": "Captain America Comics #1",
+    "issueAppearances": 8000,
+    "bio": null
+  },
+  {
+    "id": "black-panther",
+    "name": "Black Panther",
+    "realName": "T'Challa",
+    "imageUrl": null,
+    "origin": "Human",
+    "powers": ["AgilityCombat", "TechGadgets"],
+    "teams": ["Avengers"],
+    "styles": ["Leadership", "Strategist"],
+    "firstAppearance": "Fantastic Four #52",
+    "issueAppearances": 2500,
+    "bio": null
+  },
+  {
+    "id": "jean-grey",
+    "name": "Jean Grey",
+    "realName": null,
+    "imageUrl": null,
+    "origin": "Mutant",
+    "powers": ["Mind"],
+    "teams": ["XMen"],
+    "styles": ["Idealist"],
+    "firstAppearance": "X-Men #1",
+    "issueAppearances": 3500,
+    "bio": null
+  },
+  {
+    "id": "rocket",
+    "name": "Rocket Raccoon",
+    "realName": null,
+    "imageUrl": null,
+    "origin": "Animal",
+    "powers": ["TechGadgets"],
+    "teams": ["Guardians"],
+    "styles": ["Humor", "Rebel"],
+    "firstAppearance": "Marvel Preview #7",
+    "issueAppearances": 900,
+    "bio": null
+  }
+]
