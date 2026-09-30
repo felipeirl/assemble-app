@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:gravity="center"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <ProgressBar
+        android:id="@+id/chat_loading"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:contentDescription="@string/state_loading"
+        android:visibility="gone" />
+
+    <!-- Vazio: nenhuma conversa (transição score→chat NÃO implementada) -->
+    <TextView
+        android:id="@+id/chat_empty"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/state_empty" />
+
+    <TextView
+        android:id="@+id/chat_error"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/state_error"
+        android:visibility="gone" />
+
+    <Button
+        android:id="@+id/btn_send_stub"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/retry"
+        android:visibility="gone" />
+</LinearLayout>

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    app:startDestination="@id/discoverFragment">
+
+    <fragment
+        android:id="@+id/discoverFragment"
+        android:name="dev.assemble.app.ui.DiscoverFragment"
+        android:label="@string/tab_discover">
+        <action
+            android:id="@+id/action_discover_to_chat"
+            app:destination="@id/chatFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/chatFragment"
+        android:name="dev.assemble.app.ui.ChatFragment"
+        android:label="@string/tab_chat" />
+
+    <fragment
+        android:id="@+id/profileFragment"
+        android:name="dev.assemble.app.ui.ProfileFragment"
+        android:label="@string/tab_profile" />
+</navigation>

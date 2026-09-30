@@ -1,0 +1,75 @@
+rules_version = '2';
+
+// RASCUNHO LOCAL — NÃO FAZER DEPLOY sem revisão do Atlas.
+// Contrato V1 §2 + adendo de segurança 2026-09-30 (contrato §5):
+// o cliente NUNCA escreve campo autoritativo. Score, threshold,
+// algorithmVersion e connected só existem via backend (Admin SDK, que
+// bypassa as regras). Escrita do cliente em decisions aceita SOMENTE
+// {choice, updatedAt}; delete é negado (histórico imutável no cliente).
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    function isValidChoice() {
+      return request.resource.data.choice in ['PASS', 'ASSEMBLE'];
+    }
+
+    // Allowlist estrita: SOMENTE choice + updatedAt.
+    function onlyChoiceKeys() {
+      return request.resource.data.keys().hasOnly(['choice', 'updatedAt']);
+    }
+
+    // Nega explícita de qualquer campo autoritativo (§5).
+    function noAuthoritativeFields() {
+      return !('score' in request.resource.data)
+        && !('threshold' in request.resource.data)
+        && !('algorithmVersion' in request.resource.data)
+        && !('connected' in request.resource.data);
+    }
+
+    // Perfil próprio: leitura/escrita do dono.
+    match /users/{uid} {
+      allow read, write: if isOwner(uid);
+
+      // Decisões: doc id = characterId (idempotente). Cliente grava SÓ a
+      // escolha; score/threshold/algorithmVersion/connected do backend nunca
+      // passam por aqui (só exibição em memória no app).
+      match /decisions/{characterId} {
+        allow get, list: if isOwner(uid);
+        allow create, update: if isOwner(uid)
+          && isValidChoice()
+          && onlyChoiceKeys()
+          && noAuthoritativeFields();
+        // Delete NEGADO de propósito: re-decidir = sobrescrever choice
+        // (idempotente), nunca apagar histórico. Reabrir só p/ dono com
+        // revisão do Atlas, se um dia precisar.
+        allow delete: if false;
+      }
+
+      // Conexões: cliente NUNCA escreve (só backend/Admin SDK cria).
+      // Cliente só lê (get/list) para exibir matches.
+      match /matches/{characterId} {
+        allow get, list: if isOwner(uid);
+        allow create, update, delete: if false;
+
+        // Mensagens: cliente NUNCA escreve (resposta IA gravada pelo backend).
+        // Cliente só lê (get/list) para o chat.
+        match /messages/{messageId} {
+          allow get, list: if isOwner(uid);
+          allow create, update, delete: if false;
+        }
+      }
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
