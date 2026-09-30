@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="catalog_launcher_label">Assemble DS</string>
+    <string name="catalog_title">Design system</string>
+    <string name="catalog_theme_light">Light</string>
+    <string name="catalog_theme_dark">Dark</string>
+    <string name="catalog_section_colors">Colors</string>
+    <string name="catalog_section_type">Typography</string>
+    <string name="catalog_section_spacing">Spacing</string>
+    <string name="catalog_section_radii">Radii</string>
+    <string name="catalog_section_shadows">Shadows</string>
+    <string name="catalog_section_icons">Icons</string>
+    <string name="catalog_section_gradient">Energy gradient + halftone</string>
+    <string name="catalog_section_logo">Logo</string>
+    <string name="catalog_shadow_card">shadow-card</string>
+    <string name="catalog_shadow_action">shadow-action</string>
+    <string name="catalog_sample_display_xl">FIND YOUR TEAM.</string>
+    <string name="catalog_sample_display_md">THE EXPLORER</string>
+    <string name="catalog_sample_h1">Hero Title</string>
+    <string name="catalog_sample_h2">Section Title</string>
+    <string name="catalog_sample_body">Body Text</string>
+    <string name="catalog_sample_caption">Secondary Text</string>
+    <string name="catalog_sample_eyebrow">DISCOVER</string>
+</resources>
