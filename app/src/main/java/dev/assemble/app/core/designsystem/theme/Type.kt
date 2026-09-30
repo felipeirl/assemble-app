@@ -43,6 +43,8 @@ data class AssembleTypography(
     val body: TextStyle,
     val caption: TextStyle,
     val eyebrow: TextStyle,
+    /** 12/16 regular: "Source: Comic Vine" e rótulos pequenos (components.css .as-source). */
+    val small: TextStyle,
 )
 
 val DefaultAssembleTypography = AssembleTypography(
@@ -71,6 +73,7 @@ val DefaultAssembleTypography = AssembleTypography(
         lineHeight = 16.sp,
         letterSpacing = 0.12.em,
     ),
+    small = TextStyle(fontFamily = Inter, fontWeight = FontWeight.Normal, fontSize = 12.sp, lineHeight = 16.sp),
 )
 
 /** Mapeia os estilos do design system para o Typography do M3, para componentes M3 herdarem Inter. */
@@ -88,8 +91,8 @@ internal fun AssembleTypography.toMaterialTypography(): Typography = Typography(
     bodyMedium = caption,
     bodySmall = caption,
     labelLarge = caption.copy(fontWeight = FontWeight.SemiBold),
-    labelMedium = eyebrow.copy(letterSpacing = 0.sp),
-    labelSmall = eyebrow.copy(letterSpacing = 0.sp),
+    labelMedium = small.copy(fontWeight = FontWeight.SemiBold),
+    labelSmall = small,
 )
 
 val LocalAssembleTypography = staticCompositionLocalOf { DefaultAssembleTypography }

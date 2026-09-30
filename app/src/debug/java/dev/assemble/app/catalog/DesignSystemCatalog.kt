@@ -37,6 +37,30 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import dev.assemble.app.R
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import dev.assemble.app.core.designsystem.component.ActionButton
+import dev.assemble.app.core.designsystem.component.ActionButtonSize
+import dev.assemble.app.core.designsystem.component.ActionButtonType
+import dev.assemble.app.core.designsystem.component.AssembleBottomBar
+import dev.assemble.app.core.designsystem.component.AssembleTab
+import dev.assemble.app.core.designsystem.component.AssembleTopBar
+import dev.assemble.app.core.designsystem.component.CharacterCardTeaser
+import dev.assemble.app.core.designsystem.component.ChatAuthor
+import dev.assemble.app.core.designsystem.component.ChatBubble
+import dev.assemble.app.core.designsystem.component.InAppToast
+import dev.assemble.app.core.designsystem.component.LockedSection
+import dev.assemble.app.core.designsystem.component.MatchBandChip
+import dev.assemble.app.core.designsystem.component.ScoreRing
+import dev.assemble.app.core.designsystem.component.StateView
+import dev.assemble.app.core.designsystem.component.StateViewType
+import dev.assemble.app.core.designsystem.component.TopBarNavigation
+import dev.assemble.app.core.designsystem.component.TopBarTitle
+import dev.assemble.app.core.designsystem.component.TraitChip
+import dev.assemble.app.core.designsystem.component.TypingIndicator
+import dev.assemble.app.core.model.MatchBand
 import dev.assemble.app.core.designsystem.component.energyGradient
 import dev.assemble.app.core.designsystem.component.halftone
 import dev.assemble.app.core.designsystem.icon.AssembleIcons
@@ -71,6 +95,7 @@ fun DesignSystemCatalog(themeMode: ThemeMode, onThemeModeChange: (ThemeMode) -> 
         item { Section(R.string.catalog_section_icons) { IconSamples() } }
         item { Section(R.string.catalog_section_gradient) { GradientSample() } }
         item { Section(R.string.catalog_section_logo) { LogoSample() } }
+        item { Section(R.string.catalog_section_components) { ComponentSamples() } }
     }
 }
 
@@ -290,6 +315,63 @@ private fun LogoSample() {
         )
     }
 }
+
+@Composable
+private fun ComponentSamples() {
+    val spacing = AssembleTheme.spacing
+    Column(verticalArrangement = Arrangement.spacedBy(spacing.space5)) {
+        AssembleTopBar(title = TopBarTitle.Logo, navigation = TopBarNavigation.Menu {})
+        AssembleTopBar(title = TopBarTitle.Text(SampleChatTitle), navigation = TopBarNavigation.Back {})
+        Row(horizontalArrangement = Arrangement.spacedBy(spacing.space5), verticalAlignment = Alignment.CenterVertically) {
+            ActionButton(ActionButtonType.Pass, onClick = {})
+            ActionButton(ActionButtonType.Assemble, onClick = {})
+            ActionButton(ActionButtonType.Pass, onClick = {}, size = ActionButtonSize.Small)
+            ActionButton(ActionButtonType.Assemble, onClick = {}, size = ActionButtonSize.Small)
+        }
+        CharacterCardTeaser(
+            name = SampleCharacter,
+            imageUrl = null,
+            band = MatchBand.High,
+            traitsInCommon = SampleTraits,
+            onClick = {},
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(spacing.space2)) {
+            MatchBand.entries.forEach { MatchBandChip(it) }
+        }
+        var selected by remember { mutableStateOf(setOf(SampleTraits.first())) }
+        Row(horizontalArrangement = Arrangement.spacedBy(spacing.space2)) {
+            SampleTraits.forEach { trait ->
+                TraitChip(
+                    label = trait,
+                    selected = trait in selected,
+                    onSelectedChange = { on -> selected = if (on) selected + trait else selected - trait },
+                )
+            }
+        }
+        ScoreRing(percent = SampleScore)
+        ChatBubble(SampleUserMessage, ChatAuthor.User)
+        ChatBubble(SampleAiMessage, ChatAuthor.Ai)
+        TypingIndicator()
+        InAppToast(visible = true, characterName = SampleCharacter, imageUrl = null, onClick = {}, onDismiss = {})
+        StateView(StateViewType.Loading())
+        StateView(StateViewType.Error(title = SampleErrorTitle, message = SampleErrorMessage, onRetry = {}))
+        LockedSection(locked = true) {
+            Text(SampleAiMessage, style = AssembleTheme.typography.body, color = AssembleTheme.colors.text)
+        }
+        var tab by remember { mutableStateOf(AssembleTab.Discover) }
+        AssembleBottomBar(selectedTab = tab, onTabSelected = { tab = it }, unreadChats = 1)
+    }
+}
+
+// Dados de exemplo só do catálogo de debug.
+private const val SampleCharacter = "Spider-Man"
+private const val SampleChatTitle = "Chat"
+private val SampleTraits = listOf("Science", "Humor", "Avengers")
+private const val SampleScore = 82
+private const val SampleUserMessage = "What got you into science?"
+private const val SampleAiMessage = "Honestly? Curiosity and a very radioactive field trip."
+private const val SampleErrorTitle = "Couldn't load characters"
+private const val SampleErrorMessage = "Check your connection and try again."
 
 @Preview(name = "Light", heightDp = 2000)
 @Composable

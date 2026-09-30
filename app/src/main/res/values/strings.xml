@@ -1,4 +1,40 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Assemble</string>
+
+    <!-- Ações -->
+    <string name="action_pass">Pass</string>
+    <string name="action_assemble">Assemble</string>
+
+    <!-- Compatibilidade -->
+    <string name="match_band_high">High match</string>
+    <string name="match_band_possible">Possible match</string>
+    <string name="match_band_low">Low match</string>
+    <string name="score_ring_value">%1$d%%</string>
+    <string name="score_ring_description">%1$d%% match</string>
+
+    <!-- Card e fonte -->
+    <string name="card_in_common">In common</string>
+    <string name="source_comic_vine">Source: Comic Vine</string>
+    <string name="locked_profile">Assemble to unlock the full profile</string>
+
+    <!-- Chat -->
+    <string name="ai_label">AI-generated · fictional</string>
+    <string name="chat_typing">Typing…</string>
+    <string name="toast_new_message">%1$s sent a message</string>
+    <plurals name="chat_unread_count">
+        <item quantity="one">%d unread</item>
+        <item quantity="other">%d unread</item>
+    </plurals>
+    <string name="badge_overflow">99+</string>
+
+    <!-- Navegação -->
+    <string name="nav_discover">Discover</string>
+    <string name="nav_chat">Chat</string>
+    <string name="nav_profile">Profile</string>
+    <string name="top_bar_open_menu">Open menu</string>
+    <string name="top_bar_back">Back</string>
+
+    <!-- Estados -->
+    <string name="state_try_again">Try again</string>
 </resources>

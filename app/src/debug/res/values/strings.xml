@@ -12,6 +12,7 @@
     <string name="catalog_section_icons">Icons</string>
     <string name="catalog_section_gradient">Energy gradient + halftone</string>
     <string name="catalog_section_logo">Logo</string>
+    <string name="catalog_section_components">Components</string>
     <string name="catalog_shadow_card">shadow-card</string>
     <string name="catalog_shadow_action">shadow-action</string>
     <string name="catalog_sample_display_xl">FIND YOUR TEAM.</string>
