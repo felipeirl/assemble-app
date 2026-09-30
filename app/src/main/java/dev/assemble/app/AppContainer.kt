@@ -5,6 +5,8 @@ import dev.assemble.app.core.data.CharacterRepository
 import dev.assemble.app.core.data.ChatRepository
 import dev.assemble.app.core.data.ConnectionRepository
 import dev.assemble.app.core.data.UserRepository
+import dev.assemble.app.core.data.local.SettingsDataStore
+import dev.assemble.app.core.data.local.settingsDataStore
 import dev.assemble.app.core.data.fake.FakeCharacterRepository
 import dev.assemble.app.core.data.fake.FakeChatRepository
 import dev.assemble.app.core.data.fake.FakeConnectionRepository
@@ -20,6 +22,10 @@ import dev.assemble.app.feature.discover.AssembleService
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import java.time.Clock
 import java.time.Instant
 
@@ -40,11 +46,19 @@ class AppContainer(context: Context) {
 
     val characterRepository: CharacterRepository = FakeCharacterRepository(fakeNetwork, catalog)
 
+    private val settingsStore = SettingsDataStore(appContext.settingsDataStore)
+
     val userRepository: UserRepository = FakeUserRepository(
         network = fakeNetwork,
         initialProfile = MockSeed.initialProfile,
         initialPreferences = MockSeed.initialPreferences,
+        settingsStore = settingsStore,
+        scope = applicationScope,
     )
+
+    /** false até o DataStore entregar o primeiro valor: o splash segura a tela (evita piscar o tema). */
+    val settingsLoaded: StateFlow<Boolean> =
+        settingsStore.settings.map { true }.stateIn(applicationScope, SharingStarted.Eagerly, false)
 
     val connectionRepository: ConnectionRepository = FakeConnectionRepository(
         network = fakeNetwork,

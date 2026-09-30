@@ -1,32 +1,38 @@
 package dev.assemble.app.core.data.fake
 
 import dev.assemble.app.core.data.UserRepository
+import dev.assemble.app.core.data.local.SettingsDataStore
 import dev.assemble.app.core.model.AppSettings
 import dev.assemble.app.core.model.Preferences
 import dev.assemble.app.core.model.SessionState
 import dev.assemble.app.core.model.UserProfile
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 
-/** Usuário, sessão, preferências e configurações em memória. Settings vão para DataStore na etapa 11. */
+/** Usuário, sessão e preferências em memória; Settings (tema, limiar, notificações) em DataStore. */
 class FakeUserRepository(
     private val network: FakeNetwork,
     private val initialProfile: UserProfile,
     initialPreferences: Preferences,
+    private val settingsStore: SettingsDataStore,
+    scope: CoroutineScope,
 ) : UserRepository {
     private val sessionState = MutableStateFlow(SessionState())
-    private val settingsState = MutableStateFlow(AppSettings())
     private val preferencesState = MutableStateFlow(initialPreferences)
     private val seen = MutableStateFlow<Set<String>>(emptySet())
     private val profile = MutableStateFlow(initialProfile)
 
     override val session: StateFlow<SessionState> = sessionState.asStateFlow()
-    override val settings: StateFlow<AppSettings> = settingsState.asStateFlow()
+    override val settings: StateFlow<AppSettings> =
+        settingsStore.settings.stateIn(scope, SharingStarted.Eagerly, AppSettings())
     override val preferences: StateFlow<Preferences> = preferencesState.asStateFlow()
     override val seenCharacterIds: StateFlow<Set<String>> = seen.asStateFlow()
     override val currentProfile: StateFlow<UserProfile> = profile.asStateFlow()
@@ -67,7 +73,7 @@ class FakeUserRepository(
     }
 
     override suspend fun updateSettings(transform: (AppSettings) -> AppSettings) {
-        settingsState.update(transform)
+        settingsStore.update(transform)
     }
 
     override suspend fun markSeen(characterId: String) {
@@ -86,7 +92,7 @@ class FakeUserRepository(
         network.call()
         profile.value = initialProfile
         preferencesState.value = Preferences.Any
-        settingsState.value = AppSettings()
+        settingsStore.reset()
         seen.value = emptySet()
         sessionState.value = SessionState()
     }

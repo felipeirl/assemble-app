@@ -2,18 +2,26 @@ package dev.assemble.app.feature.help
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.tooling.preview.PreviewLightDark
 import dev.assemble.app.R
-import dev.assemble.app.core.designsystem.component.TopBarNavigation
-import dev.assemble.app.core.designsystem.component.TopBarTitle
-import dev.assemble.app.navigation.PlaceholderScreen
+import dev.assemble.app.core.designsystem.theme.AssembleTheme
+import dev.assemble.app.core.ui.InfoPage
+import dev.assemble.app.core.ui.InfoSection
 
-// Placeholder da etapa 5; tela real na etapa 11.
+private val HelpSections = listOf(
+    InfoSection(R.string.help_discover_title, R.string.help_discover_body),
+    InfoSection(R.string.help_match_title, R.string.help_match_body),
+    InfoSection(R.string.help_chat_title, R.string.help_chat_body),
+    InfoSection(R.string.help_preferences_title, R.string.help_preferences_body),
+)
+
 @Composable
 fun HelpScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
-    PlaceholderScreen(
-        title = TopBarTitle.Text(stringResource(R.string.help_title)),
-        navigation = TopBarNavigation.Back(onBack),
-        modifier = modifier,
-    )
+    InfoPage(title = R.string.help_title, sections = HelpSections, onBack = onBack, modifier = modifier)
+}
+
+@PreviewLightDark
+@Composable
+private fun HelpScreenPreview() {
+    AssembleTheme { HelpScreen(onBack = {}) }
 }

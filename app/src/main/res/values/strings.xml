@@ -100,6 +100,55 @@
     <string name="action_save">Save</string>
     <string name="value_none">—</string>
 
+    <!-- Settings -->
+    <string name="settings_appearance">Appearance</string>
+    <string name="settings_theme_light">Light</string>
+    <string name="settings_theme_dark">Dark</string>
+    <string name="settings_theme_system">System</string>
+    <string name="settings_notifications">Notifications</string>
+    <string name="settings_notify_connections">New connections</string>
+    <string name="settings_notify_messages">New messages</string>
+    <string name="settings_discovery">Discovery</string>
+    <string name="settings_min_compatibility">Minimum compatibility</string>
+    <string name="settings_min_compatibility_hint">Higher means fewer but closer connections</string>
+    <string name="settings_data">Data</string>
+    <string name="settings_reset_preferences">Reset preferences</string>
+    <string name="settings_clear_seen">Clear seen characters</string>
+    <string name="settings_delete_chats">Delete chats</string>
+    <string name="settings_delete_account">Delete account</string>
+    <string name="settings_delete_account_title">Delete account?</string>
+    <string name="settings_delete_account_message">This removes your profile, preferences, connections and chats from this device.</string>
+    <string name="settings_msg_preferences_reset">Preferences reset</string>
+    <string name="settings_msg_seen_cleared">Seen characters cleared</string>
+    <string name="settings_msg_chats_deleted">Chats deleted</string>
+    <string name="settings_msg_action_failed">Couldn\'t finish that. Check your connection and try again.</string>
+    <string name="settings_about">About</string>
+    <string name="settings_about_source">Character data and images come from Comic Vine.</string>
+    <string name="settings_about_ai">Chat replies are AI-generated and fictional. They are not canon or approved by the publisher.</string>
+    <string name="settings_about_version">Version %1$s</string>
+    <string name="action_delete">Delete</string>
+    <string name="action_cancel">Cancel</string>
+
+    <!-- About & data sources -->
+    <string name="about_sources_title">Data sources</string>
+    <string name="about_sources_body">Character facts and images come from Comic Vine, and every card and profile says so. When a field is missing from the source, Assemble leaves it out instead of guessing.</string>
+    <string name="about_ai_title">AI conversations</string>
+    <string name="about_ai_body">Replies in Chat are written by AI as a fictional take on the character. Every reply is labeled \"AI-generated · fictional\". They are not canon and are not approved by the publisher.</string>
+    <string name="about_compatibility_title">Compatibility</string>
+    <string name="about_compatibility_body">Compatibility is an estimate based on the preferences you chose. It is not a personality judgment. Before a connection you see a band; the exact percentage appears after you connect.</string>
+    <string name="about_project_title">This project</string>
+    <string name="about_project_body">Assemble is an academic project. The current catalog is Marvel characters.</string>
+
+    <!-- Help -->
+    <string name="help_discover_title">Discover</string>
+    <string name="help_discover_body">Swipe a card left or tap Pass to skip a character. Swipe right or tap Assemble to show interest. Undo brings back your last Pass. Pull down to refresh.</string>
+    <string name="help_match_title">Connections</string>
+    <string name="help_match_body">Assemble becomes a connection only when your compatibility reaches the minimum set in Settings. It means your interest plus enough in common, not that the character chose you back.</string>
+    <string name="help_chat_title">Chat</string>
+    <string name="help_chat_body">Each connection opens a chat with a fictional, AI-generated version of the character. If a message fails, tap Try again.</string>
+    <string name="help_preferences_title">Preferences</string>
+    <string name="help_preferences_body">Change your preferences in Profile at any time. Your Discover results update right away.</string>
+
     <!-- Login e onboarding -->
     <string name="login_continue_google">Continue with Google</string>
     <string name="login_continue_email">Continue with email</string>

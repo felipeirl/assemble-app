@@ -64,7 +64,8 @@ import dev.assemble.app.feature.profile.EditProfileRoute
 import dev.assemble.app.feature.profile.EditProfileViewModel
 import dev.assemble.app.feature.profile.ProfileRoute
 import dev.assemble.app.feature.profile.ProfileViewModel
-import dev.assemble.app.feature.settings.SettingsScreen
+import dev.assemble.app.feature.settings.SettingsRoute
+import dev.assemble.app.feature.settings.SettingsViewModel
 import dev.assemble.app.feature.splash.SplashScreen
 import dev.assemble.app.navigation.About
 import dev.assemble.app.navigation.AppDrawer
@@ -305,7 +306,18 @@ private fun MainFlow(container: AppContainer) {
                                     onBack = navigator::goBack,
                                 )
                             }
-                            entry<Settings> { SettingsScreen(onBack = navigator::goBack) }
+                            entry<Settings> {
+                                SettingsRoute(
+                                    viewModel = viewModel {
+                                        SettingsViewModel(
+                                            userRepository = container.userRepository,
+                                            connectionRepository = container.connectionRepository,
+                                            chatRepository = container.chatRepository,
+                                        )
+                                    },
+                                    onBack = navigator::goBack,
+                                )
+                            }
                             entry<About> { AboutScreen(onBack = navigator::goBack) }
                             entry<Help> { HelpScreen(onBack = navigator::goBack) }
                         },
