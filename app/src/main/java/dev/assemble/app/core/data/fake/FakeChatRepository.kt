@@ -37,6 +37,9 @@ class FakeChatRepository(
     override val allMessages: StateFlow<List<Message>> = messages.asStateFlow()
     override val typingConnectionIds: StateFlow<Set<String>> = typing.asStateFlow()
 
+    private val regenerating = MutableStateFlow<Set<String>>(emptySet())
+    override val regeneratingConnectionIds: StateFlow<Set<String>> = regenerating.asStateFlow()
+
     /** Sem latência: no app real é o listener do Firestore, que responde do cache local. */
     override fun observeMessages(connectionId: String): Flow<List<Message>> = flow {
         emitAll(messages.map { list -> list.filter { it.connectionId == connectionId }.sortedBy { it.sentAt } })
@@ -72,12 +75,14 @@ class FakeChatRepository(
         val last = messages.value.lastOrNull { it.connectionId == connectionId }
             ?.takeIf { it.author == MessageAuthor.Character } ?: return
         typing.update { it + connectionId }
+        regenerating.update { it + connectionId }
         try {
             delay(TYPING_MILLIS)
             val turn = messages.value.count { it.connectionId == connectionId && it.author == MessageAuthor.Character }
             val text = MockReplies.replyFor(characterId, turn)
             messages.update { list -> list.map { if (it.id == last.id) it.copy(text = text) else it } }
         } finally {
+            regenerating.update { it - connectionId }
             typing.update { it - connectionId }
         }
     }

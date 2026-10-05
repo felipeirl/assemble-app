@@ -15,6 +15,9 @@ interface ChatRepository {
     /** Conversas em que o personagem está "digitando". */
     val typingConnectionIds: StateFlow<Set<String>>
 
+    /** Conversas em que a última resposta do personagem está sendo gerada de novo. */
+    val regeneratingConnectionIds: StateFlow<Set<String>>
+
     /**
      * Envia a mensagem do usuário. Em sucesso, a resposta ficcional do personagem chega depois
      * do indicador de digitação. Em falha, a mensagem fica com status Failed (use [retry]).

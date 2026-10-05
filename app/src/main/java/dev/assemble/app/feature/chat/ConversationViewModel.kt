@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import dev.assemble.app.core.data.CharacterRepository
 import dev.assemble.app.core.data.ChatRepository
 import dev.assemble.app.core.data.ConnectionRepository
+import dev.assemble.app.core.model.Message
 import dev.assemble.app.core.model.MessageAuthor
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -22,6 +23,13 @@ import kotlinx.coroutines.launch
 import java.io.IOException
 
 private const val STOP_TIMEOUT_MILLIS = 5_000L
+
+/**
+ * Enquanto a última resposta do personagem é gerada de novo, o texto antigo sai da lista e o
+ * "digitando" ocupa o lugar dela: a resposta nova substitui a antiga sem mostrar a velha de novo.
+ */
+internal fun withoutReplyBeingRegenerated(messages: List<Message>, regenerating: Boolean): List<Message> =
+    if (regenerating && messages.lastOrNull()?.author == MessageAuthor.Character) messages.dropLast(1) else messages
 
 /**
  * Conversa com a versão ficcional do personagem. Envio e reenvio rodam em [applicationScope]
@@ -55,12 +63,13 @@ class ConversationViewModel(
                     chatRepository.typingConnectionIds,
                     chatRepository.observeSuggestions(connectionId),
                     noticeState,
-                ) { messages, typing, fromBackend, notice ->
+                    chatRepository.regeneratingConnectionIds,
+                ) { messages, typing, fromBackend, notice, regenerating ->
                     ConversationUiState.Content(
                         characterId = character.id,
                         name = character.name,
                         imageUrl = character.imageUrl,
-                        messages = messages,
+                        messages = withoutReplyBeingRegenerated(messages, connectionId in regenerating),
                         typing = connectionId in typing,
                         // As do backend vêm junto com cada resposta; sem elas, o app monta as suas.
                         suggestions = fromBackend?.let(::literalSuggestions)

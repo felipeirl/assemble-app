@@ -197,6 +197,48 @@ class RemoteChatRepositoryTest {
     }
 
     @Test
+    fun send_thatTimedOutButWasProcessed_isNotShownTwice() = runRemoteTest { scope ->
+        store.matches.value = listOf(matchDoc("thor"))
+        api.onSend = { _, _, _ -> throw IOException("tempo esgotado") }
+        val chat = repository(scope)
+
+        chat.send("thor", "Oi")
+        assertEquals(listOf(MessageStatus.Failed), chat.observeMessages("thor").first().map { it.status })
+
+        // O servidor terminou o pedido depois do tempo esgotado: o Firestore traz a mensagem com a mesma chave.
+        store.messages.value = mapOf(
+            "thor" to listOf(
+                Document("m_1", mapOf("createdAt" to TestNow, "author" to "USER", "text" to "Oi", "idempotencyKey" to "key-1")),
+                Document("m_2", mapOf("createdAt" to TestNow.plusSeconds(1), "author" to "CHARACTER", "text" to "Olá")),
+            ),
+        )
+
+        assertEquals(listOf("m_1", "m_2"), chat.observeMessages("thor").first().map { it.id })
+    }
+
+    @Test
+    fun regenerateLast_marksTheConversationWhileWaitingAndShowsTheNewTextAtOnce() = runRemoteTest { scope ->
+        store.matches.value = listOf(matchDoc("thor"))
+        store.messages.value = mapOf(
+            "thor" to listOf(Document("c1", mapOf("createdAt" to TestNow, "author" to "CHARACTER", "text" to "Resposta antiga"))),
+        )
+        lateinit var chat: RemoteChatRepository
+        var markedWhileWaiting = false
+        api.onRegenerate = {
+            markedWhileWaiting = "thor" in chat.regeneratingConnectionIds.value
+            ApiRegenerated(apiMessage("c1", "CHARACTER", "Resposta nova", "2026-10-04T12:00:00Z"))
+        }
+        chat = repository(scope)
+
+        chat.regenerateLast("thor")
+
+        assertTrue(markedWhileWaiting)
+        assertEquals(emptySet<String>(), chat.regeneratingConnectionIds.value)
+        // O Firestore ainda tem o texto antigo; o texto novo vale já.
+        assertEquals(listOf("Resposta nova"), chat.observeMessages("thor").first().map { it.text })
+    }
+
+    @Test
     fun mergeMessages_serverWinsAndBlockedEchoReplacesLocalCopy() {
         val server = listOf(
             message("u1", MessageAuthor.User, seconds = 0),

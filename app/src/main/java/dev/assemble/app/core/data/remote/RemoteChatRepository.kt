@@ -60,6 +60,12 @@ class RemoteChatRepository(
     private val typing = MutableStateFlow<Set<String>>(emptySet())
     override val typingConnectionIds: StateFlow<Set<String>> = typing.asStateFlow()
 
+    private val regenerating = MutableStateFlow<Set<String>>(emptySet())
+    override val regeneratingConnectionIds: StateFlow<Set<String>> = regenerating.asStateFlow()
+
+    /** Texto novo de uma resposta gerada de novo, até o Firestore trazer o mesmo texto (mesmo id). */
+    private val textOverrides = MutableStateFlow<Map<String, String>>(emptyMap())
+
     override fun observeMessages(connectionId: String): Flow<List<Message>> {
         val lastReadAt = connections.matchDocuments
             .map { list -> list.firstOrNull { it.connection.id == connectionId }?.lastReadAt }
@@ -67,13 +73,16 @@ class RemoteChatRepository(
         val server = uid.flatMapLatest { current ->
             if (current == null) flowOf(emptyList()) else store.observeMessages(current, connectionId)
         }
-        return combine(server, lastReadAt, pending, echoes) { documents, readAt, local, confirmed ->
+        return combine(server, lastReadAt, pending, echoes, textOverrides) { documents, readAt, local, confirmed, overrides ->
             val fromServer = documents.mapNotNull { messageFrom(it, connectionId, readAt) }
+            // Pedido que estourou o tempo, mas que o servidor chegou a processar: a cópia do
+            // Firestore (mesma Idempotency-Key) vale, e a local sairia duplicada.
+            val serverKeys = documents.mapNotNullTo(mutableSetOf()) { it.data["idempotencyKey"] as? String }
             mergeMessages(
                 server = fromServer,
                 confirmed = confirmed.filter { it.connectionId == connectionId },
-                local = local.map { it.message }.filter { it.connectionId == connectionId },
-            )
+                local = local.filterNot { it.key in serverKeys }.map { it.message }.filter { it.connectionId == connectionId },
+            ).map { message -> overrides[message.id]?.let { message.copy(text = it) } ?: message }
         }
     }
 
@@ -116,10 +125,13 @@ class RemoteChatRepository(
     /** O texto muda no mesmo documento do Firestore (mesmo id); aqui só mostramos o "digitando". */
     override suspend fun regenerateLast(connectionId: String) {
         typing.update { it + connectionId }
+        regenerating.update { it + connectionId }
         try {
             val regenerated = api.regenerate(connectionId)
+            textOverrides.update { it + (regenerated.reply.id to regenerated.reply.text) }
             echoes.update { list -> list.filterNot { it.id == regenerated.reply.id } + regenerated.reply.toMessage(read = true) }
         } finally {
+            regenerating.update { it - connectionId }
             typing.update { it - connectionId }
         }
     }
