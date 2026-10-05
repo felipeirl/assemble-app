@@ -2,6 +2,16 @@
 
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/). As versões contam como um odômetro: cada release é uma grande adição e o número sobe de um em um (`0.0.8`, `0.0.9`, `0.1.0`, `0.1.1`...). Ao chegar em 9, avança a casa seguinte. Correções pequenas entram na release seguinte.
 
+## [0.0.7] - 2026-10-05
+
+### Adicionado
+- Tela "Confirme o seu e-mail": no cadastro por e-mail e senha, o app manda o e-mail de confirmação (em HTML, com o design system) e só libera a conta depois do clique no link. Reenvio com espera de 60 s, conferência automática ao voltar do app de e-mail e atalho para usar outra conta. O login com Google já vem confirmado.
+- CI no GitHub Actions: compila o app e roda os testes unitários a cada push e pull request.
+
+### Alterado
+- Os textos dizem "Assemble" e "conexão" no lugar de "match" ("Why you connect", "Avg. compatibility").
+- Os 22 arquivos Java do app antigo saíram do repositório; `MyApplication` virou Kotlin.
+
 ## [0.0.6] - 2026-10-05
 
 ### Adicionado
