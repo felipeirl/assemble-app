@@ -229,6 +229,12 @@ private fun MainFlowContent(container: AppContainer) {
                 avatarPreset = AvatarPreset.fromIndex(profile.avatarPreset),
                 stats = DrawerStats(connections = connectionCount, seen = seenIds.size),
                 archetype = ProfileRules.archetype(preferences)?.let { archetypeText(it) },
+                style = profile.style,
+                photo = profile.photo,
+                onHeaderClick = {
+                    scope.launch { drawerState.close() }
+                    navigator.navigate(Profile)
+                },
                 // Os itens entram em cascata assim que o menu começa a abrir.
                 revealItems = drawerState.targetValue == DrawerValue.Open,
                 onItemClick = { item ->

@@ -43,10 +43,11 @@ import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import dev.assemble.app.R
 import dev.assemble.app.core.designsystem.component.AvatarPreset
-import dev.assemble.app.core.designsystem.component.HalftoneFade
+import dev.assemble.app.core.designsystem.component.ProfileCoverArt
+import dev.assemble.app.core.designsystem.component.onColor
+import dev.assemble.app.core.model.ProfileCover
+import dev.assemble.app.core.model.ProfileStyle
 import dev.assemble.app.core.designsystem.component.UserAvatar
-import dev.assemble.app.core.designsystem.component.energyGradient
-import dev.assemble.app.core.designsystem.component.halftone
 import dev.assemble.app.core.designsystem.icon.AssembleIcons
 import dev.assemble.app.core.designsystem.theme.AssembleTheme
 import dev.assemble.app.core.designsystem.theme.rememberAnimationsEnabled
@@ -90,6 +91,9 @@ fun AppDrawer(
     onItemClick: (DrawerItem) -> Unit,
     modifier: Modifier = Modifier,
     archetype: String? = null,
+    style: ProfileStyle = ProfileStyle(),
+    photo: String? = null,
+    onHeaderClick: () -> Unit = {},
 ) {
     val colors = AssembleTheme.colors
     val spacing = AssembleTheme.spacing
@@ -100,7 +104,15 @@ fun AppDrawer(
         // O gradiente do cabeçalho passa por baixo da barra de status; o resto respeita as barras.
         windowInsets = WindowInsets(0),
     ) {
-        DrawerHeader(userName = userName, avatarPreset = avatarPreset, archetype = archetype, stats = stats)
+        DrawerHeader(
+            userName = userName,
+            avatarPreset = avatarPreset,
+            archetype = archetype,
+            stats = stats,
+            style = style,
+            photo = photo,
+            onClick = onHeaderClick,
+        )
         Column(
             modifier = Modifier.padding(horizontal = spacing.space3, vertical = spacing.space4),
             verticalArrangement = Arrangement.spacedBy(spacing.space1),
@@ -130,44 +142,59 @@ fun AppDrawer(
     }
 }
 
+/** Cabeçalho com a capa e a foto escolhidas no perfil. Tocar nele abre o perfil. */
 @Composable
-private fun DrawerHeader(userName: String?, avatarPreset: AvatarPreset, archetype: String?, stats: DrawerStats) {
+private fun DrawerHeader(
+    userName: String?,
+    avatarPreset: AvatarPreset,
+    archetype: String?,
+    stats: DrawerStats,
+    style: ProfileStyle,
+    photo: String?,
+    onClick: () -> Unit,
+) {
     val colors = AssembleTheme.colors
     val spacing = AssembleTheme.spacing
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .energyGradient(colors)
-            .halftone(color = colors.midnight, fade = HalftoneFade.Diagonal)
-            .windowInsetsPadding(WindowInsets.statusBars)
-            .padding(spacing.space4),
-        verticalArrangement = Arrangement.spacedBy(spacing.space3),
-    ) {
-        UserAvatar(preset = avatarPreset, size = HeaderAvatarSize)
-        Column {
-            if (userName != null) {
-                Text(text = userName.uppercase(), style = AssembleTheme.typography.displayMd, color = Color.White)
+    // Capas de cor lisa (Halftone, Comic) seguem o destaque: dourado e azul pedem texto escuro.
+    val onCover = when (style.cover) {
+        ProfileCover.Halftone, ProfileCover.Comic -> style.accent.onColor(colors)
+        ProfileCover.Energy, ProfileCover.Night -> Color.White
+    }
+    Box(Modifier.fillMaxWidth().clickable(role = Role.Button, onClick = onClick)) {
+        ProfileCoverArt(style.cover, style.accent, Modifier.matchParentSize())
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .windowInsetsPadding(WindowInsets.statusBars)
+                .padding(spacing.space4),
+            verticalArrangement = Arrangement.spacedBy(spacing.space3),
+        ) {
+            UserAvatar(preset = avatarPreset, size = HeaderAvatarSize, photo = photo)
+            Column {
+                if (userName != null) {
+                    Text(text = userName.uppercase(), style = AssembleTheme.typography.displayMd, color = onCover)
+                }
+                if (archetype != null) {
+                    Text(
+                        text = archetype,
+                        style = AssembleTheme.typography.caption,
+                        color = onCover.copy(alpha = SecondaryOnGradientAlpha),
+                    )
+                }
             }
-            if (archetype != null) {
-                Text(
-                    text = archetype,
-                    style = AssembleTheme.typography.caption,
-                    color = Color.White.copy(alpha = SecondaryOnGradientAlpha),
-                )
+            Row(horizontalArrangement = Arrangement.spacedBy(spacing.space5)) {
+                HeaderStat(value = stats.connections, label = stringResource(R.string.drawer_stat_connections), color = onCover)
+                HeaderStat(value = stats.seen, label = stringResource(R.string.drawer_stat_seen), color = onCover)
             }
-        }
-        Row(horizontalArrangement = Arrangement.spacedBy(spacing.space5)) {
-            HeaderStat(value = stats.connections, label = stringResource(R.string.drawer_stat_connections))
-            HeaderStat(value = stats.seen, label = stringResource(R.string.drawer_stat_seen))
         }
     }
 }
 
 @Composable
-private fun HeaderStat(value: Int, label: String) {
+private fun HeaderStat(value: Int, label: String, color: Color) {
     Column {
-        Text(text = value.toString(), style = AssembleTheme.typography.h2, color = Color.White)
-        Text(text = label, style = AssembleTheme.typography.small, color = Color.White.copy(alpha = SecondaryOnGradientAlpha))
+        Text(text = value.toString(), style = AssembleTheme.typography.h2, color = color)
+        Text(text = label, style = AssembleTheme.typography.small, color = color.copy(alpha = SecondaryOnGradientAlpha))
     }
 }
 
