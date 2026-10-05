@@ -47,6 +47,9 @@ class ChatLogicTest {
         assertTrue(summaries[0].unread)
         assertFalse(summaries[1].unread)
         assertEquals("text 1", summaries[0].lastMessage)
+        // Storm só tem a fala do personagem: ainda é conexão nova. Rocket já recebeu mensagem sua.
+        assertFalse(summaries[0].replied)
+        assertTrue(summaries[1].replied)
     }
 
     @Test

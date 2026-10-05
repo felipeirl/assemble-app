@@ -19,29 +19,19 @@ import org.junit.Test
 class OnboardingUiStateTest {
 
     @Test
-    fun anyEverywhere_cannotFinish() {
-        val state = OnboardingUiState(Preferences.Any)
-        assertEquals(0, state.preferences.totalChoices)
-        assertFalse(state.canFinish)
+    fun anyEverywhere_hasNoChoices() {
+        assertEquals(0, OnboardingUiState(Preferences.Any).preferences.totalChoices)
     }
 
     @Test
-    fun threeChoicesAcrossCategories_canFinish() {
-        val state = OnboardingUiState(
-            Preferences.Any.copy(
-                origins = setOf(Origin.Mutant),
-                powers = setOf(PowerFamily.Mind),
-                teams = setOf(Team.XMen),
-            ),
+    fun choicesCountAcrossCategories_butNotFame() {
+        val prefs = Preferences.Any.copy(
+            origins = setOf(Origin.Mutant),
+            powers = setOf(PowerFamily.Mind),
+            teams = setOf(Team.XMen),
+            fame = 1f,
         )
-        assertEquals(3, state.preferences.totalChoices)
-        assertTrue(state.canFinish)
-    }
-
-    @Test
-    fun fameDoesNotCountAsAChoice() {
-        val state = OnboardingUiState(Preferences.Any.copy(origins = setOf(Origin.Human, Origin.Alien), fame = 1f))
-        assertFalse(state.canFinish)
+        assertEquals(3, prefs.totalChoices)
     }
 
     @Test

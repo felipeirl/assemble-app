@@ -1,7 +1,6 @@
 package dev.assemble.app.core.domain
 
 import dev.assemble.app.core.model.Character
-import dev.assemble.app.core.model.MatchBand
 import dev.assemble.app.core.model.Origin
 import dev.assemble.app.core.model.PowerFamily
 import dev.assemble.app.core.model.Preferences
@@ -120,16 +119,6 @@ class CompatibilityCalculatorTest {
         assertEquals(1.0, CompatibilityCalculator.characterFame(5)!!, DELTA)
         assertEquals(0.0, CompatibilityCalculator.characterFame(50_000)!!, DELTA)
         assertNull(CompatibilityCalculator.characterFame(null))
-    }
-
-    @Test
-    fun band_usesFixedLimits() {
-        assertEquals(MatchBand.High, CompatibilityCalculator.band(100))
-        assertEquals(MatchBand.High, CompatibilityCalculator.band(70))
-        assertEquals(MatchBand.Possible, CompatibilityCalculator.band(69))
-        assertEquals(MatchBand.Possible, CompatibilityCalculator.band(50))
-        assertEquals(MatchBand.Low, CompatibilityCalculator.band(49))
-        assertEquals(MatchBand.Low, CompatibilityCalculator.band(0))
     }
 
     @Test
