@@ -23,6 +23,11 @@ class SettingsViewModel(
 ) : ViewModel() {
     val settings: StateFlow<AppSettings> = userRepository.settings
 
+    val canClearSeen: Boolean = userRepository.canClearSeen
+
+    /** Com backend, excluir a conta abre uma carência antes de apagar os dados. */
+    val accountDeletionDeferred: Boolean = userRepository.accountDeletionHandledByServer
+
     private val messageState = MutableStateFlow<SettingsMessage?>(null)
     val message: StateFlow<SettingsMessage?> = messageState.asStateFlow()
 
@@ -35,16 +40,22 @@ class SettingsViewModel(
 
     fun setNotifyNewMessages(enabled: Boolean) = updateSettings { it.copy(notifyNewMessages = enabled) }
 
+    fun setSoundEnabled(enabled: Boolean) = updateSettings { it.copy(soundEnabled = enabled) }
+
+    fun setVibrationEnabled(enabled: Boolean) = updateSettings { it.copy(vibrationEnabled = enabled) }
+
     fun resetPreferences() = runAction(SettingsMessage.PreferencesReset) { userRepository.resetPreferences() }
 
     fun clearSeenCharacters() = runAction(SettingsMessage.SeenCleared) { userRepository.clearSeen() }
 
     fun deleteChats() = runAction(SettingsMessage.ChatsDeleted) { chatRepository.deleteAll() }
 
-    /** Apaga tudo e encerra a sessão; o app volta ao Login. */
+    /** Apaga tudo (ou desativa a conta, com backend) e encerra a sessão; o app volta ao Login. */
     fun deleteAccount() = runAction(successMessage = null) {
-        chatRepository.deleteAll()
-        connectionRepository.deleteAll()
+        if (!userRepository.accountDeletionHandledByServer) {
+            chatRepository.deleteAll()
+            connectionRepository.deleteAll()
+        }
         userRepository.deleteAccount()
     }
 

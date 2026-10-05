@@ -11,6 +11,8 @@ sealed interface ConversationUiState {
         val imageUrl: String?,
         val messages: List<Message>,
         val typing: Boolean,
+        /** Perguntas prontas acima do campo; giram a cada mensagem sua. */
+        val suggestions: List<ReplySuggestion>,
     ) : ConversationUiState {
         val hasUnread: Boolean get() = messages.any { !it.read }
     }

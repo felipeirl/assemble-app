@@ -32,7 +32,7 @@ class OnboardingViewModel(private val userRepository: UserRepository) : ViewMode
 
     fun finish() {
         val current = state.value
-        if (!current.canFinish || current.submitting) return
+        if (current.submitting) return
         state.update { it.copy(submitting = true, showError = false) }
         viewModelScope.launch {
             try {

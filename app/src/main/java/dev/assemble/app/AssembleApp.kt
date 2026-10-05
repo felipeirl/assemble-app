@@ -2,6 +2,8 @@ package dev.assemble.app
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.Crossfade
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
@@ -15,6 +17,7 @@ import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -36,8 +39,13 @@ import dev.assemble.app.core.designsystem.theme.AssembleTheme
 import dev.assemble.app.core.designsystem.theme.rememberAnimationsEnabled
 import dev.assemble.app.core.model.MessageAuthor
 import dev.assemble.app.feature.about.AboutScreen
+import dev.assemble.app.feature.achievements.AchievementUnlockHost
+import dev.assemble.app.feature.achievements.AchievementsRoute
+import dev.assemble.app.feature.achievements.AchievementsViewModel
 import dev.assemble.app.feature.character.CharacterPreviewRoute
 import dev.assemble.app.feature.character.CharacterPreviewViewModel
+import dev.assemble.app.feature.character.PreviewHero
+import dev.assemble.app.core.ui.LocalSharedTransitionScope
 import dev.assemble.app.feature.character.CharacterProfileRoute
 import dev.assemble.app.feature.character.CharacterProfileViewModel
 import dev.assemble.app.feature.chat.ChatListRoute
@@ -60,8 +68,8 @@ import dev.assemble.app.feature.profile.ProfileRoute
 import dev.assemble.app.feature.profile.ProfileViewModel
 import dev.assemble.app.feature.settings.SettingsRoute
 import dev.assemble.app.feature.settings.SettingsViewModel
-import dev.assemble.app.feature.splash.SplashScreen
 import dev.assemble.app.navigation.About
+import dev.assemble.app.navigation.Achievements
 import dev.assemble.app.navigation.AppDrawer
 import dev.assemble.app.navigation.CharacterPreview
 import dev.assemble.app.navigation.diagonalTransition
@@ -71,17 +79,19 @@ import dev.assemble.app.navigation.ChatList
 import dev.assemble.app.navigation.Conversation
 import dev.assemble.app.navigation.Discover
 import dev.assemble.app.navigation.DrawerItem
+import dev.assemble.app.navigation.DrawerStats
 import dev.assemble.app.navigation.EditProfile
 import dev.assemble.app.navigation.Help
 import dev.assemble.app.navigation.Login
 import dev.assemble.app.navigation.Navigator
+import dev.assemble.app.navigation.NoDiagonalReveal
 import dev.assemble.app.navigation.Onboarding
 import dev.assemble.app.navigation.Profile
 import dev.assemble.app.navigation.Settings
-import dev.assemble.app.navigation.Splash
 import dev.assemble.app.navigation.TopLevelRoutes
 import dev.assemble.app.navigation.rememberNavigationState
 import dev.assemble.app.navigation.toEntries
+import dev.assemble.app.feature.account.AccountDeactivatedHost
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
@@ -110,12 +120,13 @@ fun AssembleApp(container: AppContainer) {
             AppFlow.Main -> MainFlow(container)
         }
     }
+    if (session.isLoggedIn) AccountDeactivatedHost(container.userRepository)
 }
 
 @Composable
 private fun EntryFlow(userRepository: UserRepository) {
     val animationsEnabled = rememberAnimationsEnabled()
-    val backStack = rememberNavBackStack(Splash)
+    val backStack = rememberNavBackStack(Login)
     NavDisplay(
         backStack = backStack,
         onBack = { backStack.removeLastOrNull() },
@@ -128,7 +139,6 @@ private fun EntryFlow(userRepository: UserRepository) {
         popTransitionSpec = { diagonalTransition(animationsEnabled) },
         predictivePopTransitionSpec = { diagonalTransition(animationsEnabled) },
         entryProvider = entryProvider {
-            entry<Splash> { SplashScreen(onFinished = { backStack[backStack.lastIndex] = Login }) }
             entry<Login> { LoginRoute(viewModel = viewModel { LoginViewModel(userRepository) }) }
         },
     )
@@ -165,6 +175,7 @@ private fun OnboardingFlow(userRepository: UserRepository) {
     )
 }
 
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 private fun MainFlow(container: AppContainer) {
     val animationsEnabled = rememberAnimationsEnabled()
@@ -180,6 +191,10 @@ private fun MainFlow(container: AppContainer) {
             messages.count { it.author == MessageAuthor.Character && !it.read }
         }
     }.collectAsStateWithLifecycle(initialValue = 0)
+    val connectionCount by remember(container) {
+        container.connectionRepository.observeConnections().map { it.size }
+    }.collectAsStateWithLifecycle(initialValue = 0)
+    val seenIds by container.userRepository.seenCharacterIds.collectAsStateWithLifecycle()
 
     BackHandler(enabled = drawerState.isOpen) { scope.launch { drawerState.close() } }
 
@@ -190,9 +205,13 @@ private fun MainFlow(container: AppContainer) {
             AppDrawer(
                 userName = profile.name,
                 avatarPreset = AvatarPreset.fromIndex(profile.avatarPreset),
+                stats = DrawerStats(connections = connectionCount, seen = seenIds.size),
+                // Os itens entram em cascata assim que o menu começa a abrir.
+                revealItems = drawerState.targetValue == DrawerValue.Open,
                 onItemClick = { item ->
                     scope.launch { drawerState.close() }
                     when (item) {
+                        DrawerItem.Achievements -> navigator.navigate(Achievements)
                         DrawerItem.Settings -> navigator.navigate(Settings)
                         DrawerItem.About -> navigator.navigate(About)
                         DrawerItem.Help -> navigator.navigate(Help)
@@ -216,36 +235,37 @@ private fun MainFlow(container: AppContainer) {
                     }
                 },
             ) { padding ->
+                SharedTransitionLayout {
+                CompositionLocalProvider(LocalSharedTransitionScope provides this) {
                 NavDisplay(
                     entries = navigationState.toEntries(
-                        extraDecorator = rememberDiagonalRevealDecorator(animationsEnabled),
+                        extraDecorator = rememberDiagonalRevealDecorator(animationsEnabled) { navigationState.lastWasTabSwitch },
                         entryProvider {
                             entry<Discover> {
                                 DiscoverRoute(
                                     viewModel = viewModel {
                                         DiscoverViewModel(
-                                            characterRepository = container.characterRepository,
+                                            deckSource = container.deckSource,
                                             userRepository = container.userRepository,
-                                            connectionRepository = container.connectionRepository,
                                             assembleService = container.assembleService,
                                         )
                                     },
                                     onOpenMenu = openDrawer,
-                                    onOpenPreview = { id -> navigator.navigate(CharacterPreview(id)) },
+                                    onOpenPreview = { card -> navigator.navigate(CharacterPreview(card.characterId, card.name, card.imageUrl)) },
                                     onAdjustPreferences = { navigator.navigate(Profile) },
                                     onStartChat = { connectionId -> navigator.navigate(Conversation(connectionId)) },
                                 )
                             }
-                            entry<CharacterPreview> { key ->
+                            entry<CharacterPreview>(metadata = NoDiagonalReveal) { key ->
                                 CharacterPreviewRoute(
                                     viewModel = viewModel {
                                         CharacterPreviewViewModel(
                                             characterId = key.characterId,
-                                            characterRepository = container.characterRepository,
-                                            userRepository = container.userRepository,
+                                            details = container.characterDetails,
                                             assembleService = container.assembleService,
                                         )
                                     },
+                                    hero = PreviewHero(key.characterId, key.name, key.imageUrl),
                                     onBack = navigator::goBack,
                                 )
                             }
@@ -254,13 +274,12 @@ private fun MainFlow(container: AppContainer) {
                                     viewModel = viewModel {
                                         CharacterProfileViewModel(
                                             characterId = key.characterId,
-                                            characterRepository = container.characterRepository,
-                                            connectionRepository = container.connectionRepository,
-                                            userRepository = container.userRepository,
+                                            details = container.characterDetails,
                                         )
                                     },
                                     onBack = navigator::goBack,
                                     onOpenChat = { connectionId -> navigator.navigate(Conversation(connectionId)) },
+                                    onOpenCharacter = { id -> navigator.navigate(CharacterProfile(id)) },
                                 )
                             }
                             entry<ChatList> {
@@ -299,6 +318,7 @@ private fun MainFlow(container: AppContainer) {
                                             characterRepository = container.characterRepository,
                                             connectionRepository = container.connectionRepository,
                                             userRepository = container.userRepository,
+                                            achievementTracker = container.achievementTracker,
                                         )
                                     },
                                     onOpenMenu = openDrawer,
@@ -308,7 +328,14 @@ private fun MainFlow(container: AppContainer) {
                             }
                             entry<EditProfile> {
                                 EditProfileRoute(
-                                    viewModel = viewModel { EditProfileViewModel(container.userRepository) },
+                                    viewModel = viewModel {
+                                        EditProfileViewModel(
+                                            userRepository = container.userRepository,
+                                            characterRepository = container.characterRepository,
+                                            connectionRepository = container.connectionRepository,
+                                            achievementTracker = container.achievementTracker,
+                                        )
+                                    },
                                     onBack = navigator::goBack,
                                 )
                             }
@@ -326,6 +353,12 @@ private fun MainFlow(container: AppContainer) {
                             }
                             entry<About> { AboutScreen(onBack = navigator::goBack) }
                             entry<Help> { HelpScreen(onBack = navigator::goBack) }
+                            entry<Achievements> {
+                                AchievementsRoute(
+                                    viewModel = viewModel { AchievementsViewModel(container.achievementTracker) },
+                                    onBack = navigator::goBack,
+                                )
+                            }
                         },
                     ),
                     onBack = navigator::goBack,
@@ -336,7 +369,17 @@ private fun MainFlow(container: AppContainer) {
                     popTransitionSpec = { diagonalTransition(animationsEnabled) },
                     predictivePopTransitionSpec = { diagonalTransition(animationsEnabled) },
                 )
+                }
+                }
             }
+            AchievementUnlockHost(
+                tracker = container.achievementTracker,
+                onOpen = { navigator.navigate(Achievements) },
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .windowInsetsPadding(WindowInsets.statusBars)
+                    .padding(top = AssembleTheme.spacing.space2),
+            )
             IncomingMessageToastHost(
                 container = container,
                 openConnectionId = (navigationState.currentRoute as? Conversation)?.connectionId,

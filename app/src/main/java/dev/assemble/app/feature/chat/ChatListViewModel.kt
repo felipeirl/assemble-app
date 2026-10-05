@@ -17,8 +17,6 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.stateIn
 import java.io.IOException
 
-private const val STOP_TIMEOUT_MILLIS = 5_000L
-
 /** Conversas: uma por conexão, atualizadas ao vivo com novas mensagens. */
 @OptIn(ExperimentalCoroutinesApi::class)
 class ChatListViewModel(
@@ -28,6 +26,7 @@ class ChatListViewModel(
 ) : ViewModel() {
     private val reloads = MutableStateFlow(0)
 
+    // Eagerly: raiz de aba, vive enquanto a aba existe; voltar a ela mostra o conteúdo na hora.
     val uiState: StateFlow<ChatListUiState> = reloads.flatMapLatest {
         flow<ChatListUiState> {
             emit(ChatListUiState.Loading)
@@ -35,14 +34,19 @@ class ChatListViewModel(
             emitAll(
                 combine(connectionRepository.observeConnections(), chatRepository.allMessages) { connections, messages ->
                     val summaries = buildConversationSummaries(connections, messages, characters)
-                    if (summaries.isEmpty()) ChatListUiState.Empty else ChatListUiState.Content(summaries)
+                    if (summaries.isEmpty()) {
+                        ChatListUiState.Empty
+                    } else {
+                        val (conversations, newConnections) = summaries.partition { it.replied }
+                        ChatListUiState.Content(newConnections = newConnections, conversations = conversations)
+                    }
                 },
             )
         }.catch { error ->
             if (error !is IOException) throw error
             emit(ChatListUiState.Error)
         }
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), ChatListUiState.Loading)
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, ChatListUiState.Loading)
 
     fun retry() {
         reloads.value++

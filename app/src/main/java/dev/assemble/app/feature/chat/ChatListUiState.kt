@@ -17,11 +17,16 @@ data class ConversationSummary(
     /** Hora da última mensagem (ou da conexão, se ainda não houver mensagem). */
     val lastActivity: Instant,
     val unread: Boolean,
+    /** true depois que você mandou a primeira mensagem; antes disso a conexão aparece na fileira de novas. */
+    val replied: Boolean,
 )
 
 sealed interface ChatListUiState {
     data object Loading : ChatListUiState
-    data class Content(val conversations: List<ConversationSummary>) : ChatListUiState
+    data class Content(
+        val newConnections: List<ConversationSummary>,
+        val conversations: List<ConversationSummary>,
+    ) : ChatListUiState
     data object Empty : ChatListUiState
     data object Error : ChatListUiState
 }
@@ -49,6 +54,7 @@ internal fun buildConversationSummaries(
             lastMessage = last?.text,
             lastActivity = last?.sentAt ?: connection.createdAt,
             unread = thread.any { it.author == MessageAuthor.Character && !it.read },
+            replied = thread.any { it.author == MessageAuthor.User },
         )
     }.sortedByDescending { it.lastActivity }
 }

@@ -5,7 +5,10 @@ import androidx.lifecycle.viewModelScope
 import dev.assemble.app.core.data.CharacterRepository
 import dev.assemble.app.core.data.ConnectionRepository
 import dev.assemble.app.core.data.UserRepository
+import dev.assemble.app.core.domain.Achievement
+import dev.assemble.app.core.domain.ProfileRules
 import dev.assemble.app.core.model.Preferences
+import dev.assemble.app.feature.achievements.AchievementTracker
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -20,18 +23,18 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.io.IOException
 
-private const val STOP_TIMEOUT_MILLIS = 5_000L
-
 @OptIn(ExperimentalCoroutinesApi::class)
 class ProfileViewModel(
     characterRepository: CharacterRepository,
     connectionRepository: ConnectionRepository,
     private val userRepository: UserRepository,
+    achievementTracker: AchievementTracker,
 ) : ViewModel() {
     private val reloads = MutableStateFlow(0)
     private val messageState = MutableStateFlow<ProfileMessage?>(null)
     val message: StateFlow<ProfileMessage?> = messageState.asStateFlow()
 
+    // Eagerly: raiz de aba, vive enquanto a aba existe; voltar a ela mostra o conteúdo na hora.
     val uiState: StateFlow<ProfileUiState> = reloads.flatMapLatest {
         flow<ProfileUiState> {
             emit(ProfileUiState.Loading)
@@ -42,14 +45,21 @@ class ProfileViewModel(
                     userRepository.preferences,
                     userRepository.seenCharacterIds,
                     connectionRepository.observeConnections(),
-                ) { profile, preferences, seen, connections ->
+                    achievementTracker.progress,
+                ) { profile, preferences, seen, connections, progress ->
                     val connected = connections.mapNotNull { characters[it.characterId] }
+                    val tiles = connected.map { ProfileConnection(it.id, it.name, it.imageUrl) }
+                    val unlocked = progress.orEmpty().filter { it.unlocked }.map { it.achievement }.toSet()
+                    val style = ProfileRules.sanitize(profile.style, unlocked, tiles.mapTo(mutableSetOf()) { it.characterId })
                     ProfileUiState.Content(
-                        profile = profile,
+                        profile = profile.copy(style = style),
                         stats = profileStats(seen, connections),
                         preferences = preferences,
                         topTraits = topTraits(connected),
-                        connections = connected.map { ProfileConnection(it.id, it.name, it.imageUrl) },
+                        connections = tiles,
+                        archetype = ProfileRules.archetype(preferences),
+                        featuredConnections = style.featuredConnections.mapNotNull { id -> tiles.find { it.characterId == id } },
+                        featuredBadges = style.featuredBadges.mapNotNull { name -> Achievement.entries.find { it.name == name } },
                     )
                 },
             )
@@ -57,7 +67,7 @@ class ProfileViewModel(
             if (error !is IOException) throw error
             emit(ProfileUiState.Error)
         }
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), ProfileUiState.Loading)
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, ProfileUiState.Loading)
 
     /** Grava a edição de uma categoria; o Discover recalcula sozinho. */
     fun savePreferences(preferences: Preferences) {

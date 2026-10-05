@@ -45,7 +45,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.assemble.app.R
 import dev.assemble.app.core.data.mock.MockSeed
 import dev.assemble.app.core.designsystem.component.AssembleTopBar
-import dev.assemble.app.core.designsystem.component.AvatarPreset
 import dev.assemble.app.core.designsystem.component.CharacterAvatar
 import dev.assemble.app.core.designsystem.component.PrimaryButton
 import dev.assemble.app.core.designsystem.component.SecondaryButton
@@ -54,12 +53,15 @@ import dev.assemble.app.core.designsystem.component.StateViewType
 import dev.assemble.app.core.designsystem.component.TopBarNavigation
 import dev.assemble.app.core.designsystem.component.TopBarTitle
 import dev.assemble.app.core.designsystem.component.TraitChip
-import dev.assemble.app.core.designsystem.component.UserAvatar
 import dev.assemble.app.core.designsystem.theme.AssembleTheme
+import dev.assemble.app.core.domain.Achievement
+import dev.assemble.app.core.domain.Archetype
 import dev.assemble.app.core.model.Origin
 import dev.assemble.app.core.model.PowerFamily
 import dev.assemble.app.core.model.PreferenceCategory
 import dev.assemble.app.core.model.Preferences
+import dev.assemble.app.core.model.ProfilePrompt
+import dev.assemble.app.core.model.Style
 import dev.assemble.app.core.model.Team
 import dev.assemble.app.core.model.selectAny
 import dev.assemble.app.core.model.toggle
@@ -68,9 +70,11 @@ import dev.assemble.app.core.ui.PreferenceEditor
 import dev.assemble.app.core.ui.preferenceSummary
 import dev.assemble.app.core.ui.title
 import dev.assemble.app.core.ui.traitLabel
+import dev.assemble.app.feature.achievements.HexBadge
+import dev.assemble.app.feature.achievements.info
 import kotlinx.coroutines.launch
 
-private val ProfileAvatarSize = 88.dp
+private val FeaturedBadgeSize = 48.dp to 54.dp
 private val ConnectionAvatarSize = 64.dp
 private val ConnectionTileWidth = 88.dp
 private val MinRowHeight = 48.dp
@@ -171,7 +175,6 @@ fun ProfileScreen(
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ProfileContent(
     content: ProfileUiState.Content,
@@ -179,29 +182,90 @@ private fun ProfileContent(
     onEditPreference: (PreferenceCategory) -> Unit,
     onOpenCharacter: (String) -> Unit,
 ) {
-    val colors = AssembleTheme.colors
     val spacing = AssembleTheme.spacing
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(spacing.space4),
-        verticalArrangement = Arrangement.spacedBy(spacing.space6),
+            .verticalScroll(rememberScrollState()),
     ) {
+        ProfileHeader(profile = content.profile, archetype = content.archetype)
         Column(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(spacing.space2),
+            modifier = Modifier.padding(spacing.space4),
+            verticalArrangement = Arrangement.spacedBy(spacing.space6),
         ) {
-            UserAvatar(preset = AvatarPreset.fromIndex(content.profile.avatarPreset), size = ProfileAvatarSize)
-            Text(content.profile.name, style = AssembleTheme.typography.h2, color = colors.text, textAlign = TextAlign.Center)
-            if (content.profile.bio.isNotBlank()) {
-                Text(content.profile.bio, style = AssembleTheme.typography.body, color = colors.textMuted, textAlign = TextAlign.Center)
+            ProfileIntro(content, onEditProfile)
+            StatsRow(content.stats)
+            if (content.featuredConnections.isNotEmpty()) {
+                Section(stringResource(R.string.profile_featured_connections)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(spacing.space3)) {
+                        content.featuredConnections.forEach { connection ->
+                            ConnectionTile(connection, onClick = { onOpenCharacter(connection.characterId) })
+                        }
+                    }
+                }
             }
-            SecondaryButton(text = stringResource(R.string.profile_edit), onClick = onEditProfile)
+            if (content.featuredBadges.isNotEmpty()) {
+                Section(stringResource(R.string.profile_featured_badges)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(spacing.space3)) {
+                        content.featuredBadges.forEachIndexed { index, badge -> FeaturedBadge(badge, index) }
+                    }
+                }
+            }
+            ProfileSections(content, onEditPreference, onOpenCharacter)
         }
+    }
+}
 
-        StatsRow(content.stats)
+@Composable
+private fun ProfileIntro(content: ProfileUiState.Content, onEditProfile: () -> Unit) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(AssembleTheme.spacing.space3),
+    ) {
+        if (content.profile.bio.isNotBlank()) {
+            Text(
+                content.profile.bio,
+                style = AssembleTheme.typography.body,
+                color = AssembleTheme.colors.textMuted,
+                textAlign = TextAlign.Center,
+            )
+        }
+        ProfilePromptCard(content.profile.style)
+        SecondaryButton(text = stringResource(R.string.profile_edit), onClick = onEditProfile)
+    }
+}
+
+@Composable
+private fun FeaturedBadge(achievement: Achievement, revealOrder: Int) {
+    val info = achievement.info()
+    Column(
+        modifier = Modifier.width(ConnectionTileWidth).semantics(mergeDescendants = true) {},
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(AssembleTheme.spacing.space1),
+    ) {
+        HexBadge(icon = info.icon, unlocked = true, revealOrder = revealOrder, badgeSize = FeaturedBadgeSize)
+        Text(
+            text = stringResource(info.title),
+            style = AssembleTheme.typography.small,
+            color = AssembleTheme.colors.text,
+            textAlign = TextAlign.Center,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun ProfileSections(
+    content: ProfileUiState.Content,
+    onEditPreference: (PreferenceCategory) -> Unit,
+    onOpenCharacter: (String) -> Unit,
+) {
+    val colors = AssembleTheme.colors
+    val spacing = AssembleTheme.spacing
+    Column(verticalArrangement = Arrangement.spacedBy(spacing.space6)) {
 
         Section(stringResource(R.string.profile_my_preferences)) {
             PreferenceCategory.entries.forEachIndexed { index, category ->
@@ -367,7 +431,12 @@ private fun PreferenceSheet(
 }
 
 private val ProfileSample = ProfileUiState.Content(
-    profile = MockSeed.initialProfile,
+    profile = MockSeed.initialProfile.copy(
+        style = MockSeed.initialProfile.style.copy(
+            prompt = ProfilePrompt.IdealTeam,
+            promptAnswer = "X-Men with Storm in charge",
+        ),
+    ),
     stats = ProfileStats(charactersSeen = 4, connections = 2, averageMatch = 36),
     preferences = MockSeed.initialPreferences,
     topTraits = listOf(Origin.Mutant, PowerFamily.Flight, Team.XMen),
@@ -375,6 +444,9 @@ private val ProfileSample = ProfileUiState.Content(
         ProfileConnection("spider-man", "Spider-Man", null),
         ProfileConnection("storm", "Storm", null),
     ),
+    archetype = Archetype(Style.Strategist, Origin.Mutant),
+    featuredConnections = listOf(ProfileConnection("storm", "Storm", null)),
+    featuredBadges = listOf(Achievement.FirstConnection),
 )
 
 @PreviewLightDark

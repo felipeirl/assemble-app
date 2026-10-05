@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import dev.assemble.app.core.data.CharacterRepository
 import dev.assemble.app.core.data.ChatRepository
 import dev.assemble.app.core.data.ConnectionRepository
+import dev.assemble.app.core.model.MessageAuthor
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -51,13 +52,17 @@ class ConversationViewModel(
                 combine(
                     chatRepository.observeMessages(connectionId),
                     chatRepository.typingConnectionIds,
-                ) { messages, typing ->
+                    chatRepository.observeSuggestions(connectionId),
+                ) { messages, typing, fromBackend ->
                     ConversationUiState.Content(
                         characterId = character.id,
                         name = character.name,
                         imageUrl = character.imageUrl,
                         messages = messages,
                         typing = connectionId in typing,
+                        // As do backend vêm junto com cada resposta; sem elas, o app monta as suas.
+                        suggestions = fromBackend?.let(::literalSuggestions)
+                            ?: replySuggestions(character, messagesSent = messages.count { it.author == MessageAuthor.User }),
                     )
                 },
             )
@@ -75,6 +80,15 @@ class ConversationViewModel(
         val text = draftState.value.trim()
         if (text.isEmpty()) return
         draftState.value = ""
+        sendText(text)
+    }
+
+    /** Toque numa resposta sugerida: envia direto, sem passar pelo campo. */
+    fun sendSuggestion(text: String) {
+        sendText(text)
+    }
+
+    private fun sendText(text: String) {
         applicationScope.launch { chatRepository.send(connectionId, text) }
     }
 

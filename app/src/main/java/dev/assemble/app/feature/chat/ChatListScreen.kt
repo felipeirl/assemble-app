@@ -42,6 +42,8 @@ import java.time.Duration
 import java.time.Instant
 
 private val UnreadDotSize = 10.dp
+private const val NewConnectionsKey = "new-connections"
+private const val NewConnectionsHintKey = "new-connections-hint"
 
 @Composable
 fun ChatListRoute(
@@ -102,6 +104,26 @@ fun ChatListScreen(
                     ),
                 )
                 is ChatListUiState.Content -> LazyColumn(Modifier.fillMaxSize()) {
+                    if (state.newConnections.isNotEmpty()) {
+                        item(key = NewConnectionsKey) {
+                            NewConnectionsRow(
+                                connections = state.newConnections,
+                                onOpen = onOpenConversation,
+                                modifier = Modifier.padding(top = AssembleTheme.spacing.space2, bottom = AssembleTheme.spacing.space3),
+                            )
+                            HorizontalDivider(color = AssembleTheme.colors.border)
+                        }
+                    }
+                    if (state.conversations.isEmpty()) {
+                        item(key = NewConnectionsHintKey) {
+                            Text(
+                                text = stringResource(R.string.chat_list_new_hint),
+                                style = AssembleTheme.typography.caption,
+                                color = AssembleTheme.colors.textMuted,
+                                modifier = Modifier.padding(AssembleTheme.spacing.space4),
+                            )
+                        }
+                    }
                     items(state.conversations, key = { it.connectionId }) { conversation ->
                         ConversationRow(conversation, now = now, onClick = { onOpenConversation(conversation.connectionId) })
                         HorizontalDivider(color = AssembleTheme.colors.border)
@@ -181,16 +203,18 @@ private fun ChatListPreview() {
     AssembleTheme {
         ChatListScreen(
             state = ChatListUiState.Content(
-                listOf(
+                newConnections = listOf(
                     ConversationSummary(
                         "c1", "storm", "Storm", null, 67,
                         "The wind carried your name here. Tell me what you're looking for.",
-                        PreviewNow - Duration.ofHours(2), unread = true,
+                        PreviewNow - Duration.ofHours(2), unread = true, replied = false,
                     ),
+                ),
+                conversations = listOf(
                     ConversationSummary(
                         "c2", "spider-man", "Spider-Man", null, 82,
                         "Honestly? Curiosity and a very radioactive field trip.",
-                        PreviewNow - Duration.ofDays(1), unread = false,
+                        PreviewNow - Duration.ofDays(1), unread = false, replied = true,
                     ),
                 ),
             ),

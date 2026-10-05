@@ -10,6 +10,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import dev.assemble.app.AppContainer
 import dev.assemble.app.core.designsystem.component.InAppToast
+import dev.assemble.app.core.feedback.Cue
 import dev.assemble.app.core.model.Message
 import dev.assemble.app.core.model.MessageAuthor
 import java.io.IOException
@@ -48,6 +49,7 @@ fun IncomingMessageToastHost(
                 null // Sem nome não há aviso; a mensagem continua como não lida na lista.
             } ?: return@collect
             toast = IncomingToast(incoming.connectionId, character.name, character.imageUrl)
+            container.feedback.play(Cue.Tick)
             visible = true
         }
     }

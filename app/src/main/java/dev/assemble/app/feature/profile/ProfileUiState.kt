@@ -1,5 +1,7 @@
 package dev.assemble.app.feature.profile
 
+import dev.assemble.app.core.domain.Achievement
+import dev.assemble.app.core.domain.Archetype
 import dev.assemble.app.core.model.Character
 import dev.assemble.app.core.model.Connection
 import dev.assemble.app.core.model.Preferences
@@ -32,6 +34,11 @@ sealed interface ProfileUiState {
         val preferences: Preferences,
         val topTraits: List<Enum<*>>,
         val connections: List<ProfileConnection>,
+        /** Null quando as preferências estão em "Any". */
+        val archetype: Archetype? = null,
+        /** Já filtrados: só conexões que existem e conquistas desbloqueadas, na ordem escolhida. */
+        val featuredConnections: List<ProfileConnection> = emptyList(),
+        val featuredBadges: List<Achievement> = emptyList(),
     ) : ProfileUiState
 
     data object Error : ProfileUiState

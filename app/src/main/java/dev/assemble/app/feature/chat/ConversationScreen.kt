@@ -1,5 +1,9 @@
 package dev.assemble.app.feature.chat
 
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
+import dev.assemble.app.core.feedback.LocalFeedback
+import dev.assemble.app.core.feedback.Cue
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -33,6 +37,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -49,6 +54,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.assemble.app.R
 import dev.assemble.app.core.designsystem.component.AiLabelChip
+import dev.assemble.app.core.designsystem.component.BubblePopIn
 import dev.assemble.app.core.designsystem.component.CharacterAvatar
 import dev.assemble.app.core.designsystem.component.ChatAuthor
 import dev.assemble.app.core.designsystem.component.ChatBubble
@@ -58,6 +64,7 @@ import dev.assemble.app.core.designsystem.component.TypingIndicator
 import dev.assemble.app.core.designsystem.component.scaledTopBarHeight
 import dev.assemble.app.core.designsystem.icon.AssembleIcons
 import dev.assemble.app.core.designsystem.theme.AssembleTheme
+import dev.assemble.app.core.designsystem.theme.rememberAnimationsEnabled
 import dev.assemble.app.core.model.Message
 import dev.assemble.app.core.model.MessageAuthor
 import dev.assemble.app.core.model.MessageStatus
@@ -87,6 +94,7 @@ fun ConversationRoute(
         draft = draft,
         onDraftChange = viewModel::onDraftChange,
         onSend = viewModel::send,
+        onSuggestion = viewModel::sendSuggestion,
         onRetryMessage = viewModel::retry,
         onReload = viewModel::reload,
         onBack = onBack,
@@ -107,6 +115,7 @@ fun ConversationScreen(
     onBack: () -> Unit,
     onOpenCharacter: (characterId: String) -> Unit,
     modifier: Modifier = Modifier,
+    onSuggestion: (text: String) -> Unit = {},
 ) {
     val colors = AssembleTheme.colors
     val content = state as? ConversationUiState.Content
@@ -130,7 +139,16 @@ fun ConversationScreen(
             )
         },
         bottomBar = {
-            if (content != null) MessageInput(draft = draft, onDraftChange = onDraftChange, onSend = onSend)
+            if (content != null) {
+                MessageInput(
+                    draft = draft,
+                    onDraftChange = onDraftChange,
+                    onSend = onSend,
+                    // Some enquanto o personagem digita ou você já começou a escrever.
+                    suggestions = if (content.typing || draft.isNotEmpty()) emptyList() else content.suggestions,
+                    onSuggestion = onSuggestion,
+                )
+            }
         },
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.TopCenter) {
@@ -180,11 +198,17 @@ private fun ConversationTitle(content: ConversationUiState.Content, onOpenCharac
     }
 }
 
-/** Mais recente embaixo: lista invertida, com o "digitando" no fim. */
+/**
+ * Mais recente embaixo: lista invertida, com o "digitando" no fim.
+ * Só mensagens que chegam com a conversa aberta saltam; o histórico aparece parado.
+ */
 @Composable
 private fun MessageList(content: ConversationUiState.Content, onRetryMessage: (String) -> Unit) {
     val spacing = AssembleTheme.spacing
     val newestFirst = content.messages.asReversed()
+    val animationsEnabled = rememberAnimationsEnabled()
+    val shownIds = remember { content.messages.mapTo(mutableSetOf()) { it.id } }
+    val feedback = LocalFeedback.current
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         reverseLayout = true,
@@ -192,27 +216,76 @@ private fun MessageList(content: ConversationUiState.Content, onRetryMessage: (S
         verticalArrangement = Arrangement.spacedBy(spacing.space3),
     ) {
         if (content.typing) {
-            item(key = TypingItemKey) { TypingIndicator() }
+            item(key = TypingItemKey) {
+                BubblePopIn(ChatAuthor.Ai, animate = animationsEnabled, modifier = Modifier.animateItem()) {
+                    TypingIndicator()
+                }
+            }
         }
-        items(newestFirst, key = { it.id }) { message -> MessageItem(message, onRetryMessage) }
+        items(newestFirst, key = { it.id }) { message ->
+            val isNew = remember(message.id) { shownIds.add(message.id) }
+            // Só mensagens que chegam com a conversa aberta dão retorno; o histórico não.
+            if (isNew) {
+                LaunchedEffect(message.id) {
+                    feedback.play(if (message.author == MessageAuthor.User) Cue.MessageOut else Cue.MessageIn)
+                }
+            }
+            var wasSending by remember(message.id) { mutableStateOf(message.status == MessageStatus.Sending) }
+            LaunchedEffect(message.status) {
+                val rejected = message.status == MessageStatus.Failed || message.status == MessageStatus.Blocked
+                if (rejected && wasSending) feedback.play(Cue.Error)
+                wasSending = message.status == MessageStatus.Sending
+            }
+            BubblePopIn(message.author.toChatAuthor(), animate = animationsEnabled && isNew, modifier = Modifier.animateItem()) {
+                MessageItem(message, onRetryMessage)
+            }
+        }
     }
 }
 
 @Composable
 private fun MessageItem(message: Message, onRetry: (String) -> Unit) {
-    val author = if (message.author == MessageAuthor.User) ChatAuthor.User else ChatAuthor.Ai
+    val author = message.author.toChatAuthor()
     Column(
         modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = if (author == ChatAuthor.User) Alignment.End else Alignment.Start,
     ) {
-        ChatBubble(
-            text = message.text,
-            author = author,
-            modifier = Modifier.alpha(if (message.status == MessageStatus.Sending) SendingAlpha else 1f),
-        )
-        if (message.status == MessageStatus.Failed) FailedMessageRetry(onClick = { onRetry(message.id) })
+        // Recusada pelo servidor, a mensagem volta sem texto: só o aviso aparece.
+        if (message.text.isNotBlank()) {
+            ChatBubble(
+                text = message.text,
+                author = author,
+                modifier = Modifier.alpha(if (message.status == MessageStatus.Sending || message.status == MessageStatus.Blocked) SendingAlpha else 1f),
+            )
+        }
+        when (message.status) {
+            MessageStatus.Failed -> FailedMessageRetry(onClick = { onRetry(message.id) })
+            MessageStatus.Blocked -> BlockedMessageNotice()
+            MessageStatus.Sending, MessageStatus.Sent -> Unit
+        }
     }
 }
+
+/** Mensagem recusada pelo filtro de segurança: não tem nova tentativa, só o aviso. */
+@Composable
+private fun BlockedMessageNotice() {
+    val colors = AssembleTheme.colors
+    Row(
+        modifier = Modifier.padding(vertical = AssembleTheme.spacing.space1),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(AssembleIcons.Error, contentDescription = null, tint = colors.textMuted, modifier = Modifier.size(ErrorIconSize))
+        Text(
+            text = stringResource(R.string.chat_message_blocked),
+            style = AssembleTheme.typography.caption,
+            color = colors.textMuted,
+            modifier = Modifier.padding(start = AssembleTheme.spacing.space1),
+        )
+    }
+}
+
+private fun MessageAuthor.toChatAuthor(): ChatAuthor =
+    if (this == MessageAuthor.User) ChatAuthor.User else ChatAuthor.Ai
 
 /** Erro inline da mensagem que não saiu. */
 @Composable
@@ -230,7 +303,13 @@ private fun FailedMessageRetry(onClick: () -> Unit) {
 }
 
 @Composable
-private fun MessageInput(draft: String, onDraftChange: (String) -> Unit, onSend: () -> Unit) {
+private fun MessageInput(
+    draft: String,
+    onDraftChange: (String) -> Unit,
+    onSend: () -> Unit,
+    suggestions: List<ReplySuggestion>,
+    onSuggestion: (String) -> Unit,
+) {
     val colors = AssembleTheme.colors
     val spacing = AssembleTheme.spacing
     val canSend = draft.isNotBlank()
@@ -240,6 +319,7 @@ private fun MessageInput(draft: String, onDraftChange: (String) -> Unit, onSend:
             .windowInsetsPadding(WindowInsets.navigationBars.union(WindowInsets.ime)),
     ) {
         HorizontalDivider(color = colors.border)
+        if (suggestions.isNotEmpty()) SuggestionChips(suggestions, onSuggestion)
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = spacing.space4, vertical = spacing.space2),
             horizontalArrangement = Arrangement.spacedBy(spacing.space2),
@@ -287,7 +367,12 @@ private fun ConversationPreview() {
                     Message("2", "c", MessageAuthor.User, "What got you into science?", PreviewNow),
                     Message("3", "c", MessageAuthor.User, "Still there?", PreviewNow, status = MessageStatus.Failed),
                 ),
-                typing = true,
+                typing = false,
+                suggestions = listOf(
+                    ReplySuggestion(R.string.chat_suggest_mission),
+                    ReplySuggestion(R.string.chat_suggest_free_time),
+                    ReplySuggestion(R.string.chat_suggest_advice),
+                ),
             ),
             draft = "",
             onDraftChange = {}, onSend = {}, onRetryMessage = {}, onReload = {}, onBack = {}, onOpenCharacter = {},

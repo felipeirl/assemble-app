@@ -17,7 +17,6 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.heading
@@ -150,17 +149,6 @@ private fun OnboardingFooter(
         verticalArrangement = Arrangement.spacedBy(spacing.space2),
     ) {
         if (step.isLastStep) {
-            if (!state.canFinish) {
-                Text(
-                    text = pluralStringResource(
-                        R.plurals.onboarding_min_choices,
-                        OnboardingUiState.MIN_CHOICES,
-                        OnboardingUiState.MIN_CHOICES,
-                    ),
-                    style = AssembleTheme.typography.caption,
-                    color = colors.textMuted,
-                )
-            }
             if (state.showError) {
                 Text(
                     text = stringResource(R.string.onboarding_error),
@@ -169,10 +157,15 @@ private fun OnboardingFooter(
                     modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
                 )
             }
+            // Aviso de IA: tocar em "Start discovering" é o aceite gravado no perfil.
+            Text(
+                text = stringResource(R.string.onboarding_ai_notice),
+                style = AssembleTheme.typography.caption,
+                color = colors.textMuted,
+            )
             PrimaryButton(
                 text = stringResource(R.string.onboarding_start),
                 onClick = onFinish,
-                enabled = state.canFinish,
                 loading = state.submitting,
                 modifier = Modifier.fillMaxWidth(),
             )
