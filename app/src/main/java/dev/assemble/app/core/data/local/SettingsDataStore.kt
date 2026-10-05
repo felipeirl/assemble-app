@@ -19,7 +19,7 @@ private const val SETTINGS_STORE_NAME = "settings"
 
 val Context.settingsDataStore: DataStore<StoredPreferences> by preferencesDataStore(name = SETTINGS_STORE_NAME)
 
-/** Configurações locais do Settings (tema e notificações) persistidas em DataStore. */
+/** Configurações locais do Settings (tema, notificações, som e vibração) persistidas em DataStore. */
 class SettingsDataStore(private val dataStore: DataStore<StoredPreferences>) {
 
     val settings: Flow<AppSettings> = dataStore.data
@@ -35,6 +35,8 @@ class SettingsDataStore(private val dataStore: DataStore<StoredPreferences>) {
             stored[Keys.THEME] = updated.theme.name
             stored[Keys.NOTIFY_CONNECTIONS] = updated.notifyNewConnections
             stored[Keys.NOTIFY_MESSAGES] = updated.notifyNewMessages
+            stored[Keys.SOUND] = updated.soundEnabled
+            stored[Keys.VIBRATION] = updated.vibrationEnabled
         }
     }
 
@@ -46,6 +48,8 @@ class SettingsDataStore(private val dataStore: DataStore<StoredPreferences>) {
         val THEME = stringPreferencesKey("theme")
         val NOTIFY_CONNECTIONS = booleanPreferencesKey("notify_new_connections")
         val NOTIFY_MESSAGES = booleanPreferencesKey("notify_new_messages")
+        val SOUND = booleanPreferencesKey("sound_enabled")
+        val VIBRATION = booleanPreferencesKey("vibration_enabled")
     }
 
     private fun StoredPreferences.toAppSettings(): AppSettings {
@@ -54,6 +58,8 @@ class SettingsDataStore(private val dataStore: DataStore<StoredPreferences>) {
             theme = this[Keys.THEME]?.let { name -> ThemePreference.entries.firstOrNull { it.name == name } } ?: defaults.theme,
             notifyNewConnections = this[Keys.NOTIFY_CONNECTIONS] ?: defaults.notifyNewConnections,
             notifyNewMessages = this[Keys.NOTIFY_MESSAGES] ?: defaults.notifyNewMessages,
+            soundEnabled = this[Keys.SOUND] ?: defaults.soundEnabled,
+            vibrationEnabled = this[Keys.VIBRATION] ?: defaults.vibrationEnabled,
         )
     }
 }

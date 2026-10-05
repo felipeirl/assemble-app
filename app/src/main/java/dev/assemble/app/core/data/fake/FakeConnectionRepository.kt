@@ -27,7 +27,7 @@ class FakeConnectionRepository(
     private var seeded = false
 
     override fun observeConnections(): Flow<List<Connection>> = flow {
-        network.call()
+        if (!seeded) network.call()
         ensureSeeded()
         emitAll(connections.map { list -> list.sortedByDescending { it.createdAt } })
     }

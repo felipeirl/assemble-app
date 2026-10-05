@@ -3,6 +3,7 @@ package dev.assemble.app.core.data
 import dev.assemble.app.core.model.Message
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.flowOf
 
 interface ChatRepository {
     /** Mensagens de uma conversa, em ordem cronológica. O primeiro valor pode falhar com IOException. */
@@ -28,4 +29,7 @@ interface ChatRepository {
     suspend fun markRead(connectionId: String)
 
     suspend fun deleteAll()
+
+    /** Respostas sugeridas pelo backend para a conversa; null = o app monta as suas. */
+    fun observeSuggestions(connectionId: String): Flow<List<String>?> = flowOf(null)
 }

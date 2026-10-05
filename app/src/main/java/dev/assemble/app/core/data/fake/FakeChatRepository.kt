@@ -37,8 +37,8 @@ class FakeChatRepository(
     override val allMessages: StateFlow<List<Message>> = messages.asStateFlow()
     override val typingConnectionIds: StateFlow<Set<String>> = typing.asStateFlow()
 
+    /** Sem latência: no app real é o listener do Firestore, que responde do cache local. */
     override fun observeMessages(connectionId: String): Flow<List<Message>> = flow {
-        network.call()
         emitAll(messages.map { list -> list.filter { it.connectionId == connectionId }.sortedBy { it.sentAt } })
     }
 
