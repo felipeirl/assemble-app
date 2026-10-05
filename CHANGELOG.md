@@ -21,7 +21,7 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/). 
 
 ### Corrigido
 - Mensagem não duplica ao tentar de novo, e a resposta antiga não aparece enquanto outra é gerada.
-- O aviso de espera fala em "Assemble", não em "match", e um Assemble sem match não mostra mais mensagem.
+- O aviso de espera fala em "Assemble", e um Assemble que não vira conexão não mostra mais mensagem.
 
 ## [0.0.4] - 2026-10-04
 
@@ -55,7 +55,7 @@ Primeira versão: o app completo funcionando com dados simulados.
 ### Adicionado
 - Design system próprio (tema claro e escuro, tipografia, ícones e componentes) e navegação com Navigation 3.
 - Login e cadastro simulados, Discover com swipe, Undo e atualização por arrastar.
-- Pré-visualização do personagem, pop-up de match e perfil completo liberado depois da conexão.
+- Pré-visualização do personagem, pop-up de Assemble e perfil completo liberado depois da conexão.
 - Chat com respostas simuladas e aviso de nova mensagem, perfil e preferências, configurações, sobre e ajuda.
 - Transições, acessibilidade, animações que respeitam o sistema e escala de fonte.
 - Licença MIT e README com a arquitetura planejada.

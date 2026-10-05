@@ -1,6 +1,6 @@
 # Assemble
 
-Aplicativo Android para **descobrir personagens de quadrinhos e conversar com eles**. Você desliza cards de personagens, dá **Pass** ou **Assemble** e, quando o personagem também decide pelo match, abre uma conversa com uma versão **ficcional** dele, gerada por inteligência artificial.
+Aplicativo Android para **descobrir personagens de quadrinhos e conversar com eles**. Você desliza cards de personagens, dá **Pass** ou **Assemble** e, quando o personagem também decide pela conexão, abre uma conversa com uma versão **ficcional** dele, gerada por inteligência artificial.
 
 > **Projeto acadêmico.** Não é afiliado, patrocinado ou endossado pela Marvel, pela Comic Vine ou por qualquer editora. Nomes e marcas pertencem aos seus donos. Toda conversa é ficção gerada por IA: não é canon nem material aprovado pela editora.
 
@@ -9,8 +9,8 @@ Este repositório é o **app Android**. O servidor fica em outro repositório: [
 ## O que o app faz
 
 - **Cadastro:** login por e-mail e senha ou com a conta Google, cinco passos de preferências (origem, poderes, equipes, estilo e fama), a rodada "este ou aquele" (que ensina o gosto sem virar decisão) e a revelação do seu perfil de herói, com o aviso de IA.
-- **Descobrir:** baralho de até 40 personagens por dia, diferente para cada pessoa e sorteado de novo a cada abertura. Pass, Assemble e Undo do último Pass. Quem recebeu Pass não volta. A compatibilidade só aparece depois do match.
-- **Match:** o backend decide combinando compatibilidade, afinidade do personagem pelo usuário e acaso. O pop-up de match entra em fila quando há vários.
+- **Descobrir:** baralho de até 40 personagens por dia, diferente para cada pessoa e sorteado de novo a cada abertura. Pass, Assemble e Undo do último Pass. Quem recebeu Pass não volta. A compatibilidade só aparece depois da conexão.
+- **Assemble:** o backend decide combinando compatibilidade, afinidade do personagem pelo usuário e acaso. O pop-up de Assemble entra em fila quando há vários.
 - **Conversar:** chat com a versão ficcional do personagem, com respostas sugeridas, gerar outra resposta e voltar a conversa. O personagem lembra do que foi dito, mesmo em conversas longas.
 - **Conhecer:** perfil completo do personagem (atributos, aparência, colegas de equipe, fontes) liberado depois da conexão.
 - **Perfil:** foto, capa, destaque, moldura, frase de apresentação, conquistas e preferências editáveis.
@@ -58,7 +58,7 @@ GOOGLE_WEB_CLIENT_ID=...
 
 1. **Descobrir.** O card mostra arte, nome, uma frase sobre o personagem e traços em comum. Metade do baralho vem da compatibilidade com as suas preferências; a outra metade, do gosto aprendido pelas suas decisões.
 2. **Escolher.** **Pass** descarta. **Assemble** demonstra interesse.
-3. **Match.** A decisão é tomada **uma única vez** por par usuário–personagem:
+3. **Assemble.** A decisão é tomada **uma única vez** por par usuário–personagem:
 
    ```
    chance = p1 × compatibilidade + p2 × afinidade com a persona + p3 × acaso
@@ -78,7 +78,7 @@ Estimativa explicável entre as suas preferências e as características do pers
 App Android ──(token do Firebase)──▶ Backend Python (assemble-api)
      │                                ├─ Firestore: usuários, decisões, conexões, mensagens
      │                                ├─ Catálogo (Comic Vine, Marvel Database, Superhero API)
-     └─ lê o Firestore em tempo real   ├─ Baralho, compatibilidade e decisão de match
+     └─ lê o Firestore em tempo real   ├─ Baralho, compatibilidade e decisão do Assemble
                                       └─ IA: LiteLLM + guardrail Laya (entrada e saída)
 ```
 

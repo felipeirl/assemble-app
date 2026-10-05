@@ -8,7 +8,7 @@
 
     <!-- Compatibilidade -->
     <string name="score_ring_value" translatable="false">%1$d%%</string>
-    <string name="score_ring_description">%1$d%% match</string>
+    <string name="score_ring_description">%1$d%% compatibility</string>
 
     <!-- Card e fonte -->
     <string name="card_in_common">In common</string>
@@ -68,7 +68,7 @@
     <string name="match_assembled" translatable="false">Assemble!</string>
     <string name="match_compatibility">Compatibility</string>
     <string name="match_subtitle">You and %1$s assembled.</string>
-    <string name="why_you_match">Why you match</string>
+    <string name="why_you_match">Why you connect</string>
     <string name="match_start_chat">Start chat</string>
     <string name="match_keep_discovering">Keep discovering</string>
 
@@ -130,7 +130,7 @@
     <string name="profile_edit">Edit profile</string>
     <string name="profile_stat_seen">Characters seen</string>
     <string name="profile_stat_connections">Connections</string>
-    <string name="profile_stat_average">Avg. match</string>
+    <string name="profile_stat_average">Avg. compatibility</string>
     <string name="profile_my_preferences">My preferences</string>
     <string name="profile_top_traits">Your top traits</string>
     <string name="profile_preferences_updated">Your Discover results will update</string>
