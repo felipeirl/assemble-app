@@ -61,7 +61,6 @@
     </plurals>
     <string name="discover_adjust_preferences">Adjust preferences</string>
     <string name="discover_undo">Undo</string>
-    <string name="discover_not_enough_in_common">Not enough in common this time</string>
     <string name="discover_assemble_failed">Couldn\'t assemble. Check your connection and try again.</string>
 
     <!-- Match -->

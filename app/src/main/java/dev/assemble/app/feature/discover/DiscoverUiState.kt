@@ -20,7 +20,8 @@ data class DiscoverMatch(
     val traitsInCommon: List<Enum<*>>,
 )
 
-enum class DiscoverMessage { NotEnoughInCommon, AssembleFailed }
+/** Aviso do Discover. Só falha vira aviso: um Assemble sem match passa em silêncio. */
+enum class DiscoverMessage { AssembleFailed }
 
 /** Pilha de cards: os quatro estados obrigatórios. */
 sealed interface DeckState {

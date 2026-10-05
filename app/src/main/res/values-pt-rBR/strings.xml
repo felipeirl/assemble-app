@@ -60,7 +60,6 @@
     </plurals>
     <string name="discover_adjust_preferences">Ajustar preferências</string>
     <string name="discover_undo">Desfazer</string>
-    <string name="discover_not_enough_in_common">Pouco em comum desta vez</string>
     <string name="discover_assemble_failed">Não foi possível dar Assemble. Verifique sua conexão e tente de novo.</string>
 
     <!-- Match -->

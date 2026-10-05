@@ -134,7 +134,6 @@ fun DiscoverScreen(
     LaunchedEffect(state.message) {
         val message = state.message ?: return@LaunchedEffect
         val text = when (message) {
-            DiscoverMessage.NotEnoughInCommon -> resources.getString(R.string.discover_not_enough_in_common)
             DiscoverMessage.AssembleFailed -> resources.getString(R.string.discover_assemble_failed)
         }
         // Limpar a mensagem só depois: mudar a chave antes cancelaria este efeito.

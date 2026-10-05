@@ -52,7 +52,8 @@ class AssembleService(
                 delay(replyDelay)
                 when (val outcome = deckSource.assemble(characterId)) {
                     is AssembleOutcome.Matched -> matchQueue.update { it + outcome.match }
-                    AssembleOutcome.NotMatched -> messageState.value = DiscoverMessage.NotEnoughInCommon
+                    // Sem match, nada aparece: curtir em sequência não pode encher a tela de avisos.
+                    AssembleOutcome.NotMatched -> Unit
                 }
             } catch (_: IOException) {
                 deckSource.restore(characterId)

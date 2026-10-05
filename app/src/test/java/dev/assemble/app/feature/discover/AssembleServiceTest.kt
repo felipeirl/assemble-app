@@ -66,10 +66,11 @@ class AssembleServiceTest {
     }
 
     @Test
-    fun assemble_notMatched_postsMessage() = runRemoteTest { scope ->
+    fun assemble_notMatched_isSilent() = runRemoteTest { scope ->
         val service = AssembleService(RecordingDeckSource { AssembleOutcome.NotMatched }, scope, replyDelay = Duration.ZERO)
         service.assemble("storm")
-        assertEquals(DiscoverMessage.NotEnoughInCommon, service.message.value)
+        assertNull(service.message.value)
+        assertNull(service.match.first())
     }
 
     @Test
