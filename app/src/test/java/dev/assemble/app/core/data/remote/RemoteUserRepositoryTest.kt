@@ -14,8 +14,8 @@ class RemoteUserRepositoryTest {
     private val store = InMemoryUserDataStore()
     private val api = FakeAssembleApi()
 
-    private fun repository(auth: FakeAuthGateway, scope: CoroutineScope) =
-        RemoteUserRepository(auth, store, api, inMemorySettings(), scope)
+    private fun repository(auth: FakeAuthGateway, scope: CoroutineScope, webClientId: String? = null) =
+        RemoteUserRepository(auth, store, api, inMemorySettings(), scope, webClientId)
 
     @Test
     fun signedOut_isReadyAndLoggedOut() = runRemoteTest { scope ->
@@ -89,5 +89,32 @@ class RemoteUserRepositoryTest {
         assertEquals(0, api.hideChatsCalls)
         assertFalse(users.session.value.isLoggedIn)
         assertTrue(users.accountDeletionHandledByServer)
+    }
+
+    @Test
+    fun googleLogin_isOfferedOnlyWithAWebClientId() = runRemoteTest { scope ->
+        assertFalse(repository(FakeAuthGateway(), scope).googleLogin)
+        assertFalse(repository(FakeAuthGateway(), scope, webClientId = " ").googleLogin)
+        val users = repository(FakeAuthGateway(), scope, webClientId = "123.apps.googleusercontent.com")
+        assertTrue(users.googleLogin)
+        assertEquals("123.apps.googleusercontent.com", users.googleWebClientId)
+    }
+
+    @Test
+    fun logInWithGoogleToken_signsInThroughTheGateway() = runRemoteTest { scope ->
+        val auth = FakeAuthGateway(signedInUid = null)
+        val users = repository(auth, scope, webClientId = "id")
+
+        users.logInWithGoogleToken("google-id-token")
+
+        assertEquals("google-id-token", auth.lastGoogleToken)
+        assertEquals(FakeAuthGateway.SIGNED_IN_UID, auth.uid.value)
+    }
+
+    @Test
+    fun sendPasswordReset_delegatesToTheGateway() = runRemoteTest { scope ->
+        val auth = FakeAuthGateway(signedInUid = null)
+        repository(auth, scope).sendPasswordReset("tony@stark.com")
+        assertEquals(listOf("tony@stark.com"), auth.resetRequests)
     }
 }

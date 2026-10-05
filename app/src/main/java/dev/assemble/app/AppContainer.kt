@@ -72,7 +72,10 @@ class AppContainer(context: Context) {
     val usesBackend: Boolean = BuildConfig.BACKEND_URL.isNotBlank() && firebaseSettings.isComplete
 
     private val remote: RemoteGraph? = if (usesBackend) {
-        RemoteGraph(appContext, BuildConfig.BACKEND_URL, firebaseSettings, settingsStore, applicationScope, clock)
+        RemoteGraph(
+            appContext, BuildConfig.BACKEND_URL, firebaseSettings, BuildConfig.GOOGLE_WEB_CLIENT_ID,
+            settingsStore, applicationScope, clock,
+        )
     } else {
         null
     }

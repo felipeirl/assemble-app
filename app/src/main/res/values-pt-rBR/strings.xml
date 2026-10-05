@@ -325,4 +325,9 @@
     <string name="chat_message_blocked">Não enviada: esta mensagem viola as regras da conversa.</string>
     <string name="discover_assembling">Vendo se rola um match…</string>
     <string name="profile_about">Sobre</string>
+    <string name="login_or">ou</string>
+    <string name="login_forgot_password">Esqueci minha senha</string>
+    <string name="login_reset_sent">Se este e-mail tiver uma conta, enviamos um link para redefinir a senha.</string>
+    <string name="login_show_password">Mostrar senha</string>
+    <string name="login_hide_password">Ocultar senha</string>
 </resources>

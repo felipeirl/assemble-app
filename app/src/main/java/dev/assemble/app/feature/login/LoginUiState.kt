@@ -4,17 +4,21 @@ package dev.assemble.app.feature.login
 enum class LoginError { Generic, InvalidCredentials, EmailInUse, WeakPassword, InvalidEmail }
 
 /**
- * Login não carrega dados: só o envio e o erro de envio. Com backend, o botão de e-mail abre o
- * formulário de e-mail e senha ([emailFormOpen]); sem backend, entra direto.
+ * Login não carrega dados: só o envio e o erro de envio. Com backend ([inlineEmailForm]), o
+ * formulário de e-mail e senha fica na própria tela, com abas Entrar e Criar conta; sem backend,
+ * os dois botões entram direto.
  */
 data class LoginUiState(
     val signingIn: Boolean = false,
     val error: LoginError? = null,
     val showGoogle: Boolean = true,
-    val emailFormOpen: Boolean = false,
+    val inlineEmailForm: Boolean = false,
     val email: String = "",
     val password: String = "",
+    val showPassword: Boolean = false,
     val createAccount: Boolean = false,
+    /** O link de redefinição foi pedido. */
+    val resetSent: Boolean = false,
 ) {
     val showError: Boolean get() = error != null
 

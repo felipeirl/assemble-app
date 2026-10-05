@@ -131,6 +131,9 @@ object AssembleIcons {
     val Reset: ImageVector by lazy {
         lineIcon("Reset", "M4.5 12a7.5 7.5 0 1 0 2.2-5.3", "M4.5 4.5V9H9")
     }
+    val Eye: ImageVector by lazy {
+        lineIcon("Eye", "M2.5 12s3.5-6.5 9.5-6.5 9.5 6.5 9.5 6.5-3.5 6.5-9.5 6.5S2.5 12 2.5 12z", circle(12f, 12f, 2.5f))
+    }
     val EyeOff: ImageVector by lazy {
         lineIcon(
             "EyeOff",

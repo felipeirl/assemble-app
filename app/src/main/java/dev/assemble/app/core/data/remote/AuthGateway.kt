@@ -5,7 +5,7 @@ import kotlinx.coroutines.flow.StateFlow
 import java.io.IOException
 
 /** Por que o login falhou, para a tela escolher a mensagem. */
-enum class AuthFailure { InvalidCredentials, EmailInUse, WeakPassword, InvalidEmail, Network, Other }
+enum class AuthFailure { InvalidCredentials, EmailInUse, WeakPassword, InvalidEmail, Network, Cancelled, Other }
 
 class AuthException(val reason: AuthFailure, cause: Throwable? = null) : IOException(reason.name, cause)
 
@@ -23,6 +23,12 @@ interface AuthGateway : IdTokenProvider {
     suspend fun signIn(email: String, password: String)
 
     suspend fun createAccount(email: String, password: String)
+
+    /** Entra com o ID token do Google (Credential Manager). */
+    suspend fun signInWithGoogle(idToken: String)
+
+    /** Envia o link de redefinição de senha. Não revela se o e-mail tem conta. */
+    suspend fun sendPasswordReset(email: String)
 
     suspend fun signOut()
 }

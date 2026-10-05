@@ -45,6 +45,15 @@ interface UserRepository {
     /** Login com Google disponível nesta configuração. */
     val googleLogin: Boolean get() = true
 
+    /** ID do cliente web do Google, quando o login precisa de um token real; null entra direto (simulado). */
+    val googleWebClientId: String? get() = null
+
+    /** Entra com o ID token do Google. Sem backend, equivale a [logIn]. */
+    suspend fun logInWithGoogleToken(idToken: String) = logIn()
+
+    /** Envia o link de redefinição de senha por e-mail. */
+    suspend fun sendPasswordReset(email: String) = Unit
+
     /** Login real por e-mail e senha; [createAccount] cria a conta antes. */
     suspend fun logInWithEmail(email: String, password: String, createAccount: Boolean) = logIn()
 

@@ -42,6 +42,7 @@ class RemoteUserRepository(
     private val api: AssembleApi,
     private val settingsStore: SettingsDataStore,
     scope: CoroutineScope,
+    private val webClientId: String? = null,
 ) : UserRepository {
 
     private sealed interface UserState {
@@ -97,8 +98,10 @@ class RemoteUserRepository(
 
     override val passwordLogin: Boolean get() = true
 
-    // O login com Google precisa de bibliotecas novas (Credential Manager); por ora, só e-mail.
-    override val googleLogin: Boolean get() = false
+    // O login com Google só aparece com o ID do cliente web configurado no local.properties.
+    override val googleLogin: Boolean get() = !webClientId.isNullOrBlank()
+
+    override val googleWebClientId: String? get() = webClientId?.takeIf { it.isNotBlank() }
 
     override val canClearSeen: Boolean get() = false
 
@@ -131,6 +134,13 @@ class RemoteUserRepository(
         if (createAccount) auth.createAccount(email, password) else auth.signIn(email, password)
         deactivatedByApi.value = false
     }
+
+    override suspend fun logInWithGoogleToken(idToken: String) {
+        auth.signInWithGoogle(idToken)
+        deactivatedByApi.value = false
+    }
+
+    override suspend fun sendPasswordReset(email: String) = auth.sendPasswordReset(email)
 
     override suspend fun logOut() {
         auth.signOut()

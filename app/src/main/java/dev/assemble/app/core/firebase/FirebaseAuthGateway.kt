@@ -6,6 +6,7 @@ import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException
 import com.google.firebase.auth.FirebaseAuthInvalidUserException
 import com.google.firebase.auth.FirebaseAuthUserCollisionException
 import com.google.firebase.auth.FirebaseAuthWeakPasswordException
+import com.google.firebase.auth.GoogleAuthProvider
 import dev.assemble.app.core.data.remote.AuthException
 import dev.assemble.app.core.data.remote.AuthFailure
 import dev.assemble.app.core.data.remote.AuthGateway
@@ -41,6 +42,19 @@ class FirebaseAuthGateway(private val auth: FirebaseAuth) : AuthGateway {
 
     override suspend fun createAccount(email: String, password: String) {
         auth.createUserWithEmailAndPassword(email.trim(), password).awaitAuth()
+    }
+
+    override suspend fun signInWithGoogle(idToken: String) {
+        auth.signInWithCredential(GoogleAuthProvider.getCredential(idToken, null)).awaitAuth()
+    }
+
+    override suspend fun sendPasswordReset(email: String) {
+        try {
+            auth.sendPasswordResetEmail(email.trim()).awaitAuth()
+        } catch (error: AuthException) {
+            // Conta inexistente não pode ser distinguida de sucesso (enumeração de e-mails).
+            if (error.reason != AuthFailure.InvalidCredentials) throw error
+        }
     }
 
     override suspend fun signOut() {

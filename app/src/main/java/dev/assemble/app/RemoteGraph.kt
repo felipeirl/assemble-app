@@ -30,6 +30,7 @@ class RemoteGraph(
     context: Context,
     backendUrl: String,
     firebaseSettings: FirebaseSettings,
+    googleWebClientId: String?,
     settingsStore: SettingsDataStore,
     scope: CoroutineScope,
     clock: Clock,
@@ -46,7 +47,7 @@ class RemoteGraph(
         onAccountDeactivated = { users.onAccountDeactivated() },
     )
 
-    val users: RemoteUserRepository = RemoteUserRepository(auth, store, api, settingsStore, scope)
+    val users: RemoteUserRepository = RemoteUserRepository(auth, store, api, settingsStore, scope, googleWebClientId)
     val connections = RemoteConnectionRepository(auth.uid, store, api, scope)
     val characters = RemoteCharacterRepository(api, connections) { backendLanguageTag() }
     val chat = RemoteChatRepository(auth.uid, store, api, connections, scope, clock)

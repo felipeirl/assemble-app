@@ -128,6 +128,18 @@ internal class FakeAuthGateway(signedInUid: String? = null, override val email: 
 
     override suspend fun createAccount(email: String, password: String) = enter()
 
+    var lastGoogleToken: String? = null
+    var resetRequests = mutableListOf<String>()
+
+    override suspend fun signInWithGoogle(idToken: String) {
+        lastGoogleToken = idToken
+        enter()
+    }
+
+    override suspend fun sendPasswordReset(email: String) {
+        resetRequests += email
+    }
+
     override suspend fun signOut() {
         uid.value = null
     }
