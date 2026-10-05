@@ -1,0 +1,66 @@
+package dev.assemble.app.core.firebase
+
+import com.google.firebase.FirebaseNetworkException
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException
+import com.google.firebase.auth.FirebaseAuthInvalidUserException
+import com.google.firebase.auth.FirebaseAuthUserCollisionException
+import com.google.firebase.auth.FirebaseAuthWeakPasswordException
+import dev.assemble.app.core.data.remote.AuthException
+import dev.assemble.app.core.data.remote.AuthFailure
+import dev.assemble.app.core.data.remote.AuthGateway
+import dev.assemble.app.core.network.NotSignedInException
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+
+/** Login por e-mail e senha no Firebase Auth. */
+class FirebaseAuthGateway(private val auth: FirebaseAuth) : AuthGateway {
+    private val uidState = MutableStateFlow(auth.currentUser?.uid)
+    private val readyState = MutableStateFlow(false)
+
+    override val uid: StateFlow<String?> = uidState.asStateFlow()
+    override val ready: StateFlow<Boolean> = readyState.asStateFlow()
+    override val email: String? get() = auth.currentUser?.email
+
+    init {
+        auth.addAuthStateListener { current ->
+            uidState.value = current.currentUser?.uid
+            readyState.value = true
+        }
+    }
+
+    override suspend fun idToken(forceRefresh: Boolean): String {
+        val user = auth.currentUser ?: throw NotSignedInException()
+        return user.getIdToken(forceRefresh).awaitAuth().token ?: throw NotSignedInException()
+    }
+
+    override suspend fun signIn(email: String, password: String) {
+        auth.signInWithEmailAndPassword(email.trim(), password).awaitAuth()
+    }
+
+    override suspend fun createAccount(email: String, password: String) {
+        auth.createUserWithEmailAndPassword(email.trim(), password).awaitAuth()
+    }
+
+    override suspend fun signOut() {
+        auth.signOut()
+    }
+
+    private suspend fun <T> com.google.android.gms.tasks.Task<T>.awaitAuth(): T = try {
+        await()
+    } catch (error: FirebaseAuthWeakPasswordException) {
+        throw AuthException(AuthFailure.WeakPassword, error)
+    } catch (error: FirebaseAuthUserCollisionException) {
+        throw AuthException(AuthFailure.EmailInUse, error)
+    } catch (error: FirebaseAuthInvalidUserException) {
+        throw AuthException(AuthFailure.InvalidCredentials, error)
+    } catch (error: FirebaseAuthInvalidCredentialsException) {
+        val reason = if (error.errorCode == "ERROR_INVALID_EMAIL") AuthFailure.InvalidEmail else AuthFailure.InvalidCredentials
+        throw AuthException(reason, error)
+    } catch (error: FirebaseNetworkException) {
+        throw AuthException(AuthFailure.Network, error)
+    } catch (error: com.google.firebase.FirebaseException) {
+        throw AuthException(AuthFailure.Other, error)
+    }
+}

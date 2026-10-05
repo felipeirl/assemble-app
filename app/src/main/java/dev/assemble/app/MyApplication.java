@@ -2,6 +2,7 @@ package dev.assemble.app;
 
 import android.app.Application;
 
+import dev.assemble.app.core.network.ImageLoading;
 import dev.assemble.app.data.local.FirebaseInit;
 
 /**
@@ -14,6 +15,7 @@ public class MyApplication extends Application {
     @Override
     public void onCreate() {
         super.onCreate();
+        ImageLoading.install();
         FirebaseInit.init(this);
         container = new AppContainer(this);
     }

@@ -5,8 +5,13 @@ import dev.assemble.app.core.data.CharacterRepository
 import dev.assemble.app.core.data.ChatRepository
 import dev.assemble.app.core.data.ConnectionRepository
 import dev.assemble.app.core.data.UserRepository
+import dev.assemble.app.core.data.local.MockSessionStore
 import dev.assemble.app.core.data.local.SettingsDataStore
+import dev.assemble.app.core.data.local.StoredSession
+import dev.assemble.app.core.data.local.mockSessionDataStore
 import dev.assemble.app.core.data.local.settingsDataStore
+import dev.assemble.app.core.feedback.Feedback
+import dev.assemble.app.core.feedback.FeedbackPlayer
 import dev.assemble.app.core.data.fake.FakeCharacterRepository
 import dev.assemble.app.core.data.fake.FakeChatRepository
 import dev.assemble.app.core.data.fake.FakeConnectionRepository
@@ -17,7 +22,16 @@ import dev.assemble.app.core.data.mock.CHARACTERS_ASSET_PATH
 import dev.assemble.app.core.data.mock.MockSeed
 import dev.assemble.app.core.domain.CompatibilityCalculator
 import dev.assemble.app.core.model.Connection
+import dev.assemble.app.core.model.SessionState
+import dev.assemble.app.feature.achievements.AchievementTracker
+import dev.assemble.app.core.firebase.FirebaseSettings
+import dev.assemble.app.feature.character.CharacterDetailsSource
+import dev.assemble.app.feature.character.LocalCharacterDetailsSource
 import dev.assemble.app.feature.discover.AssembleService
+import dev.assemble.app.feature.discover.CharacterReplyDelay
+import dev.assemble.app.feature.discover.DeckSource
+import dev.assemble.app.feature.discover.LocalDeckSource
+import kotlin.time.Duration
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -28,7 +42,10 @@ import kotlinx.coroutines.flow.stateIn
 import java.time.Clock
 import java.time.Instant
 
-/** Injeção de dependência manual. Hoje só repositórios falsos; trocar aqui pelos reais depois. */
+/**
+ * Injeção de dependência manual. Com `BACKEND_URL` e as chaves do Firebase no `local.properties`,
+ * o app usa o backend ([RemoteGraph]); sem elas, roda com os repositórios simulados.
+ */
 class AppContainer(context: Context) {
     private val appContext = context.applicationContext
     private val clock: Clock = Clock.systemDefaultZone()
@@ -43,36 +60,76 @@ class AppContainer(context: Context) {
         appContext.assets.open(CHARACTERS_ASSET_PATH).bufferedReader().use { it.readText() }
     }
 
-    val characterRepository: CharacterRepository = FakeCharacterRepository(fakeNetwork, catalog)
-
     private val settingsStore = SettingsDataStore(appContext.settingsDataStore)
 
-    val userRepository: UserRepository = FakeUserRepository(
+    private val firebaseSettings = FirebaseSettings(
+        apiKey = BuildConfig.FIREBASE_API_KEY,
+        applicationId = BuildConfig.FIREBASE_APP_ID,
+        projectId = BuildConfig.FIREBASE_PROJECT_ID,
+    )
+
+    /** true quando o app fala com o backend de verdade. */
+    val usesBackend: Boolean = BuildConfig.BACKEND_URL.isNotBlank() && firebaseSettings.isComplete
+
+    private val remote: RemoteGraph? = if (usesBackend) {
+        RemoteGraph(appContext, BuildConfig.BACKEND_URL, firebaseSettings, settingsStore, applicationScope, clock)
+    } else {
+        null
+    }
+
+    val characterRepository: CharacterRepository = remote?.characters ?: FakeCharacterRepository(fakeNetwork, catalog)
+
+    val userRepository: UserRepository = remote?.users ?: FakeUserRepository(
         network = fakeNetwork,
         initialProfile = MockSeed.initialProfile,
         initialPreferences = MockSeed.initialPreferences,
         settingsStore = settingsStore,
+        sessionStore = MockSessionStore(
+            dataStore = appContext.mockSessionDataStore,
+            defaults = StoredSession(SessionState(), MockSeed.initialPreferences, MockSeed.initialProfile),
+        ),
         scope = applicationScope,
     )
 
-    /** false até o DataStore entregar o primeiro valor: o splash segura a tela (evita piscar o tema). */
-    val settingsLoaded: StateFlow<Boolean> =
-        settingsStore.settings.map { true }.stateIn(applicationScope, SharingStarted.Eagerly, false)
-
-    val connectionRepository: ConnectionRepository = FakeConnectionRepository(
+    val connectionRepository: ConnectionRepository = remote?.connections ?: FakeConnectionRepository(
         network = fakeNetwork,
         clock = clock,
         seed = ::seedConnections,
     )
 
-    val chatRepository: ChatRepository = FakeChatRepository(
+    val chatRepository: ChatRepository = remote?.chat ?: FakeChatRepository(
         network = fakeNetwork,
         clock = clock,
         connections = connectionRepository,
         initialMessages = MockSeed.initialMessages(Instant.now(clock)),
     )
 
-    val assembleService = AssembleService(userRepository, connectionRepository, chatRepository)
+    /** Baralho do Discover: o backend decide; sem ele, o cálculo é local. */
+    val deckSource: DeckSource = remote?.deck
+        ?: LocalDeckSource(characterRepository, userRepository, connectionRepository, chatRepository)
+
+    /** Prévia e perfil completo do personagem. */
+    val characterDetails: CharacterDetailsSource = remote?.details
+        ?: LocalCharacterDetailsSource(characterRepository, connectionRepository, userRepository)
+
+    /** Som e vibração do app; lê as opções do Settings a cada toque. */
+    val feedback: Feedback = FeedbackPlayer(appContext) { userRepository.settings.value }
+
+    val assembleService = AssembleService(
+        deckSource = deckSource,
+        scope = applicationScope,
+        // Com backend, a própria chamada já leva o tempo de gerar a fala de abertura.
+        replyDelay = if (remote != null) Duration.ZERO else CharacterReplyDelay,
+    )
+
+    val achievementTracker = AchievementTracker(
+        characterRepository = characterRepository,
+        connectionRepository = connectionRepository,
+        chatRepository = chatRepository,
+        userRepository = userRepository,
+        scope = applicationScope,
+        remoteStats = remote?.let { graph -> { graph.totals() } },
+    )
 
     /** Conexões iniciais com o score calculado pelas preferências iniciais do mock. */
     private suspend fun seedConnections(): List<Connection> {
