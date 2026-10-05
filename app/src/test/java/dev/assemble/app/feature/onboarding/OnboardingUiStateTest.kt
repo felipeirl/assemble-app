@@ -11,8 +11,10 @@ import dev.assemble.app.core.model.selectAny
 import dev.assemble.app.core.model.toggle
 import dev.assemble.app.core.model.totalChoices
 import dev.assemble.app.core.model.withFame
+import dev.assemble.app.feature.discover.DiscoverCard
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -52,9 +54,27 @@ class OnboardingUiStateTest {
     }
 
     @Test
-    fun stepsFollowCategoryOrder() {
+    fun stepsAreCategoriesThenReactionThenReveal() {
         assertEquals(PreferenceCategory.Origin, onboardingStepAt(0))
-        assertEquals(PreferenceCategory.Fame, onboardingStepAt(99))
-        assertTrue(PreferenceCategory.Fame.isLastStep)
+        assertEquals(PreferenceCategory.Fame, onboardingStepAt(PreferenceCategory.entries.lastIndex))
+        assertEquals(PreferenceCategory.entries.size, REACTION_STEP)
+        assertEquals(REACTION_STEP + 1, REVEAL_STEP)
+        assertEquals(REVEAL_STEP + 1, ONBOARDING_STEP_COUNT)
+    }
+
+    @Test
+    fun reactionCountsLikesAndFinishesAfterTheLastCard() {
+        val cards = listOf(
+            DiscoverCard("storm", "Storm", null, emptyList()),
+            DiscoverCard("rocket", "Rocket", null, emptyList()),
+        )
+        val start = ReactionState.Playing(cards)
+        assertEquals("storm", start.current?.characterId)
+
+        val end = start.after(liked = true).after(liked = false)
+
+        assertTrue(end.finished)
+        assertNull(end.current)
+        assertEquals(1, end.liked)
     }
 }

@@ -26,6 +26,13 @@ data class ApiDeck(
     val canUndo: Boolean,
 )
 
+/** Rodada de reação do cadastro: cards só para ensinar o gosto, não são o baralho. */
+@Serializable
+data class ApiReactionCards(val cards: List<ApiDeckCard>)
+
+@Serializable
+internal data class ApiTasteSignalRequest(val liked: Boolean)
+
 @Serializable
 data class ApiMatchCharacter(val characterId: String, val name: String, val imageUrl: String? = null)
 

@@ -148,8 +148,9 @@ class RemoteUserRepository(
         deactivatedByApi.value = false
     }
 
-    override suspend fun completeOnboarding(preferences: Preferences) {
+    override suspend fun completeOnboarding(preferences: Preferences, lookingFor: String) {
         val uid = requireUid()
+        val answer = lookingFor.trim().take(LOOKING_FOR_MAX)
         store.mergeUser(
             uid,
             profileFields(currentProfile.value, currentProfile.value.photo) + mapOf(
@@ -157,7 +158,7 @@ class RemoteUserRepository(
                 "onboardingCompletedAt" to ServerTime,
                 // O passo final do onboarding mostra o aviso de IA; continuar é o aceite.
                 "aiConsent" to mapOf("acceptedAt" to ServerTime, "version" to AI_CONSENT_VERSION),
-            ) + createdAtIfNew(),
+            ) + (if (answer.isEmpty()) emptyMap() else mapOf("lookingFor" to answer)) + createdAtIfNew(),
         )
         // O listener do Firestore confirma; esperar evita voltar ao onboarding por um instante.
         session.first { it.hasCompletedOnboarding }

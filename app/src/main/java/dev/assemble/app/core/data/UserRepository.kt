@@ -25,7 +25,8 @@ interface UserRepository {
 
     suspend fun logIn()
     suspend fun logOut()
-    suspend fun completeOnboarding(preferences: Preferences)
+    /** [lookingFor]: "o que você procura numa conversa?", opcional (vazio = não respondeu). */
+    suspend fun completeOnboarding(preferences: Preferences, lookingFor: String = "")
 
     suspend fun updateProfile(profile: UserProfile)
     suspend fun updatePreferences(preferences: Preferences)

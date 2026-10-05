@@ -51,6 +51,28 @@ class RemoteUserRepositoryTest {
     }
 
     @Test
+    fun completeOnboarding_writesLookingForOnlyWhenAnswered() = runRemoteTest { scope ->
+        val users = repository(FakeAuthGateway(signedInUid = "uid-1"), scope)
+        users.awaitKnown()
+
+        users.completeOnboarding(Preferences.Any, lookingFor = "  Falar de ciência ${"x".repeat(LOOKING_FOR_MAX)}")
+
+        val written = store.merges.single()["lookingFor"] as String
+        assertTrue(written.startsWith("Falar de ciência"))
+        assertEquals(LOOKING_FOR_MAX, written.length)
+    }
+
+    @Test
+    fun completeOnboarding_withoutLookingFor_doesNotWriteIt() = runRemoteTest { scope ->
+        val users = repository(FakeAuthGateway(signedInUid = "uid-1"), scope)
+        users.awaitKnown()
+
+        users.completeOnboarding(Preferences.Any, lookingFor = "   ")
+
+        assertFalse("lookingFor" in store.merges.single())
+    }
+
+    @Test
     fun logInWithEmail_failurePropagatesReason() = runRemoteTest { scope ->
         val auth = FakeAuthGateway(signedInUid = null).apply { failure = AuthFailure.InvalidCredentials }
         val users = repository(auth, scope)

@@ -22,6 +22,12 @@ interface AssembleApi {
 
     suspend fun undo(): ApiDeckCard
 
+    /** Cards da rodada de reação do cadastro. */
+    suspend fun reactionCards(): List<ApiDeckCard>
+
+    /** Curti/Pular da rodada de reação: ensina o gosto, não é decisão. */
+    suspend fun tasteSignal(characterId: String, liked: Boolean)
+
     suspend fun character(characterId: String): ApiCharacterView
 
     suspend fun sendMessage(connectionId: String, text: String, idempotencyKey: String): ApiCharacterReply
@@ -76,6 +82,14 @@ class HttpAssembleApi(
     }
 
     override suspend fun undo(): ApiDeckCard = decode(call("POST", "/v2/decisions/undo"))
+
+    override suspend fun reactionCards(): List<ApiDeckCard> =
+        decode<ApiReactionCards>(call("GET", "/v2/onboarding/reaction-cards")).cards
+
+    override suspend fun tasteSignal(characterId: String, liked: Boolean) {
+        val body = json.encodeToString(ApiTasteSignalRequest.serializer(), ApiTasteSignalRequest(liked))
+        call("PUT", "/v2/taste-signals/${encode(characterId)}", body)
+    }
 
     override suspend fun character(characterId: String): ApiCharacterView =
         decode(call("GET", "/v2/characters/${encode(characterId)}"))

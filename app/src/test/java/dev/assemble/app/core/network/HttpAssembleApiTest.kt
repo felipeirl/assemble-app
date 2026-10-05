@@ -122,6 +122,24 @@ class HttpAssembleApiTest {
     }
 
     @Test
+    fun `reaction cards and taste signals use the onboarding routes`() = runBlocking {
+        reply(
+            Reply(200, """{"cards":[{"characterId":"storm","name":"Tempestade","traitsInCommon":[]}]}"""),
+            Reply(204),
+        )
+
+        val cards = api().reactionCards()
+        api().tasteSignal("storm", liked = true)
+
+        assertEquals("storm", cards.single().characterId)
+        assertEquals("GET", requests[0].method)
+        assertEquals("/v2/onboarding/reaction-cards", requests[0].path)
+        assertEquals("PUT", requests[1].method)
+        assertEquals("/v2/taste-signals/storm", requests[1].path)
+        assertEquals("""{"liked":true}""", requests[1].body)
+    }
+
+    @Test
     fun `regenerate posts to the connection and decodes the same message`() = runBlocking {
         reply(
             Reply(

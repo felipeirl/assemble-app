@@ -75,7 +75,8 @@ class FakeUserRepository(
         persist()
     }
 
-    override suspend fun completeOnboarding(preferences: Preferences) {
+    // Sem backend, a frase não tem uso (nem afinidade nem fala de abertura): não é guardada.
+    override suspend fun completeOnboarding(preferences: Preferences, lookingFor: String) {
         network.call()
         preferencesState.value = preferences
         sessionState.update { it.copy(hasCompletedOnboarding = true) }

@@ -59,7 +59,11 @@ import dev.assemble.app.feature.help.HelpScreen
 import dev.assemble.app.feature.login.LoginRoute
 import dev.assemble.app.feature.login.LoginViewModel
 import dev.assemble.app.feature.onboarding.OnboardingRoute
-import dev.assemble.app.feature.onboarding.isLastStep
+import dev.assemble.app.feature.onboarding.REACTION_STEP
+import dev.assemble.app.feature.onboarding.REVEAL_STEP
+import dev.assemble.app.feature.onboarding.ReactionRoute
+import dev.assemble.app.feature.onboarding.RevealRoute
+import dev.assemble.app.feature.onboarding.TasteSource
 import dev.assemble.app.feature.onboarding.onboardingStepAt
 import dev.assemble.app.feature.onboarding.OnboardingViewModel
 import dev.assemble.app.feature.profile.EditProfileRoute
@@ -117,7 +121,7 @@ fun AssembleApp(container: AppContainer) {
     ) { current ->
         when (current) {
             AppFlow.Entry -> EntryFlow(container.userRepository)
-            AppFlow.Onboarding -> OnboardingFlow(container.userRepository)
+            AppFlow.Onboarding -> OnboardingFlow(container.userRepository, container.tasteSource)
             AppFlow.Main -> MainFlow(container)
         }
     }
@@ -146,10 +150,10 @@ private fun EntryFlow(userRepository: UserRepository) {
 }
 
 @Composable
-private fun OnboardingFlow(userRepository: UserRepository) {
+private fun OnboardingFlow(userRepository: UserRepository, tasteSource: TasteSource) {
     val animationsEnabled = rememberAnimationsEnabled()
-    // Um ViewModel para os 5 passos: as escolhas sobrevivem ao ir e voltar entre eles.
-    val onboardingViewModel = viewModel { OnboardingViewModel(userRepository) }
+    // Um ViewModel para todos os passos: as escolhas sobrevivem ao ir e voltar entre eles.
+    val onboardingViewModel = viewModel { OnboardingViewModel(userRepository, tasteSource) }
     val backStack = rememberNavBackStack(Onboarding(step = 0))
     NavDisplay(
         backStack = backStack,
@@ -164,13 +168,21 @@ private fun OnboardingFlow(userRepository: UserRepository) {
         predictivePopTransitionSpec = { diagonalTransition(animationsEnabled) },
         entryProvider = entryProvider {
             entry<Onboarding> { key ->
-                val step = onboardingStepAt(key.step)
-                OnboardingRoute(
-                    step = step,
-                    viewModel = onboardingViewModel,
-                    onNext = { if (!step.isLastStep) backStack.add(Onboarding(key.step + 1)) },
-                    onBack = { backStack.removeLastOrNull() },
-                )
+                val onBack: () -> Unit = { backStack.removeLastOrNull() }
+                when (key.step) {
+                    REACTION_STEP -> ReactionRoute(
+                        viewModel = onboardingViewModel,
+                        onDone = { backStack.add(Onboarding(REVEAL_STEP)) },
+                        onBack = onBack,
+                    )
+                    REVEAL_STEP -> RevealRoute(viewModel = onboardingViewModel, onBack = onBack)
+                    else -> OnboardingRoute(
+                        step = onboardingStepAt(key.step),
+                        viewModel = onboardingViewModel,
+                        onNext = { backStack.add(Onboarding(key.step + 1)) },
+                        onBack = onBack,
+                    )
+                }
             }
         },
     )

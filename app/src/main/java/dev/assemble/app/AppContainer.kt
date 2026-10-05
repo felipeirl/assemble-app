@@ -31,6 +31,8 @@ import dev.assemble.app.feature.discover.AssembleService
 import dev.assemble.app.feature.discover.CharacterReplyDelay
 import dev.assemble.app.feature.discover.DeckSource
 import dev.assemble.app.feature.discover.LocalDeckSource
+import dev.assemble.app.feature.onboarding.LocalTasteSource
+import dev.assemble.app.feature.onboarding.TasteSource
 import kotlin.time.Duration
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -110,6 +112,9 @@ class AppContainer(context: Context) {
     /** Baralho do Discover: o backend decide; sem ele, o cálculo é local. */
     val deckSource: DeckSource = remote?.deck
         ?: LocalDeckSource(characterRepository, userRepository, connectionRepository, chatRepository)
+
+    /** Rodada de reação do cadastro: o backend aprende o gosto; sem ele, só mostra os cards. */
+    val tasteSource: TasteSource = remote?.taste ?: LocalTasteSource(characterRepository)
 
     /** Prévia e perfil completo do personagem. */
     val characterDetails: CharacterDetailsSource = remote?.details

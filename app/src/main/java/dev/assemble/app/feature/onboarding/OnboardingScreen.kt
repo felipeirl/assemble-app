@@ -2,6 +2,7 @@ package dev.assemble.app.feature.onboarding
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -18,9 +19,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.PreviewLightDark
@@ -53,7 +52,6 @@ fun OnboardingRoute(
         onFameChange = viewModel::setFame,
         onNext = onNext,
         onBack = onBack,
-        onFinish = viewModel::finish,
         modifier = modifier,
     )
 }
@@ -67,7 +65,6 @@ fun OnboardingScreen(
     onFameChange: (Float) -> Unit,
     onNext: () -> Unit,
     onBack: () -> Unit,
-    onFinish: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val colors = AssembleTheme.colors
@@ -80,21 +77,17 @@ fun OnboardingScreen(
                 title = TopBarTitle.None,
                 navigation = if (step.ordinal > 0) TopBarNavigation.Back(onBack) else TopBarNavigation.None,
                 actions = {
-                    if (!step.isLastStep) {
-                        TextButton(onClick = onNext) {
-                            Text(
-                                text = stringResource(R.string.onboarding_skip),
-                                style = AssembleTheme.typography.caption.copy(fontWeight = FontWeight.SemiBold),
-                                color = colors.accentText,
-                            )
-                        }
+                    TextButton(onClick = onNext) {
+                        Text(
+                            text = stringResource(R.string.onboarding_skip),
+                            style = AssembleTheme.typography.caption.copy(fontWeight = FontWeight.SemiBold),
+                            color = colors.accentText,
+                        )
                     }
                 },
             )
         },
-        bottomBar = {
-            OnboardingFooter(step = step, state = state, onNext = onNext, onFinish = onFinish)
-        },
+        bottomBar = { OnboardingFooter { PrimaryButton(stringResource(R.string.onboarding_next), onNext, Modifier.fillMaxWidth()) } },
     ) { padding ->
         Column(
             modifier = Modifier
@@ -105,7 +98,7 @@ fun OnboardingScreen(
             verticalArrangement = Arrangement.spacedBy(spacing.space4),
         ) {
             LinearProgressIndicator(
-                progress = { (step.ordinal + 1f) / PreferenceCategory.entries.size },
+                progress = { (step.ordinal + 1f) / ONBOARDING_STEP_COUNT },
                 modifier = Modifier.fillMaxWidth(),
                 color = colors.actionAssemble,
                 trackColor = colors.border,
@@ -133,50 +126,17 @@ fun OnboardingScreen(
     }
 }
 
+/** Rodapé dos passos do cadastro, acima da barra de navegação. */
 @Composable
-private fun OnboardingFooter(
-    step: PreferenceCategory,
-    state: OnboardingUiState,
-    onNext: () -> Unit,
-    onFinish: () -> Unit,
-) {
-    val colors = AssembleTheme.colors
+internal fun OnboardingFooter(content: @Composable ColumnScope.() -> Unit) {
     val spacing = AssembleTheme.spacing
     Column(
         modifier = Modifier
             .windowInsetsPadding(WindowInsets.navigationBars)
             .padding(spacing.space4),
         verticalArrangement = Arrangement.spacedBy(spacing.space2),
-    ) {
-        if (step.isLastStep) {
-            if (state.showError) {
-                Text(
-                    text = stringResource(R.string.onboarding_error),
-                    style = AssembleTheme.typography.caption,
-                    color = colors.error,
-                    modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
-                )
-            }
-            // Aviso de IA: tocar em "Start discovering" é o aceite gravado no perfil.
-            Text(
-                text = stringResource(R.string.onboarding_ai_notice),
-                style = AssembleTheme.typography.caption,
-                color = colors.textMuted,
-            )
-            PrimaryButton(
-                text = stringResource(R.string.onboarding_start),
-                onClick = onFinish,
-                loading = state.submitting,
-                modifier = Modifier.fillMaxWidth(),
-            )
-        } else {
-            PrimaryButton(
-                text = stringResource(R.string.onboarding_next),
-                onClick = onNext,
-                modifier = Modifier.fillMaxWidth(),
-            )
-        }
-    }
+        content = content,
+    )
 }
 
 @PreviewLightDark
@@ -186,7 +146,7 @@ private fun OnboardingChipsPreview() {
         OnboardingScreen(
             step = PreferenceCategory.Powers,
             state = OnboardingUiState(MockSeed.initialPreferences),
-            onToggle = {}, onSelectAny = {}, onFameChange = {}, onNext = {}, onBack = {}, onFinish = {},
+            onToggle = {}, onSelectAny = {}, onFameChange = {}, onNext = {}, onBack = {},
         )
     }
 }
@@ -198,7 +158,7 @@ private fun OnboardingFamePreview() {
         OnboardingScreen(
             step = PreferenceCategory.Fame,
             state = OnboardingUiState(MockSeed.initialPreferences.copy(origins = emptySet(), powers = emptySet())),
-            onToggle = {}, onSelectAny = {}, onFameChange = {}, onNext = {}, onBack = {}, onFinish = {},
+            onToggle = {}, onSelectAny = {}, onFameChange = {}, onNext = {}, onBack = {},
         )
     }
 }

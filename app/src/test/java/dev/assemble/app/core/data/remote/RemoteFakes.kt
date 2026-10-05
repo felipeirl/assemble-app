@@ -72,6 +72,15 @@ internal class FakeAssembleApi : AssembleApi {
 
     override suspend fun undo(): ApiDeckCard = onUndo()
 
+    val signals = mutableListOf<Pair<String, Boolean>>()
+    var onReactionCards: () -> List<ApiDeckCard> = { emptyList() }
+
+    override suspend fun reactionCards(): List<ApiDeckCard> = onReactionCards()
+
+    override suspend fun tasteSignal(characterId: String, liked: Boolean) {
+        signals += characterId to liked
+    }
+
     override suspend fun character(characterId: String): ApiCharacterView = onCharacter(characterId)
 
     override suspend fun sendMessage(connectionId: String, text: String, idempotencyKey: String): ApiCharacterReply {

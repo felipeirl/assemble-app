@@ -24,6 +24,9 @@ import java.time.Instant
 const val AI_CONSENT_VERSION = "v1"
 
 const val USER_STATUS_DEACTIVATED = "deactivated"
+
+/** Limite de `lookingFor` ("o que você procura numa conversa?"), igual às regras do Firestore. */
+const val LOOKING_FOR_MAX = 140
 private const val AUTHOR_USER = "USER"
 private const val AVATAR_PRESET_MAX = 5
 private const val DISPLAY_NAME_MAX = 60

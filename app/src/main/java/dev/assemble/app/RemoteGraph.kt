@@ -17,6 +17,7 @@ import dev.assemble.app.core.network.HttpAssembleApi
 import dev.assemble.app.feature.achievements.RemoteTotals
 import dev.assemble.app.feature.character.RemoteCharacterDetailsSource
 import dev.assemble.app.feature.discover.RemoteDeckSource
+import dev.assemble.app.feature.onboarding.RemoteTasteSource
 import dev.assemble.app.i18n.backendLanguageTag
 import dev.assemble.app.i18n.deviceTimeZoneId
 import kotlinx.coroutines.CoroutineScope
@@ -52,6 +53,7 @@ class RemoteGraph(
     val characters = RemoteCharacterRepository(api, connections) { backendLanguageTag() }
     val chat = RemoteChatRepository(auth.uid, store, api, connections, scope, clock)
     val deck = RemoteDeckSource(api, characters, users)
+    val taste = RemoteTasteSource(api)
     val details = RemoteCharacterDetailsSource(api, characters, connections)
 
     /** Para as conquistas: o que só o backend sabe contar. */
