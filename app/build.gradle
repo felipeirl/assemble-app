@@ -17,6 +17,7 @@ def localProp = { String key -> (localProps.getProperty(key, '') ?: '').trim().r
 def firebaseApiKey = localProp('FIREBASE_API_KEY')
 def firebaseAppId = localProp('FIREBASE_APP_ID')
 def firebaseProjectId = localProp('FIREBASE_PROJECT_ID')
+def googleWebClientId = localProp('GOOGLE_WEB_CLIENT_ID')
 
 android {
     namespace = 'dev.assemble.app'
@@ -33,6 +34,7 @@ android {
         buildConfigField 'String', 'FIREBASE_API_KEY', '"' + firebaseApiKey + '"'
         buildConfigField 'String', 'FIREBASE_APP_ID', '"' + firebaseAppId + '"'
         buildConfigField 'String', 'FIREBASE_PROJECT_ID', '"' + firebaseProjectId + '"'
+        buildConfigField 'String', 'GOOGLE_WEB_CLIENT_ID', '"' + googleWebClientId + '"'
     }
 
     buildFeatures {
@@ -75,6 +77,11 @@ dependencies {
     implementation platform(libs.firebase.bom)
     implementation libs.firebase.auth
     implementation libs.firebase.firestore
+
+    // Login com Google (Credential Manager)
+    implementation libs.androidx.credentials
+    implementation libs.androidx.credentials.play.services.auth
+    implementation libs.google.googleid
 
     testImplementation libs.junit
 }
