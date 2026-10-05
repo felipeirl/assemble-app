@@ -31,7 +31,7 @@ O build de debug instala **dois ícones**: *Assemble* (o app) e *Assemble DS* (c
 
 ## Como o produto funciona
 
-1. **Descobrir.** O Discover mostra um baralho de **até 30 personagens por dia**. Ao reabrir o app, os cards restantes do dia são embaralhados; no dia seguinte vem um baralho novo. Quem recebeu **Pass nunca volta**. O card mostra só uma faixa de compatibilidade (*High*, *Possible* ou *Low match*), nunca a porcentagem.
+1. **Descobrir.** O Discover mostra um baralho de **até 30 personagens por dia**. Ao reabrir o app, os cards restantes do dia são embaralhados; no dia seguinte vem um baralho novo. Quem recebeu **Pass nunca volta**. O card mostra arte, nome e traços em comum; a compatibilidade não aparece antes do match.
 2. **Escolher.** **Pass** descarta. **Assemble** demonstra interesse.
 3. **Match.** O personagem também decide. A compatibilidade com suas preferências é **um fator**, não a regra. A decisão combina três coisas:
 
@@ -47,7 +47,7 @@ O build de debug instala **dois ícones**: *Assemble* (o app) e *Assemble DS* (c
 
 ### Compatibilidade
 
-Estimativa explicável entre as preferências do usuário e as características do personagem, com pesos Origin 25, Powers 30, Teams 15, Style 20 e Fame 10. Por categoria, pontua-se `peso × (itens em comum ÷ menor entre escolhidos e os do personagem)`; conjunto vazio ("Any") vale o peso cheio. As faixas são fixas: **High ≥ 70**, **Possible 50–69**, **Low < 50**. Não é uma avaliação psicológica.
+Estimativa explicável entre as preferências do usuário e as características do personagem, com pesos Origin 25, Powers 30, Teams 15, Style 20 e Fame 10. Por categoria, pontua-se `peso × (itens em comum ÷ menor entre escolhidos e os do personagem)`; conjunto vazio ("Any") vale o peso cheio. O valor só aparece depois da conexão, como porcentagem exata. Não é uma avaliação psicológica.
 
 ## Versão de produção (arquitetura planejada)
 

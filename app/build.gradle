@@ -11,6 +11,12 @@ if (localFile.exists()) {
 }
 // Base URL do backend (contrato V1 §1). Vazia = modo DEV sem backend real.
 def backendUrl = (localProps.getProperty('BACKEND_URL', '') ?: '').trim().replace('"', '')
+// Cliente Firebase sem google-services.json (que não vai ao git): chaves públicas do app no
+// local.properties. Faltando qualquer uma, o app roda com dados simulados.
+def localProp = { String key -> (localProps.getProperty(key, '') ?: '').trim().replace('"', '') }
+def firebaseApiKey = localProp('FIREBASE_API_KEY')
+def firebaseAppId = localProp('FIREBASE_APP_ID')
+def firebaseProjectId = localProp('FIREBASE_PROJECT_ID')
 
 android {
     namespace = 'dev.assemble.app'
@@ -24,6 +30,9 @@ android {
         versionCode = 1
         versionName = '0.1-dev'
         buildConfigField 'String', 'BACKEND_URL', '"' + backendUrl + '"'
+        buildConfigField 'String', 'FIREBASE_API_KEY', '"' + firebaseApiKey + '"'
+        buildConfigField 'String', 'FIREBASE_APP_ID', '"' + firebaseAppId + '"'
+        buildConfigField 'String', 'FIREBASE_PROJECT_ID', '"' + firebaseProjectId + '"'
     }
 
     buildFeatures {
