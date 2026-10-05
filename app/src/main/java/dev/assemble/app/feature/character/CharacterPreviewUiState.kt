@@ -1,6 +1,5 @@
 package dev.assemble.app.feature.character
 
-import dev.assemble.app.core.model.MatchBand
 
 /** Preview de personagem sem conexão: os quatro estados obrigatórios. */
 sealed interface CharacterPreviewUiState {
@@ -9,7 +8,6 @@ sealed interface CharacterPreviewUiState {
     data class Content(
         val name: String,
         val imageUrl: String?,
-        val band: MatchBand,
         val traitsInCommon: List<Enum<*>>,
         /** true enquanto Pass/Assemble está em andamento (evita toque duplo). */
         val acting: Boolean = false,

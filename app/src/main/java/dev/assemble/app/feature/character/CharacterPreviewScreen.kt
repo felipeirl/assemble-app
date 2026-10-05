@@ -1,5 +1,8 @@
 package dev.assemble.app.feature.character
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.CubicBezierEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -21,6 +24,14 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
+import kotlinx.coroutines.launch
+import dev.assemble.app.core.designsystem.theme.rememberAnimationsEnabled
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
@@ -33,9 +44,9 @@ import dev.assemble.app.R
 import dev.assemble.app.core.designsystem.component.ActionButton
 import dev.assemble.app.core.designsystem.component.ActionButtonType
 import dev.assemble.app.core.designsystem.component.AssembleTopBar
-import dev.assemble.app.core.designsystem.component.CharacterArt
+import dev.assemble.app.core.designsystem.component.CharacterHero
+import dev.assemble.app.core.designsystem.component.HeroBackButton
 import dev.assemble.app.core.designsystem.component.LockedSection
-import dev.assemble.app.core.designsystem.component.MatchBandChip
 import dev.assemble.app.core.designsystem.component.SourceLabel
 import dev.assemble.app.core.designsystem.component.StateView
 import dev.assemble.app.core.designsystem.component.StateViewType
@@ -43,24 +54,35 @@ import dev.assemble.app.core.designsystem.component.TopBarNavigation
 import dev.assemble.app.core.designsystem.component.TopBarTitle
 import dev.assemble.app.core.designsystem.component.TraitChip
 import dev.assemble.app.core.designsystem.theme.AssembleTheme
-import dev.assemble.app.core.model.MatchBand
 import dev.assemble.app.core.model.Origin
 import dev.assemble.app.core.model.PowerFamily
+import dev.assemble.app.core.ui.detailsEnterFromBelow
+import dev.assemble.app.core.ui.sharedCharacterArt
 import dev.assemble.app.core.ui.traitLabel
 
-private val HeroHeight = 280.dp
 private val PlaceholderLineHeight = 14.dp
 private val PlaceholderLineFractions = listOf(1f, 0.85f, 0.6f)
+
+private const val ExitMillis = 350
+private const val ExitTravelFactor = 1.3f
+private const val ExitRotationDegrees = 14f
+private const val ExitFadeFactor = 0.3f
+private val ExitEasing = CubicBezierEasing(0.4f, 0f, 0.6f, 1f)
+
+/** O que já se sabe do personagem ao abrir (vem do card): a arte aparece no primeiro quadro. */
+data class PreviewHero(val characterId: String, val name: String, val imageUrl: String?)
 
 @Composable
 fun CharacterPreviewRoute(
     viewModel: CharacterPreviewViewModel,
+    hero: PreviewHero?,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     CharacterPreviewScreen(
         state = state,
+        hero = hero,
         onBack = onBack,
         onPass = { viewModel.pass(onDone = onBack) },
         onAssemble = { viewModel.assemble(onDone = onBack) },
@@ -69,9 +91,15 @@ fun CharacterPreviewRoute(
     )
 }
 
+/**
+ * Pré-visualização antes da conexão. A arte do topo é a mesma do card do Discover e chega voando
+ * dele; os detalhes sobem por baixo quando carregam. Ao decidir aqui, a arte sai voando para o lado
+ * da decisão (esquerda = Passar, direita = Assemble), como no swipe; se a decisão falhar, volta.
+ */
 @Composable
 fun CharacterPreviewScreen(
     state: CharacterPreviewUiState,
+    hero: PreviewHero?,
     onBack: () -> Unit,
     onPass: () -> Unit,
     onAssemble: () -> Unit,
@@ -79,23 +107,75 @@ fun CharacterPreviewScreen(
     modifier: Modifier = Modifier,
 ) {
     val content = state as? CharacterPreviewUiState.Content
+    val scope = rememberCoroutineScope()
+    val animationsEnabled = rememberAnimationsEnabled()
+    val exit = remember { Animatable(0f) }
+    var exitDirection by remember { mutableFloatStateOf(0f) }
+    val acting = content?.acting == true
+    // Decisão que falhou: a tela continua aqui, então a arte volta ao lugar.
+    LaunchedEffect(acting) {
+        if (!acting && exit.value > 0f) exit.animateTo(0f, tween(ExitMillis))
+    }
+    fun decide(direction: Float, action: () -> Unit) {
+        exitDirection = direction
+        if (animationsEnabled) scope.launch { exit.animateTo(1f, tween(ExitMillis, easing = ExitEasing)) }
+        action()
+    }
     Scaffold(
         modifier = modifier,
         containerColor = AssembleTheme.colors.bg,
-        topBar = {
-            AssembleTopBar(
-                title = content?.let { TopBarTitle.Text(it.name) } ?: TopBarTitle.None,
-                navigation = TopBarNavigation.Back(onBack),
-            )
-        },
         bottomBar = {
             if (content != null) {
-                PreviewActions(enabled = !content.acting, onPass = onPass, onAssemble = onAssemble)
+                PreviewActions(
+                    enabled = !content.acting,
+                    onPass = { decide(-1f, onPass) },
+                    onAssemble = { decide(1f, onAssemble) },
+                )
             }
         },
     ) { padding ->
-        Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.TopCenter) {
-            when (state) {
+        val spacing = AssembleTheme.spacing
+        Box(Modifier.fillMaxSize().padding(padding)) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState()),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                val heroName = hero?.name ?: content?.name
+                if (heroName != null) {
+                    CharacterHero(
+                        name = heroName,
+                        imageUrl = hero?.imageUrl ?: content?.imageUrl,
+                        artModifier = hero?.let { Modifier.sharedCharacterArt(it.characterId) } ?: Modifier,
+                        modifier = Modifier.graphicsLayer {
+                            val p = exit.value
+                            translationX = exitDirection * p * size.width * ExitTravelFactor
+                            rotationZ = exitDirection * p * ExitRotationDegrees
+                            alpha = 1f - p * ExitFadeFactor
+                        },
+                    )
+                }
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .detailsEnterFromBelow()
+                        .graphicsLayer { alpha = 1f - exit.value }
+                        .padding(spacing.space4),
+                    verticalArrangement = Arrangement.spacedBy(spacing.space4),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    PreviewDetails(state, onRetry)
+                }
+            }
+            HeroBackButton(onBack = onBack, modifier = Modifier.padding(spacing.space2))
+        }
+    }
+}
+
+@Composable
+private fun PreviewDetails(state: CharacterPreviewUiState, onRetry: () -> Unit) {
+    when (state) {
                 CharacterPreviewUiState.Loading -> StateView(StateViewType.Loading(stringResource(R.string.preview_loading)))
                 CharacterPreviewUiState.Error -> StateView(
                     StateViewType.Error(
@@ -111,8 +191,6 @@ fun CharacterPreviewScreen(
                     ),
                 )
                 is CharacterPreviewUiState.Content -> PreviewContent(state)
-            }
-        }
     }
 }
 
@@ -122,20 +200,9 @@ private fun PreviewContent(content: CharacterPreviewUiState.Content) {
     val colors = AssembleTheme.colors
     val spacing = AssembleTheme.spacing
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(spacing.space4),
+        modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(spacing.space4),
     ) {
-        Box(Modifier.fillMaxWidth().height(HeroHeight).clip(AssembleTheme.shapes.lg)) {
-            CharacterArt(name = content.name, imageUrl = content.imageUrl, modifier = Modifier.fillMaxSize())
-            MatchBandChip(
-                band = content.band,
-                modifier = Modifier.align(Alignment.TopEnd).padding(spacing.space3),
-            )
-        }
-        Text(text = content.name.uppercase(), style = AssembleTheme.typography.displayMd, color = colors.text)
         if (content.traitsInCommon.isNotEmpty()) {
             Text(
                 text = stringResource(R.string.card_in_common).uppercase(),
@@ -205,7 +272,6 @@ private fun PreviewActions(enabled: Boolean, onPass: () -> Unit, onAssemble: () 
 private val PreviewContentSample = CharacterPreviewUiState.Content(
     name = "Jean Grey",
     imageUrl = null,
-    band = MatchBand.High,
     traitsInCommon = listOf(Origin.Mutant, PowerFamily.Mind),
 )
 
@@ -213,7 +279,7 @@ private val PreviewContentSample = CharacterPreviewUiState.Content(
 @Composable
 private fun CharacterPreviewPreview() {
     AssembleTheme {
-        CharacterPreviewScreen(PreviewContentSample, onBack = {}, onPass = {}, onAssemble = {}, onRetry = {})
+        CharacterPreviewScreen(PreviewContentSample, hero = null, onBack = {}, onPass = {}, onAssemble = {}, onRetry = {})
     }
 }
 
@@ -221,6 +287,6 @@ private fun CharacterPreviewPreview() {
 @Composable
 private fun CharacterPreviewUnavailablePreview() {
     AssembleTheme {
-        CharacterPreviewScreen(CharacterPreviewUiState.Unavailable, onBack = {}, onPass = {}, onAssemble = {}, onRetry = {})
+        CharacterPreviewScreen(CharacterPreviewUiState.Unavailable, hero = PreviewHero("jean-grey", "Jean Grey", null), onBack = {}, onPass = {}, onAssemble = {}, onRetry = {})
     }
 }

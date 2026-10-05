@@ -1,11 +1,14 @@
 package dev.assemble.app.feature.character
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -16,45 +19,42 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.assemble.app.R
 import dev.assemble.app.core.designsystem.component.AssembleTopBar
-import dev.assemble.app.core.designsystem.component.CharacterArt
+import dev.assemble.app.core.designsystem.component.CharacterHero
+import dev.assemble.app.core.designsystem.component.HeroBackButton
 import dev.assemble.app.core.designsystem.component.LockedSection
 import dev.assemble.app.core.designsystem.component.PrimaryButton
 import dev.assemble.app.core.designsystem.component.ScoreRing
-import dev.assemble.app.core.designsystem.component.SourceLabel
 import dev.assemble.app.core.designsystem.component.StateView
 import dev.assemble.app.core.designsystem.component.StateViewType
 import dev.assemble.app.core.designsystem.component.TopBarNavigation
 import dev.assemble.app.core.designsystem.component.TopBarTitle
-import dev.assemble.app.core.designsystem.component.TraitChip
 import dev.assemble.app.core.designsystem.theme.AssembleTheme
 import dev.assemble.app.core.model.Origin
 import dev.assemble.app.core.model.PowerFamily
+import dev.assemble.app.core.model.Powerstats
 import dev.assemble.app.core.model.Style
 import dev.assemble.app.core.model.Team
-import dev.assemble.app.core.ui.traitLabel
 import kotlinx.coroutines.delay
 
-private val HeroHeight = 320.dp
 private val ScoreRingSize = 96.dp
+private const val TabFadeMillis = 200
 
 /** Pausa antes do desbloqueio da primeira abertura, para o usuário ver o perfil borrado. */
 private const val UnlockDelayMillis = 300L
@@ -64,6 +64,7 @@ fun CharacterProfileRoute(
     viewModel: CharacterProfileViewModel,
     onBack: () -> Unit,
     onOpenChat: (connectionId: String) -> Unit,
+    onOpenCharacter: (characterId: String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -71,6 +72,7 @@ fun CharacterProfileRoute(
         state = state,
         onBack = onBack,
         onOpenChat = onOpenChat,
+        onOpenCharacter = onOpenCharacter,
         onRetry = viewModel::load,
         onUnlockSeen = viewModel::onUnlockSeen,
         modifier = modifier,
@@ -85,17 +87,12 @@ fun CharacterProfileScreen(
     onRetry: () -> Unit,
     onUnlockSeen: () -> Unit,
     modifier: Modifier = Modifier,
+    onOpenCharacter: (characterId: String) -> Unit = {},
 ) {
     val content = state as? CharacterProfileUiState.Content
     Scaffold(
         modifier = modifier,
         containerColor = AssembleTheme.colors.bg,
-        topBar = {
-            AssembleTopBar(
-                title = content?.let { TopBarTitle.Text(it.name) } ?: TopBarTitle.None,
-                navigation = TopBarNavigation.Back(onBack),
-            )
-        },
         bottomBar = {
             if (content != null) {
                 Box(
@@ -130,17 +127,24 @@ fun CharacterProfileScreen(
                         message = stringResource(R.string.character_unavailable_message),
                     ),
                 )
-                is CharacterProfileUiState.Content -> ProfileContent(state, onUnlockSeen)
+                is CharacterProfileUiState.Content -> ProfileContent(state, onUnlockSeen, onOpenCharacter)
             }
+            HeroBackButton(
+                onBack = onBack,
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .padding(AssembleTheme.spacing.space2),
+            )
         }
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun ProfileContent(content: CharacterProfileUiState.Content, onUnlockSeen: () -> Unit) {
-    val colors = AssembleTheme.colors
-    val spacing = AssembleTheme.spacing
+private fun ProfileContent(
+    content: CharacterProfileUiState.Content,
+    onUnlockSeen: () -> Unit,
+    onOpenCharacter: (String) -> Unit,
+) {
     var locked by remember(content.connectionId) { mutableStateOf(content.unlockPending) }
     val currentOnUnlockSeen by rememberUpdatedState(onUnlockSeen)
     LaunchedEffect(content.connectionId, content.unlockPending) {
@@ -154,16 +158,21 @@ private fun ProfileContent(content: CharacterProfileUiState.Content, onUnlockSee
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(spacing.space4),
+            .verticalScroll(rememberScrollState()),
+    ) {
+        CharacterHero(name = content.name, imageUrl = content.imageUrl)
+        ProfileDetails(content = content, locked = locked, onOpenCharacter = onOpenCharacter)
+    }
+}
+
+@Composable
+private fun ProfileDetails(content: CharacterProfileUiState.Content, locked: Boolean, onOpenCharacter: (String) -> Unit) {
+    val colors = AssembleTheme.colors
+    val spacing = AssembleTheme.spacing
+    Column(
+        modifier = Modifier.padding(spacing.space4),
         verticalArrangement = Arrangement.spacedBy(spacing.space4),
     ) {
-        CharacterArt(
-            name = content.name,
-            imageUrl = content.imageUrl,
-            modifier = Modifier.fillMaxWidth().height(HeroHeight).clip(AssembleTheme.shapes.lg),
-        )
-        Text(text = content.name.uppercase(), style = AssembleTheme.typography.displayMd, color = colors.text)
         ScoreRing(percent = content.score, size = ScoreRingSize, animate = content.unlockPending)
 
         LockedSection(locked = locked, modifier = Modifier.fillMaxWidth()) {
@@ -171,34 +180,23 @@ private fun ProfileContent(content: CharacterProfileUiState.Content, onUnlockSee
                 modifier = Modifier.fillMaxWidth().background(colors.surface).padding(spacing.space4),
                 verticalArrangement = Arrangement.spacedBy(spacing.space4),
             ) {
-                if (content.whyYouMatch.isNotEmpty()) {
-                    Text(
-                        text = stringResource(R.string.why_you_match),
-                        style = AssembleTheme.typography.h2,
-                        color = colors.text,
-                        modifier = Modifier.semantics { heading() },
-                    )
-                    content.whyYouMatch.forEach { item ->
-                        Column(verticalArrangement = Arrangement.spacedBy(spacing.space1)) {
-                            Text(stringResource(item.category), style = AssembleTheme.typography.caption, color = colors.textMuted)
-                            FlowRow(horizontalArrangement = Arrangement.spacedBy(spacing.space2)) {
-                                item.traits.forEach { TraitChip(label = stringResource(traitLabel(it))) }
-                            }
-                        }
+                val tabs = CharacterTab.entries.filter { it != CharacterTab.Attributes || content.hasAttributes }
+                var selected by rememberSaveable { mutableStateOf(CharacterTab.Overview) }
+                // Aba que sumiu (sem dados) volta para a visão geral.
+                val current = if (selected in tabs) selected else CharacterTab.Overview
+                CharacterTabs(tabs = tabs, selected = current, onSelect = { selected = it })
+                AnimatedContent(
+                    targetState = current,
+                    transitionSpec = { fadeIn(tween(TabFadeMillis)) togetherWith fadeOut(tween(TabFadeMillis)) },
+                    label = "characterTab",
+                ) { tab ->
+                    when (tab) {
+                        CharacterTab.Overview -> OverviewTab(content)
+                        CharacterTab.Attributes -> AttributesTab(content)
+                        CharacterTab.Connections -> ConnectionsTab(content, onOpenCharacter)
                     }
                 }
-                content.facts.forEach { fact ->
-                    val traitLabels = fact.traits.map { stringResource(traitLabel(it)) }
-                    Column(verticalArrangement = Arrangement.spacedBy(spacing.space1)) {
-                        Text(stringResource(fact.label), style = AssembleTheme.typography.caption, color = colors.textMuted)
-                        Text(
-                            text = fact.text ?: traitLabels.joinToString(),
-                            style = AssembleTheme.typography.body,
-                            color = colors.text,
-                        )
-                    }
-                }
-                SourceLabel()
+                SourcesLabel(content.sources)
             }
         }
     }
@@ -220,6 +218,8 @@ private val ProfileSample = CharacterProfileUiState.Content(
         ProfileFact(R.string.profile_first_appearance, text = "X-Men #1"),
     ),
     unlockPending = false,
+    powerstats = Powerstats(intelligence = 94, strength = 80, speed = 21, durability = 20, power = 92, combat = 70),
+    teams = listOf(Team.XMen),
 )
 
 @PreviewLightDark

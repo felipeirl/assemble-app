@@ -2,12 +2,7 @@ package dev.assemble.app.feature.character
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import dev.assemble.app.core.data.CharacterRepository
-import dev.assemble.app.core.data.UserRepository
-import dev.assemble.app.core.domain.CompatibilityCalculator
-import dev.assemble.app.core.model.Character
 import dev.assemble.app.feature.discover.AssembleService
-import dev.assemble.app.feature.discover.matchedTraits
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -21,14 +16,11 @@ import java.io.IOException
  */
 class CharacterPreviewViewModel(
     private val characterId: String,
-    private val characterRepository: CharacterRepository,
-    private val userRepository: UserRepository,
+    private val details: CharacterDetailsSource,
     private val assembleService: AssembleService,
 ) : ViewModel() {
     private val state = MutableStateFlow<CharacterPreviewUiState>(CharacterPreviewUiState.Loading)
     val uiState: StateFlow<CharacterPreviewUiState> = state.asStateFlow()
-
-    private var character: Character? = null
 
     init {
         load()
@@ -38,9 +30,12 @@ class CharacterPreviewViewModel(
         state.value = CharacterPreviewUiState.Loading
         viewModelScope.launch {
             try {
-                val loaded = characterRepository.getCharacter(characterId)
-                character = loaded
-                state.value = if (loaded == null) CharacterPreviewUiState.Unavailable else loaded.toContent()
+                val loaded = details.preview(characterId)
+                state.value = if (loaded == null) {
+                    CharacterPreviewUiState.Unavailable
+                } else {
+                    CharacterPreviewUiState.Content(loaded.name, loaded.imageUrl, loaded.traitsInCommon)
+                }
             } catch (_: IOException) {
                 state.value = CharacterPreviewUiState.Error
             }
@@ -50,10 +45,7 @@ class CharacterPreviewViewModel(
     /** [onDone] roda depois da ação, para a tela voltar ao Discover. */
     fun pass(onDone: () -> Unit) = act(onDone) { assembleService.pass(characterId) }
 
-    fun assemble(onDone: () -> Unit) {
-        val current = character ?: return
-        act(onDone) { assembleService.assemble(current) }
-    }
+    fun assemble(onDone: () -> Unit) = act(onDone) { assembleService.assemble(characterId) }
 
     private fun act(onDone: () -> Unit, action: suspend () -> Unit) {
         val content = state.value as? CharacterPreviewUiState.Content ?: return
@@ -63,15 +55,5 @@ class CharacterPreviewViewModel(
             action()
             onDone()
         }
-    }
-
-    private fun Character.toContent(): CharacterPreviewUiState.Content {
-        val breakdown = CompatibilityCalculator.breakdown(userRepository.preferences.value, this)
-        return CharacterPreviewUiState.Content(
-            name = name,
-            imageUrl = imageUrl,
-            band = CompatibilityCalculator.band(breakdown.score),
-            traitsInCommon = breakdown.matchedTraits(),
-        )
     }
 }

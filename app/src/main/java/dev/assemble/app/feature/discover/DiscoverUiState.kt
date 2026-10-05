@@ -1,14 +1,13 @@
 package dev.assemble.app.feature.discover
 
-import dev.assemble.app.core.model.MatchBand
-
-/** Card do Discover: só a faixa (nunca a %) e os traços em comum. */
+/** Card do Discover: nome, arte e traços em comum. Nem faixa nem % de compatibilidade. */
 data class DiscoverCard(
     val characterId: String,
     val name: String,
     val imageUrl: String?,
-    val band: MatchBand,
     val traitsInCommon: List<Enum<*>>,
+    /** Mini descrição (primeira frase da bio); só vem do backend. */
+    val tagline: String? = null,
 )
 
 /** Resultado de um Assemble que virou conexão (pop-up de match, etapa 8). */
@@ -34,7 +33,8 @@ sealed interface DeckState {
 data class DiscoverUiState(
     val deck: DeckState = DeckState.Loading,
     val canUndo: Boolean = false,
-    val refreshing: Boolean = false,
     val match: DiscoverMatch? = null,
     val message: DiscoverMessage? = null,
+    /** Um Assemble espera a resposta do personagem. */
+    val assembling: Boolean = false,
 )
