@@ -1,21 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Assemble</string>
+    <string name="app_name" translatable="false">Assemble</string>
 
     <!-- Ações -->
     <string name="action_pass">Pass</string>
-    <string name="action_assemble">Assemble</string>
+    <string name="action_assemble" translatable="false">Assemble</string>
 
     <!-- Compatibilidade -->
-    <string name="match_band_high">High match</string>
-    <string name="match_band_possible">Possible match</string>
-    <string name="match_band_low">Low match</string>
-    <string name="score_ring_value">%1$d%%</string>
+    <string name="score_ring_value" translatable="false">%1$d%%</string>
     <string name="score_ring_description">%1$d%% match</string>
 
     <!-- Card e fonte -->
     <string name="card_in_common">In common</string>
     <string name="source_comic_vine">Source: Comic Vine</string>
+    <string name="card_more_info">More info</string>
     <string name="locked_profile">Assemble to unlock the full profile</string>
 
     <!-- Chat -->
@@ -34,7 +32,7 @@
         <item quantity="one">%d unread</item>
         <item quantity="other">%d unread</item>
     </plurals>
-    <string name="badge_overflow">99+</string>
+    <string name="badge_overflow" translatable="false">99+</string>
 
     <!-- Navegação -->
     <string name="nav_discover">Discover</string>
@@ -50,14 +48,26 @@
     <!-- Discover -->
     <string name="discover_loading">Loading characters…</string>
     <string name="discover_error_title">Couldn\'t load characters</string>
-    <string name="discover_empty_title">You\'ve seen everyone for now</string>
+    <string name="discover_deck_complete_title">Deck complete</string>
+    <string name="discover_next_deck">Your next characters arrive in</string>
+    <string name="discover_next_deck_a11y">Next characters in %1$s and %2$s</string>
+    <plurals name="duration_hours">
+        <item quantity="one">%d hour</item>
+        <item quantity="other">%d hours</item>
+    </plurals>
+    <plurals name="duration_minutes">
+        <item quantity="one">%d minute</item>
+        <item quantity="other">%d minutes</item>
+    </plurals>
     <string name="discover_adjust_preferences">Adjust preferences</string>
     <string name="discover_undo">Undo</string>
     <string name="discover_not_enough_in_common">Not enough in common this time</string>
     <string name="discover_assemble_failed">Couldn\'t assemble. Check your connection and try again.</string>
 
     <!-- Match -->
-    <string name="match_assembled">ASSEMBLED!</string>
+    <string name="match_its_an" translatable="false">It\'s an</string>
+    <string name="match_assembled" translatable="false">Assemble!</string>
+    <string name="match_compatibility">Compatibility</string>
     <string name="match_subtitle">You and %1$s assembled.</string>
     <string name="why_you_match">Why you match</string>
     <string name="match_start_chat">Start chat</string>
@@ -84,6 +94,40 @@
     <string name="about_title">About &amp; data sources</string>
     <string name="help_title">Help</string>
     <string name="drawer_log_out">Log out</string>
+    <string name="achievements_title">Achievements</string>
+    <string name="achievements_summary">Unlocked: %1$d/%2$d</string>
+    <string name="achievements_teams_unknown">Couldn\'t check your teams right now. Crossover updates when the catalog loads.</string>
+    <string name="achievement_unlocked_state">Unlocked</string>
+    <string name="achievement_unknown_state">Not available now</string>
+    <string name="achievement_progress">%1$d/%2$d</string>
+    <string name="achievement_unlocked_toast">Achievement unlocked</string>
+    <string name="achievement_first_connection">First connection</string>
+    <string name="achievement_first_connection_desc">Connect with a character.</string>
+    <string name="achievement_team_up">Team-up</string>
+    <string name="achievement_team_up_desc">Connect with 5 characters.</string>
+    <string name="achievement_ice_breaker">Ice breaker</string>
+    <string name="achievement_ice_breaker_desc">Send your first message.</string>
+    <string name="achievement_storyteller">Storyteller</string>
+    <string name="achievement_storyteller_desc">Send 50 messages.</string>
+    <string name="achievement_explorer">Explorer</string>
+    <string name="achievement_explorer_desc">See 30 characters in Discover.</string>
+    <string name="achievement_crossover">Crossover</string>
+    <string name="achievement_crossover_desc">Connect with characters from 3 different teams.</string>
+    <string name="chat_list_new_connections">New connections</string>
+    <string name="chat_list_new_connection_a11y">New connection: %1$s. Open chat</string>
+    <string name="chat_list_new_hint">Say hi to one of your new connections to start a conversation.</string>
+    <string name="chat_suggest_hello">Hi, %1$s!</string>
+    <string name="chat_suggest_literal" translatable="false">%1$s</string>
+    <string name="chat_suggest_powers">%1$s: how did it start?</string>
+    <string name="chat_suggest_team">What\'s it like on the %1$s?</string>
+    <string name="chat_suggest_mission">What was your hardest mission?</string>
+    <string name="chat_suggest_free_time">What do you do on a day off?</string>
+    <string name="chat_suggest_advice">Any advice for me?</string>
+    <string name="drawer_footer">Source: Comic Vine · Chats are AI-generated fiction</string>
+    <string name="drawer_stat_connections">connections</string>
+    <string name="drawer_stat_seen">seen</string>
+    <string name="help_expanded">Expanded</string>
+    <string name="help_collapsed">Collapsed</string>
     <string name="profile_edit">Edit profile</string>
     <string name="profile_stat_seen">Characters seen</string>
     <string name="profile_stat_connections">Connections</string>
@@ -98,7 +142,7 @@
     <string name="edit_profile_name_required">Enter a name.</string>
     <string name="edit_profile_save_error">Couldn\'t save your profile. Check your connection and try again.</string>
     <string name="action_save">Save</string>
-    <string name="value_none">—</string>
+    <string name="value_none" translatable="false">—</string>
 
     <!-- Settings -->
     <string name="settings_appearance">Appearance</string>
@@ -119,9 +163,6 @@
     <string name="settings_msg_seen_cleared">Seen characters cleared</string>
     <string name="settings_msg_chats_deleted">Chats deleted</string>
     <string name="settings_msg_action_failed">Couldn\'t finish that. Check your connection and try again.</string>
-    <string name="settings_about">About</string>
-    <string name="settings_about_source">Character data and images come from Comic Vine.</string>
-    <string name="settings_about_ai">Chat replies are AI-generated and fictional. They are not canon or approved by the publisher.</string>
     <string name="settings_about_version">Version %1$s</string>
     <string name="action_delete">Delete</string>
     <string name="action_cancel">Cancel</string>
@@ -132,18 +173,18 @@
     <string name="about_ai_title">AI conversations</string>
     <string name="about_ai_body">Replies in Chat are written by AI as a fictional take on the character. Every reply is labeled \"AI-generated · fictional\". They are not canon and are not approved by the publisher.</string>
     <string name="about_compatibility_title">Compatibility</string>
-    <string name="about_compatibility_body">Compatibility is an estimate based on the preferences you chose. It is not a personality judgment. Before a connection you see a band; the exact percentage appears after you connect.</string>
+    <string name="about_compatibility_body">Compatibility is an estimate based on the preferences you chose. It is not a personality judgment. It only appears after you connect, as an exact percentage.</string>
     <string name="about_project_title">This project</string>
     <string name="about_project_body">Assemble is an academic project. The current catalog is Marvel characters.</string>
 
     <!-- Help -->
-    <string name="help_discover_title">Discover</string>
-    <string name="help_discover_body">Swipe a card left or tap Pass to skip a character. Swipe right or tap Assemble to show interest. Undo brings back your last Pass. Pull down to refresh.</string>
-    <string name="help_match_title">Connections</string>
+    <string name="help_discover_title">How do Pass and Assemble work?</string>
+    <string name="help_discover_body">Swipe a card left or tap Pass to skip a character. Swipe right or tap Assemble to show interest. Undo brings back your last Pass.</string>
+    <string name="help_match_title">How does a connection happen?</string>
     <string name="help_match_body">Assemble shows your interest. The character decides too: compatibility is one of the factors, so not every Assemble becomes a connection. It is all fiction, never dating.</string>
-    <string name="help_chat_title">Chat</string>
+    <string name="help_chat_title">Are the chats real?</string>
     <string name="help_chat_body">Each connection opens a chat with a fictional, AI-generated version of the character. If a message fails, tap Try again.</string>
-    <string name="help_preferences_title">Preferences</string>
+    <string name="help_preferences_title">Can I change my preferences?</string>
     <string name="help_preferences_body">Change your preferences in Profile at any time. Your Discover results update right away.</string>
 
     <!-- Login e onboarding -->
@@ -162,10 +203,6 @@
     <string name="onboarding_helper">We use these to estimate compatibility. You can change them anytime.</string>
     <string name="onboarding_any">Any</string>
     <string name="onboarding_next">Next</string>
-    <plurals name="onboarding_min_choices">
-        <item quantity="one">Pick at least %1$d option in total.</item>
-        <item quantity="other">Pick at least %1$d options in total.</item>
-    </plurals>
     <string name="onboarding_error">Couldn\'t save your preferences. Check your connection and try again.</string>
     <string name="fame_icons">Icons</string>
     <string name="fame_hidden_gems">Hidden gems</string>
@@ -193,10 +230,10 @@
     <string name="power_shapeshifting">Shapeshifting</string>
     <string name="power_tech_gadgets">Tech &amp; gadgets</string>
     <string name="team_avengers">Avengers</string>
-    <string name="team_x_men">X-Men</string>
+    <string name="team_x_men" translatable="false">X-Men</string>
     <string name="team_fantastic_four">Fantastic Four</string>
     <string name="team_guardians">Guardians</string>
-    <string name="team_shield">S.H.I.E.L.D.</string>
+    <string name="team_shield" translatable="false">S.H.I.E.L.D.</string>
     <string name="team_defenders">Defenders</string>
     <string name="team_solo">Solo</string>
     <string name="style_science">Science</string>
@@ -207,4 +244,96 @@
     <string name="style_idealist">Idealist</string>
     <string name="style_rebel">Rebel</string>
     <string name="style_strategist">Strategist</string>
+    <string name="profile_prompt_dream_power">If I could have one power…</string>
+    <string name="profile_prompt_ideal_team">My ideal team…</string>
+    <string name="profile_prompt_first_recruit">The first hero I\'d recruit…</string>
+    <string name="profile_featured_connections">Featured connections</string>
+    <string name="profile_featured_badges">Featured badges</string>
+    <string name="profile_cover_energy">Energy</string>
+    <string name="profile_cover_halftone">Halftone</string>
+    <string name="profile_cover_comic">Comic</string>
+    <string name="profile_cover_night">Night</string>
+    <string name="profile_accent_pink">Pink</string>
+    <string name="profile_accent_red">Red</string>
+    <string name="profile_accent_blue">Blue</string>
+    <string name="profile_accent_violet">Violet</string>
+    <string name="profile_accent_gold">Gold</string>
+    <string name="profile_frame_simple">Simple</string>
+    <string name="profile_frame_ring">Ring</string>
+    <string name="profile_frame_hexagon">Hexagon</string>
+    <string name="profile_frame_burst">Burst</string>
+    <string name="edit_profile_cover">Cover</string>
+    <string name="edit_profile_accent">Accent color</string>
+    <string name="edit_profile_frame">Avatar frame</string>
+    <string name="edit_profile_frame_locked">Unlock: %1$s</string>
+    <string name="edit_profile_prompt">Your prompt</string>
+    <string name="edit_profile_prompt_answer">Your answer</string>
+    <string name="edit_profile_counter" translatable="false">%1$d/%2$d</string>
+    <string name="edit_profile_featured_connections">Featured connections (%1$d/%2$d)</string>
+    <string name="edit_profile_featured_badges">Featured badges (%1$d/%2$d)</string>
+    <string name="edit_profile_no_connections">Connect with characters to feature them here.</string>
+    <string name="edit_profile_no_badges">Unlock achievements to feature them here.</string>
+    <string name="character_tab_overview">Overview</string>
+    <string name="character_tab_attributes">Attributes</string>
+    <string name="character_tab_connections">Connections</string>
+    <string name="profile_aliases">Aliases</string>
+    <string name="profile_alignment">Alignment</string>
+    <string name="alignment_good">Hero</string>
+    <string name="alignment_bad">Villain</string>
+    <string name="alignment_neutral">Neutral</string>
+    <string name="profile_place_of_birth">Place of birth</string>
+    <string name="profile_occupation">Occupation</string>
+    <string name="profile_base">Base</string>
+    <string name="profile_relatives">Relatives</string>
+    <string name="stat_intelligence">Intelligence</string>
+    <string name="stat_strength">Strength</string>
+    <string name="stat_speed">Speed</string>
+    <string name="stat_durability">Durability</string>
+    <string name="stat_power">Power</string>
+    <string name="stat_combat">Combat</string>
+    <string name="attributes_powerstats">Power stats</string>
+    <string name="attributes_compare">Compare with a connection</string>
+    <string name="attributes_stat_value" translatable="false">%1$s: %2$d</string>
+    <string name="attributes_appearance">Appearance</string>
+    <string name="appearance_gender">Gender</string>
+    <string name="appearance_race">Race</string>
+    <string name="appearance_height">Height</string>
+    <string name="appearance_weight">Weight</string>
+    <string name="appearance_eyes">Eyes</string>
+    <string name="appearance_hair">Hair</string>
+    <string name="connections_teammates">Teammates in the catalog</string>
+    <string name="connections_no_teammates">No teammates in the catalog yet.</string>
+    <string name="connections_legend_connected">Connected</string>
+    <string name="connections_legend_not_connected">Not connected yet</string>
+    <string name="sources_label">Sources: %1$s</string>
+    <string name="source_name_comic_vine" translatable="false">Comic Vine</string>
+    <string name="source_name_superhero_api" translatable="false">Superhero API</string>
+    <string name="source_name_marvel_database" translatable="false">Marvel Database</string>
+    <string name="settings_sound_haptics">Sound &amp; haptics</string>
+    <string name="settings_sound">Sounds</string>
+    <string name="settings_vibration">Vibration</string>
+    <string name="settings_sound_hint">Sounds follow your phone: silent in silent or vibrate mode.</string>
+    <string name="login_email">Email</string>
+    <string name="login_password">Password</string>
+    <plurals name="login_password_hint">
+        <item quantity="one">At least %1$d character.</item>
+        <item quantity="other">At least %1$d characters.</item>
+    </plurals>
+    <string name="login_sign_in">Sign in</string>
+    <string name="login_create_account">Create account</string>
+    <string name="login_new_account">New here? Create an account</string>
+    <string name="login_have_account">Already have an account? Sign in</string>
+    <string name="login_error_credentials">Wrong email or password.</string>
+    <string name="login_error_email_in_use">This email already has an account. Sign in instead.</string>
+    <string name="login_error_weak_password">Choose a stronger password.</string>
+    <string name="login_error_invalid_email">Check the email address.</string>
+    <string name="onboarding_ai_notice">Characters reply with AI-generated, fictional text. By continuing, you agree to chat with AI.</string>
+    <string name="settings_delete_account_message_deferred">Your account is deactivated now and deleted for good after 30 days. Sign in again before that to reactivate it.</string>
+    <string name="account_deactivated_title">Account deactivated</string>
+    <string name="account_deactivated_message">You asked to delete this account. It will be deleted for good soon. Reactivate it to keep your connections and chats.</string>
+    <string name="account_deactivated_error">Couldn\'t finish that. Check your connection and try again.</string>
+    <string name="account_reactivate">Reactivate</string>
+    <string name="chat_message_blocked">Not sent: this message breaks the chat rules.</string>
+    <string name="discover_assembling">Checking if it\'s a match…</string>
+    <string name="profile_about">About</string>
 </resources>

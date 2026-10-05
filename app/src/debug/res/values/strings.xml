@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
+<!-- Catálogo interno do design system (só debug): fica em inglês. -->
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
     <string name="catalog_launcher_label">Assemble DS</string>
     <string name="catalog_title">Design system</string>
     <string name="catalog_theme_light">Light</string>
