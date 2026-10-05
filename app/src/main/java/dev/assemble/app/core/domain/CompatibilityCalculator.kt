@@ -1,7 +1,6 @@
 package dev.assemble.app.core.domain
 
 import dev.assemble.app.core.model.Character
-import dev.assemble.app.core.model.MatchBand
 import dev.assemble.app.core.model.Origin
 import dev.assemble.app.core.model.PowerFamily
 import dev.assemble.app.core.model.Preferences
@@ -47,7 +46,6 @@ object CompatibilityCalculator {
 
     /** Faixas fixas do card: High ≥ 70, Possible 50–69, Low < 50 (não há ajuste pelo usuário). */
     const val MATCH_THRESHOLD = 70
-    const val POSSIBLE_BAND_WIDTH = 20
 
     /** Escala log de fama: 100 aparições = Hidden gems (1), 10.000 = Icons (0). */
     const val FAME_MIN_APPEARANCES = 100
@@ -64,13 +62,6 @@ object CompatibilityCalculator {
             styles = matchSet(preferences.styles, character.styles.toSet(), WEIGHT_STYLE),
             famePoints = famePoints(preferences.fame, character.issueAppearances),
         )
-
-    /** High ≥ 70; Possible 50–69; Low < 50. */
-    fun band(score: Int): MatchBand = when {
-        score >= MATCH_THRESHOLD -> MatchBand.High
-        score >= MATCH_THRESHOLD - POSSIBLE_BAND_WIDTH -> MatchBand.Possible
-        else -> MatchBand.Low
-    }
 
     /** Fama do personagem em 0 (Icons) … 1 (Hidden gems); null se as aparições forem desconhecidas. */
     fun characterFame(issueAppearances: Int?): Double? {

@@ -2,6 +2,8 @@
 // name, realName e firstAppearance: Comic Vine.
 // origin, powers, teams, styles e issueAppearances: ILUSTRATIVOS, definidos para o mock; não são dados da fonte.
 // bio: null (não inventar). imageUrl: null até a integração com a Comic Vine.
+// aliases, placeOfBirth, occupation, base, relatives, alignment, powerstats e appearance: Superhero API (akabab, v0.3.0),
+// copiados da fonte (apelidos e parentes são um recorte). Campo que a fonte não traz ("-") fica de fora.
 [
   {
     "id": "spider-man",
@@ -9,12 +11,47 @@
     "realName": "Peter Parker",
     "imageUrl": null,
     "origin": "Radiation",
-    "powers": ["AgilityCombat", "Strength"],
-    "teams": ["Avengers"],
-    "styles": ["Science", "Humor"],
+    "powers": [
+      "AgilityCombat",
+      "Strength"
+    ],
+    "teams": [
+      "Avengers"
+    ],
+    "styles": [
+      "Science",
+      "Humor"
+    ],
     "firstAppearance": "Amazing Fantasy #15",
     "issueAppearances": 9000,
-    "bio": null
+    "bio": null,
+    "aliases": [
+      "Spider-Boy",
+      "Scarlet Spider",
+      "Ricochet",
+      "Captain Universe"
+    ],
+    "placeOfBirth": "New York, New York",
+    "occupation": "Freelance photographer, teacher",
+    "base": "New York, New York",
+    "relatives": "Richard Parker (father, deceased), Mary Parker (mother, deceased), Benjamin Parker (uncle, deceased), May Parker (aunt)",
+    "alignment": "Good",
+    "powerstats": {
+      "intelligence": 90,
+      "strength": 55,
+      "speed": 67,
+      "durability": 75,
+      "power": 74,
+      "combat": 85
+    },
+    "appearance": {
+      "gender": "Male",
+      "race": "Human",
+      "heightCm": 178,
+      "weightKg": 74,
+      "eyeColor": "Hazel",
+      "hairColor": "Brown"
+    }
   },
   {
     "id": "iron-man",
@@ -22,12 +59,46 @@
     "realName": "Tony Stark",
     "imageUrl": null,
     "origin": "Human",
-    "powers": ["TechGadgets", "Flight"],
-    "teams": ["Avengers"],
-    "styles": ["Science", "Leadership"],
+    "powers": [
+      "TechGadgets",
+      "Flight"
+    ],
+    "teams": [
+      "Avengers"
+    ],
+    "styles": [
+      "Science",
+      "Leadership"
+    ],
     "firstAppearance": "Tales of Suspense #39",
     "issueAppearances": 7000,
-    "bio": null
+    "bio": null,
+    "aliases": [
+      "Iron Knight",
+      "Crimson Dynamo",
+      "Cobalt Man II"
+    ],
+    "placeOfBirth": "Long Island, New York",
+    "occupation": "Inventor, Industrialist; former United States Secretary of Defense",
+    "base": "Seattle, Washington",
+    "relatives": "Howard Anthony Stark (father, deceased), Maria Stark (mother, deceased), Morgan Stark (cousin)",
+    "alignment": "Good",
+    "powerstats": {
+      "intelligence": 100,
+      "strength": 85,
+      "speed": 58,
+      "durability": 85,
+      "power": 100,
+      "combat": 64
+    },
+    "appearance": {
+      "gender": "Male",
+      "race": "Human",
+      "heightCm": 198,
+      "weightKg": 191,
+      "eyeColor": "Blue",
+      "hairColor": "Black"
+    }
   },
   {
     "id": "storm",
@@ -35,12 +106,47 @@
     "realName": "Ororo Munroe",
     "imageUrl": null,
     "origin": "Mutant",
-    "powers": ["Energy", "Flight"],
-    "teams": ["XMen"],
-    "styles": ["Leadership", "Idealist"],
+    "powers": [
+      "Energy",
+      "Flight"
+    ],
+    "teams": [
+      "XMen"
+    ],
+    "styles": [
+      "Leadership",
+      "Idealist"
+    ],
     "firstAppearance": "Giant-Size X-Men #1",
     "issueAppearances": 4000,
-    "bio": null
+    "bio": null,
+    "aliases": [
+      "Weather Witch",
+      "Windrider",
+      "Mistress of the Elements",
+      "Goddess"
+    ],
+    "placeOfBirth": "New York, New York",
+    "occupation": "Adventurer",
+    "base": "Xavier Institute, Salem Center, Westchester County, New York State",
+    "relatives": "David Munroe (father, deceased), N'Dar Munroe (mother, deceased), Black Panther (T'Challa) (ex-husband)",
+    "alignment": "Good",
+    "powerstats": {
+      "intelligence": 75,
+      "strength": 10,
+      "speed": 47,
+      "durability": 30,
+      "power": 88,
+      "combat": 75
+    },
+    "appearance": {
+      "gender": "Female",
+      "race": "Mutant",
+      "heightCm": 180,
+      "weightKg": 57,
+      "eyeColor": "Blue",
+      "hairColor": "White"
+    }
   },
   {
     "id": "captain-america",
@@ -48,12 +154,45 @@
     "realName": "Steve Rogers",
     "imageUrl": null,
     "origin": "Human",
-    "powers": ["Strength", "AgilityCombat"],
-    "teams": ["Avengers"],
-    "styles": ["Leadership", "Idealist"],
+    "powers": [
+      "Strength",
+      "AgilityCombat"
+    ],
+    "teams": [
+      "Avengers"
+    ],
+    "styles": [
+      "Leadership",
+      "Idealist"
+    ],
     "firstAppearance": "Captain America Comics #1",
     "issueAppearances": 8000,
-    "bio": null
+    "bio": null,
+    "aliases": [
+      "Nomad",
+      "The Captain"
+    ],
+    "placeOfBirth": "Manhattan, New York City, New York",
+    "occupation": "Adventurer, federal official, intelligence operative; former soldier",
+    "base": "New York City",
+    "relatives": "Joseph (father, deceased), Sara (mother, deceased)",
+    "alignment": "Good",
+    "powerstats": {
+      "intelligence": 69,
+      "strength": 19,
+      "speed": 38,
+      "durability": 55,
+      "power": 60,
+      "combat": 100
+    },
+    "appearance": {
+      "gender": "Male",
+      "race": "Human",
+      "heightCm": 188,
+      "weightKg": 108,
+      "eyeColor": "Blue",
+      "hairColor": "Blond"
+    }
   },
   {
     "id": "black-panther",
@@ -61,12 +200,46 @@
     "realName": "T'Challa",
     "imageUrl": null,
     "origin": "Human",
-    "powers": ["AgilityCombat", "TechGadgets"],
-    "teams": ["Avengers"],
-    "styles": ["Leadership", "Strategist"],
+    "powers": [
+      "AgilityCombat",
+      "TechGadgets"
+    ],
+    "teams": [
+      "Avengers"
+    ],
+    "styles": [
+      "Leadership",
+      "Strategist"
+    ],
     "firstAppearance": "Fantastic Four #52",
     "issueAppearances": 2500,
-    "bio": null
+    "bio": null,
+    "aliases": [
+      "Black Leopard",
+      "Coal Tiger",
+      "Mr. Okonkwo"
+    ],
+    "placeOfBirth": "Wakanda, Africa",
+    "occupation": "King and Chieftain of Wakanda, scientist; former school teacher",
+    "base": "Wakanda, Mobile",
+    "relatives": "T'Chaka (father, deceased), N'Yami (mother, deceased), Ramonda (stepmother), Shuri (sister), Ororo Munroe (wife)",
+    "alignment": "Good",
+    "powerstats": {
+      "intelligence": 88,
+      "strength": 16,
+      "speed": 30,
+      "durability": 60,
+      "power": 41,
+      "combat": 100
+    },
+    "appearance": {
+      "gender": "Male",
+      "race": "Human",
+      "heightCm": 183,
+      "weightKg": 90,
+      "eyeColor": "Brown",
+      "hairColor": "Black"
+    }
   },
   {
     "id": "jean-grey",
@@ -74,12 +247,42 @@
     "realName": null,
     "imageUrl": null,
     "origin": "Mutant",
-    "powers": ["Mind"],
-    "teams": ["XMen"],
-    "styles": ["Idealist"],
+    "powers": [
+      "Mind"
+    ],
+    "teams": [
+      "XMen"
+    ],
+    "styles": [
+      "Idealist"
+    ],
     "firstAppearance": "X-Men #1",
     "issueAppearances": 3500,
-    "bio": null
+    "bio": null,
+    "aliases": [
+      "Marvel Girl",
+      "Redd Dayspring"
+    ],
+    "occupation": "Adventurer",
+    "base": "Xavier Institute of Higher Learning, Westchester County, New York",
+    "relatives": "Rachel Summers (daughter from an alternate universe), Cyclops (ex-husband), Cable (adoptive/biological son)",
+    "alignment": "Good",
+    "powerstats": {
+      "intelligence": 94,
+      "strength": 80,
+      "speed": 21,
+      "durability": 20,
+      "power": 92,
+      "combat": 70
+    },
+    "appearance": {
+      "gender": "Female",
+      "race": "Mutant",
+      "heightCm": 168,
+      "weightKg": 52,
+      "eyeColor": "Green",
+      "hairColor": "Red"
+    }
   },
   {
     "id": "rocket",
@@ -87,11 +290,42 @@
     "realName": null,
     "imageUrl": null,
     "origin": "Animal",
-    "powers": ["TechGadgets"],
-    "teams": ["Guardians"],
-    "styles": ["Humor", "Rebel"],
+    "powers": [
+      "TechGadgets"
+    ],
+    "teams": [
+      "Guardians"
+    ],
+    "styles": [
+      "Humor",
+      "Rebel"
+    ],
     "firstAppearance": "Marvel Preview #7",
     "issueAppearances": 900,
-    "bio": null
+    "bio": null,
+    "aliases": [
+      "Rocky Raccoon",
+      "Ranger Rocket"
+    ],
+    "occupation": "Law enforcement officer, security guard, member of the Guardians of the Galaxy",
+    "base": "Knowhere",
+    "relatives": "Lylla (mate)",
+    "alignment": "Good",
+    "powerstats": {
+      "intelligence": 50,
+      "strength": 5,
+      "speed": 23,
+      "durability": 28,
+      "power": 28,
+      "combat": 64
+    },
+    "appearance": {
+      "gender": "Male",
+      "race": "Animal",
+      "heightCm": 122,
+      "weightKg": 25,
+      "eyeColor": "Brown",
+      "hairColor": "Brown"
+    }
   }
 ]

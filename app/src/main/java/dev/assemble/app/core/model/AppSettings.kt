@@ -7,6 +7,8 @@ data class AppSettings(
     val theme: ThemePreference = ThemePreference.System,
     val notifyNewConnections: Boolean = true,
     val notifyNewMessages: Boolean = true,
+    val soundEnabled: Boolean = true,
+    val vibrationEnabled: Boolean = true,
 )
 
 /** Estado da sessão mock: login e onboarding. */

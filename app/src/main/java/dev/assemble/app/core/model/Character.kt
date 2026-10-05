@@ -30,4 +30,13 @@ data class Character(
     val bio: String?,
     val publisher: String = "Marvel",
     val source: String = "Comic Vine",
+    // Enriquecimento (Superhero API). Opcionais: sem casamento seguro com a fonte, ficam vazios.
+    val aliases: List<String> = emptyList(),
+    val placeOfBirth: String? = null,
+    val occupation: String? = null,
+    val base: String? = null,
+    val relatives: String? = null,
+    val alignment: Alignment? = null,
+    val powerstats: Powerstats? = null,
+    val appearance: Appearance? = null,
 )

@@ -4,7 +4,8 @@ import java.time.Instant
 
 enum class MessageAuthor { User, Character }
 
-enum class MessageStatus { Sending, Sent, Failed }
+/** [Blocked]: recusada pelo guardrail do backend; não é reenviada e não teve resposta do personagem. */
+enum class MessageStatus { Sending, Sent, Failed, Blocked }
 
 /** Mensagem de uma conversa. Respostas do personagem são ficção gerada por IA. */
 data class Message(
