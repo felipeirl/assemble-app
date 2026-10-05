@@ -66,7 +66,9 @@ import dev.assemble.app.feature.onboarding.RevealRoute
 import dev.assemble.app.feature.onboarding.TasteSource
 import dev.assemble.app.feature.onboarding.onboardingStepAt
 import dev.assemble.app.feature.onboarding.OnboardingViewModel
+import dev.assemble.app.core.domain.ProfileRules
 import dev.assemble.app.feature.profile.EditProfileRoute
+import dev.assemble.app.feature.profile.archetypeText
 import dev.assemble.app.feature.profile.EditProfileViewModel
 import dev.assemble.app.feature.profile.ProfileRoute
 import dev.assemble.app.feature.profile.ProfileViewModel
@@ -205,6 +207,7 @@ private fun MainFlowContent(container: AppContainer) {
     val openDrawer: () -> Unit = { scope.launch { drawerState.open() } }
 
     val profile by container.userRepository.currentProfile.collectAsStateWithLifecycle()
+    val preferences by container.userRepository.preferences.collectAsStateWithLifecycle()
     val unreadChats by remember(container) {
         container.chatRepository.allMessages.map { messages ->
             messages.count { it.author == MessageAuthor.Character && !it.read }
@@ -225,6 +228,7 @@ private fun MainFlowContent(container: AppContainer) {
                 userName = profile.name,
                 avatarPreset = AvatarPreset.fromIndex(profile.avatarPreset),
                 stats = DrawerStats(connections = connectionCount, seen = seenIds.size),
+                archetype = ProfileRules.archetype(preferences)?.let { archetypeText(it) },
                 // Os itens entram em cascata assim que o menu começa a abrir.
                 revealItems = drawerState.targetValue == DrawerValue.Open,
                 onItemClick = { item ->

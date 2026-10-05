@@ -85,32 +85,41 @@ object AssembleIcons {
         lineIcon("Info", circle(12f, 12f, 9.5f), "M12 11v6M12 7.5v.5")
     }
 
-    // Menu lateral, configurações e conquistas: mesmo traço de 2dp.
+    // Menu lateral, configurações e conquistas: traço fino de 1,75dp.
     val Settings: ImageVector by lazy {
+        // Três controles deslizantes: mais leve que a engrenagem de 8 dentes.
         lineIcon(
             "Settings",
-            // Engrenagem de 8 dentes: raio 9.6 nas pontas, 7.2 na base.
-            "M10.63 4.93L11 2.45L13 2.45L13.37 4.93L16.03 6.03L18.04 4.54L19.46 5.96L17.97 7.97L19.07 10.63" +
-                "L21.55 11L21.55 13L19.07 13.37L17.97 16.03L19.46 18.04L18.04 19.46L16.03 17.97L13.37 19.07" +
-                "L13 21.55L11 21.55L10.63 19.07L7.97 17.97L5.96 19.46L4.54 18.04L6.03 16.03L4.93 13.37" +
-                "L2.45 13L2.45 11L4.93 10.63L6.03 7.97L4.54 5.96L5.96 4.54L7.97 6.03Z",
-            circle(12f, 12f, 3f),
+            "M4 6h8M18 6h2M4 12h2M12 12h8M4 18h10",
+            circle(15f, 6f, 2.2f),
+            circle(9f, 12f, 2.2f),
+            circle(17f, 18f, 2.2f),
+            strokeWidth = MenuStrokeWidth,
         )
     }
+    /** "Sobre": o mesmo círculo com i do Info, no traço fino do menu. */
+    val About: ImageVector by lazy {
+        lineIcon("About", circle(12f, 12f, 9f), "M12 11v5.2M12 7.8h.01", strokeWidth = MenuStrokeWidth)
+    }
     val Help: ImageVector by lazy {
-        lineIcon("Help", circle(12f, 12f, 9.5f), "M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .8-1 1.5v.7", "M12 17v.5")
+        lineIcon(
+            "Help",
+            circle(12f, 12f, 9f),
+            "M9.6 9.6a2.6 2.6 0 0 1 5 .9c0 1.7-2.6 2.1-2.6 3.7",
+            "M12 17.3h.01",
+            strokeWidth = MenuStrokeWidth,
+        )
     }
     val LogOut: ImageVector by lazy {
-        lineIcon("LogOut", "M10 20H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h4", "M15 16l4-4-4-4", "M19 12H9")
+        lineIcon("LogOut", "M9 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h3", "M16 8l4 4-4 4M20 12H10", strokeWidth = MenuStrokeWidth)
     }
     val Achievements: ImageVector by lazy {
         lineIcon(
             "Achievements",
-            "M8 4.5h8V10a4 4 0 0 1-8 0z",
-            "M8 6.5H4.5c0 2.4 1.5 4 3.8 4.3",
-            "M16 6.5h3.5c0 2.4-1.5 4-3.8 4.3",
-            "M12 14v3.5",
-            "M8.5 20h7",
+            "M8 21h8M12 17v4",
+            "M7 4h10v5a5 5 0 0 1-10 0V4z",
+            "M17 6h3v1a3 3 0 0 1-3 3M7 6H4v1a3 3 0 0 0 3 3",
+            strokeWidth = MenuStrokeWidth,
         )
     }
     val Theme: ImageVector by lazy {
@@ -186,6 +195,9 @@ object AssembleIcons {
 
 private const val ViewportSize = 24f
 private const val LineStrokeWidth = 2f
+
+/** Traço mais fino do menu lateral e das configurações. */
+private const val MenuStrokeWidth = 1.75f
 private const val PassStrokeWidth = 3f
 private const val TabStrokeWidth = 1.5f
 private val IconSize = 24.dp
