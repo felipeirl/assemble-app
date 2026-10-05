@@ -323,7 +323,7 @@
     <string name="account_deactivated_error">Não foi possível concluir. Verifique sua conexão e tente de novo.</string>
     <string name="account_reactivate">Reativar</string>
     <string name="chat_message_blocked">Não enviada: esta mensagem viola as regras da conversa.</string>
-    <string name="discover_assembling">Vendo se rola um match…</string>
+    <string name="discover_assembling">Vendo se rola um Assemble…</string>
     <string name="profile_about">Sobre</string>
     <string name="login_or">ou</string>
     <string name="login_forgot_password">Esqueci minha senha</string>

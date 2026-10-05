@@ -334,7 +334,7 @@
     <string name="account_deactivated_error">Couldn\'t finish that. Check your connection and try again.</string>
     <string name="account_reactivate">Reactivate</string>
     <string name="chat_message_blocked">Not sent: this message breaks the chat rules.</string>
-    <string name="discover_assembling">Checking if it\'s a match…</string>
+    <string name="discover_assembling">Checking if it\'s an Assemble…</string>
     <string name="profile_about">About</string>
     <string name="login_or">or</string>
     <string name="login_forgot_password">Forgot your password?</string>
