@@ -4,7 +4,7 @@ Aplicativo Android para **descobrir personagens de quadrinhos e conversar com el
 
 > **Projeto acadêmico.** Não é afiliado, patrocinado ou endossado pela Marvel, pela Comic Vine ou por qualquer editora. Nomes e marcas pertencem aos seus donos. Toda conversa é ficção gerada por IA: não é canon nem material aprovado pela editora.
 
-Este repositório é o **app Android**. O servidor fica em outro repositório: [assemble-backend](https://github.com/felipeirl/assemble-backend).
+Este repositório é o **app Android**. O servidor fica em outro repositório: [assemble-api](https://github.com/felipeirl/assemble-api).
 
 ## O que o app faz
 
@@ -75,7 +75,7 @@ Estimativa explicável entre as suas preferências e as características do pers
 ## Arquitetura
 
 ```
-App Android ──(token do Firebase)──▶ Backend Python (assemble-backend)
+App Android ──(token do Firebase)──▶ Backend Python (assemble-api)
      │                                ├─ Firestore: usuários, decisões, conexões, mensagens
      │                                ├─ Catálogo (Comic Vine, Marvel Database, Superhero API)
      └─ lê o Firestore em tempo real   ├─ Baralho, compatibilidade e decisão de match
