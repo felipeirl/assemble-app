@@ -48,15 +48,19 @@ class OnboardingViewModel(
         }
     }
 
-    fun react(liked: Boolean) {
+    /** [picked]: índice do escolhido no par; null = nenhum dos dois. Só ensina o gosto, não decide. */
+    fun react(picked: Int?) {
         val playing = state.value.reaction as? ReactionState.Playing ?: return
-        val card = playing.current ?: return
-        state.update { it.copy(reaction = playing.after(liked)) }
+        val pair = playing.current
+        if (pair.isEmpty()) return
+        state.update { it.copy(reaction = playing.after(picked)) }
         viewModelScope.launch {
-            try {
-                tasteSource.react(card.characterId, liked)
-            } catch (_: IOException) {
-                // Sinal perdido: o gosto aprende um pouco menos, e o cadastro não para por isso.
+            pair.forEachIndexed { index, card ->
+                try {
+                    tasteSource.react(card.characterId, liked = index == picked)
+                } catch (_: IOException) {
+                    // Sinal perdido: o gosto aprende um pouco menos, e o cadastro não para por isso.
+                }
             }
         }
     }

@@ -63,18 +63,25 @@ class OnboardingUiStateTest {
     }
 
     @Test
-    fun reactionCountsLikesAndFinishesAfterTheLastCard() {
-        val cards = listOf(
-            DiscoverCard("storm", "Storm", null, emptyList()),
-            DiscoverCard("rocket", "Rocket", null, emptyList()),
-        )
+    fun reactionPlaysCardsInPairsAndCountsPicks() {
+        val cards = listOf("storm", "iron-man", "rocket", "jean-grey").map { DiscoverCard(it, it, null, emptyList()) }
         val start = ReactionState.Playing(cards)
-        assertEquals("storm", start.current?.characterId)
+        assertEquals(listOf("storm", "iron-man"), start.current.map { it.characterId })
+        assertFalse(start.isLastPair)
 
-        val end = start.after(liked = true).after(liked = false)
+        val second = start.after(picked = 1)
+        assertEquals(listOf("rocket", "jean-grey"), second.current.map { it.characterId })
+        assertTrue(second.isLastPair)
 
+        val end = second.after(picked = null)
         assertTrue(end.finished)
-        assertNull(end.current)
-        assertEquals(1, end.liked)
+        assertEquals(1, end.picks)
+    }
+
+    @Test
+    fun reactionWithAnOddCardEndsWithASingleCard() {
+        val cards = listOf("a", "b", "c").map { DiscoverCard(it, it, null, emptyList()) }
+
+        assertEquals(listOf("c"), ReactionState.Playing(cards, pair = 1).current.map { it.characterId })
     }
 }
