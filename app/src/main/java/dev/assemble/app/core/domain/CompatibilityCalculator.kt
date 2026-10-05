@@ -47,6 +47,33 @@ object CompatibilityCalculator {
     /** Faixas fixas do card: High ≥ 70, Possible 50–69, Low < 50 (não há ajuste pelo usuário). */
     const val MATCH_THRESHOLD = 70
 
+    /** "Any" é neutro: metade do peso, para não combinar com todo mundo. */
+    const val ANY_FACTOR = 0.5
+
+    /** Sem nada em comum e com um traço rival do que o usuário escolheu: perde metade do peso. */
+    const val RIVAL_PENALTY = 0.5
+
+    /**
+     * Rivalidades (simétricas), iguais às do backend. Equipes e origens só com conflito
+     * documentado nas HQs: Avengers x X-Men ("Avengers vs. X-Men", 2012), Avengers x Defenders
+     * ("The Avengers/Defenders War", 1973), X-Men x S.H.I.E.L.D. (Uncanny X-Men, 2013),
+     * Mutante x Humano (preconceito anti-mutante), Mutante x Robô (os Sentinelas).
+     * Estilos: opostos diretos de atitude. Poderes não têm rivalidade.
+     */
+    val RIVALRIES: List<Pair<Enum<*>, Enum<*>>> = listOf(
+        Team.Avengers to Team.XMen,
+        Team.Avengers to Team.Defenders,
+        Team.XMen to Team.Shield,
+        Origin.Mutant to Origin.Human,
+        Origin.Mutant to Origin.Robot,
+        Style.Leadership to Style.Loner,
+        Style.Leadership to Style.Rebel,
+        Style.Idealist to Style.Dark,
+    )
+    private val rivals: Set<Pair<Enum<*>, Enum<*>>> = RIVALRIES.flatMap { (a, b) -> listOf(a to b, b to a) }.toSet()
+
+    fun areRivals(a: Enum<*>, b: Enum<*>): Boolean = (a to b) in rivals
+
     /** Escala log de fama: 100 aparições = Hidden gems (1), 10.000 = Icons (0). */
     const val FAME_MIN_APPEARANCES = 100
     const val FAME_MAX_APPEARANCES = 10_000
@@ -82,11 +109,16 @@ object CompatibilityCalculator {
     /**
      * peso × (itens em comum ÷ menor entre escolhidos e os do personagem).
      * Assim, escolher várias opções não pune quem tem só uma (ex.: uma origem).
+     * "Any" vale metade do peso; nada em comum com um traço rival tira metade do peso.
      */
-    private fun <T> matchSet(chosen: Set<T>, characterValues: Set<T>, weight: Int): CategoryMatch<T> {
-        if (chosen.isEmpty()) return CategoryMatch(matched = emptySet(), points = weight.toDouble(), isAny = true)
+    private fun <T : Enum<*>> matchSet(chosen: Set<T>, characterValues: Set<T>, weight: Int): CategoryMatch<T> {
+        if (chosen.isEmpty()) return CategoryMatch(matched = emptySet(), points = weight * ANY_FACTOR, isAny = true)
         if (characterValues.isEmpty()) return CategoryMatch(matched = emptySet(), points = 0.0, isAny = false)
         val matched = chosen intersect characterValues
+        if (matched.isEmpty()) {
+            val rival = chosen.any { mine -> characterValues.any { theirs -> areRivals(mine, theirs) } }
+            return CategoryMatch(matched = emptySet(), points = if (rival) -weight * RIVAL_PENALTY else 0.0, isAny = false)
+        }
         val points = weight * matched.size.toDouble() / minOf(chosen.size, characterValues.size)
         return CategoryMatch(matched = matched, points = points, isAny = false)
     }

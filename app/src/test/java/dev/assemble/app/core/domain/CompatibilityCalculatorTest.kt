@@ -36,8 +36,9 @@ class CompatibilityCalculatorTest {
     ) = Preferences(origins, powers, teams, styles, fame)
 
     @Test
-    fun anyInEveryCategory_withMatchingFame_scores100() {
-        assertEquals(100, CompatibilityCalculator.score(prefs(fame = 0.5f), hero))
+    fun anyInEveryCategory_isNeutral() {
+        // Metade de cada peso (12,5 + 15 + 7,5 + 10) + fama igual (10).
+        assertEquals(55, CompatibilityCalculator.score(prefs(fame = 0.5f), hero))
     }
 
     @Test
@@ -50,9 +51,9 @@ class CompatibilityCalculatorTest {
     @Test
     fun nothingInCommon_scoresOnlyFame() {
         val noOverlap = prefs(
-            origins = setOf(Origin.Robot),
+            origins = setOf(Origin.Alien),
             powers = setOf(PowerFamily.Speed),
-            teams = setOf(Team.Avengers),
+            teams = setOf(Team.Guardians),
             styles = setOf(Style.Humor),
             fame = 0.3f,
         )
@@ -65,7 +66,7 @@ class CompatibilityCalculatorTest {
         val partial = prefs(
             origins = setOf(Origin.Mutant, Origin.Human), // 1 ÷ min(2, 1) × 25 = 25
             powers = setOf(PowerFamily.Mind, PowerFamily.Speed, PowerFamily.Magic), // 1 ÷ min(3, 2) × 30 = 15
-            teams = setOf(Team.Avengers), // 0
+            teams = setOf(Team.Guardians), // 0, sem rival dos X-Men
             styles = setOf(Style.Leadership, Style.Idealist, Style.Rebel, Style.Dark), // 2 ÷ min(4, 2) × 20 = 20
             fame = 0.5f, // 10
         )
@@ -78,9 +79,9 @@ class CompatibilityCalculatorTest {
     @Test
     fun roundsHalfUp() {
         val half = prefs(
-            origins = setOf(Origin.Robot), // 0
+            origins = setOf(Origin.Alien), // 0
             powers = setOf(PowerFamily.Mind, PowerFamily.Speed), // 1 ÷ 2 × 30 = 15
-            teams = setOf(Team.Avengers), // 0
+            teams = setOf(Team.Guardians), // 0
             styles = setOf(Style.Humor), // 0
             fame = 0.75f, // 10 × (1 − 0.25) = 7.5 (exato em binário)
         )
@@ -104,11 +105,41 @@ class CompatibilityCalculatorTest {
     }
 
     @Test
-    fun nullField_withAny_keepsFullWeight() {
+    fun nullField_withAny_keepsHalfTheWeight() {
         val unknown = hero.copy(origin = null, powers = emptyList())
         val breakdown = CompatibilityCalculator.breakdown(prefs(), unknown)
-        assertEquals(CompatibilityCalculator.WEIGHT_ORIGIN.toDouble(), breakdown.origin.points, DELTA)
-        assertEquals(CompatibilityCalculator.WEIGHT_POWERS.toDouble(), breakdown.powers.points, DELTA)
+        assertEquals(CompatibilityCalculator.WEIGHT_ORIGIN * 0.5, breakdown.origin.points, DELTA)
+        assertEquals(CompatibilityCalculator.WEIGHT_POWERS * 0.5, breakdown.powers.points, DELTA)
+    }
+
+    @Test
+    fun rivalTraitWithoutOverlap_losesHalfTheWeight() {
+        val avengersFan = prefs(teams = setOf(Team.Avengers))
+        // 12,5 + 15 − 7,5 + 10 + 10 = 40
+        assertEquals(40, CompatibilityCalculator.score(avengersFan, hero))
+        // Sem rival (Guardians): 47,5 → 48
+        assertEquals(48, CompatibilityCalculator.score(prefs(teams = setOf(Team.Guardians)), hero))
+    }
+
+    @Test
+    fun sharedTrait_cancelsTheRivalry() {
+        val both = hero.copy(teams = listOf(Team.Avengers, Team.XMen))
+        // X-Men em comum: 15, sem penalidade pelos Avengers. 62,5 → 63
+        assertEquals(63, CompatibilityCalculator.score(prefs(teams = setOf(Team.XMen)), both))
+    }
+
+    @Test
+    fun rivalsEverywhere_floorAtZero() {
+        val enemy = prefs(origins = setOf(Origin.Human), teams = setOf(Team.Avengers), styles = setOf(Style.Dark), fame = 0f)
+        assertEquals(0, CompatibilityCalculator.score(enemy, hero.copy(issueAppearances = 100)))
+    }
+
+    @Test
+    fun rivalries_areSymmetricAndExcludePowers() {
+        assertTrue(CompatibilityCalculator.areRivals(Origin.Human, Origin.Mutant))
+        assertTrue(CompatibilityCalculator.areRivals(Origin.Mutant, Origin.Human))
+        assertTrue(!CompatibilityCalculator.areRivals(Origin.Mutant, Origin.Alien))
+        assertTrue(CompatibilityCalculator.RIVALRIES.none { (a, b) -> a is PowerFamily || b is PowerFamily })
     }
 
     @Test
