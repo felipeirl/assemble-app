@@ -3,6 +3,7 @@ package dev.assemble.app.core.data.remote
 import dev.assemble.app.core.model.Origin
 import dev.assemble.app.core.model.Preferences
 import dev.assemble.app.core.model.UserProfile
+import dev.assemble.app.core.network.ApiPhotoSignature
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.first
 import org.junit.Assert.assertEquals
@@ -10,13 +11,20 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
 import org.junit.Test
+import java.io.IOException
 
 class RemoteUserRepositoryTest {
     private val store = InMemoryUserDataStore()
     private val api = FakeAssembleApi()
 
+    private val uploaded = mutableListOf<String>()
+    private var uploadResult: () -> String = { throw IOException("sem rede") }
+
     private fun repository(auth: FakeAuthGateway, scope: CoroutineScope, webClientId: String? = null) =
-        RemoteUserRepository(auth, store, api, inMemorySettings(), scope, webClientId)
+        RemoteUserRepository(
+            auth, store, api, inMemorySettings(), scope, webClientId,
+            photoUploader = { jpeg, _ -> uploaded += jpeg; uploadResult() },
+        )
 
     @Test
     fun signedOut_isReadyAndLoggedOut() = runRemoteTest { scope ->
@@ -70,6 +78,56 @@ class RemoteUserRepositoryTest {
         users.completeOnboarding(Preferences.Any, lookingFor = "   ")
 
         assertFalse("lookingFor" in store.merges.single())
+    }
+
+    private val signature = ApiPhotoSignature("https://api.cloudinary.com/v1_1/demo/image/upload", mapOf("signature" to "abc"))
+    private val hostedUrl = "https://res.cloudinary.com/demo/image/upload/v1/assemble/avatars/uid-1.jpg"
+
+    @Test
+    fun updateProfile_uploadsANewPhotoAndStoresTheUrl() = runRemoteTest { scope ->
+        val users = repository(FakeAuthGateway(signedInUid = "uid-1"), scope)
+        users.awaitKnown()
+        api.onPhotoSignature = { signature }
+        uploadResult = { hostedUrl }
+
+        users.updateProfile(users.currentProfile.value.copy(photo = "QkFTRTY0"))
+
+        assertEquals(listOf("QkFTRTY0"), uploaded)
+        assertEquals(hostedUrl, store.merges.last()["avatarPhoto"])
+    }
+
+    @Test
+    fun updateProfile_keepsTheBase64WhenCloudinaryIsNotConfigured() = runRemoteTest { scope ->
+        val users = repository(FakeAuthGateway(signedInUid = "uid-1"), scope)
+        users.awaitKnown()
+
+        users.updateProfile(users.currentProfile.value.copy(photo = "QkFTRTY0"))
+
+        assertEquals(1, api.photoSignatureCalls)
+        assertEquals(emptyList<String>(), uploaded)
+        assertEquals("QkFTRTY0", store.merges.last()["avatarPhoto"])
+    }
+
+    @Test
+    fun updateProfile_keepsTheBase64WhenTheUploadFails() = runRemoteTest { scope ->
+        val users = repository(FakeAuthGateway(signedInUid = "uid-1"), scope)
+        users.awaitKnown()
+        api.onPhotoSignature = { signature }
+
+        users.updateProfile(users.currentProfile.value.copy(photo = "QkFTRTY0"))
+
+        assertEquals("QkFTRTY0", store.merges.last()["avatarPhoto"])
+    }
+
+    @Test
+    fun updateProfile_doesNotUploadAPhotoThatIsAlreadyAUrl() = runRemoteTest { scope ->
+        val users = repository(FakeAuthGateway(signedInUid = "uid-1"), scope)
+        users.awaitKnown()
+
+        users.updateProfile(users.currentProfile.value.copy(photo = hostedUrl))
+
+        assertEquals(0, api.photoSignatureCalls)
+        assertEquals(hostedUrl, store.merges.last()["avatarPhoto"])
     }
 
     @Test

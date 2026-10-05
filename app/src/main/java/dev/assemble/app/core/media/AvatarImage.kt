@@ -42,7 +42,10 @@ object AvatarImage {
         }
     }
 
-    /** Foto guardada → bitmap; null se o texto estiver corrompido. */
+    /** A foto guardada pode ser a URL do Cloudinary (https) ou o JPEG em Base64 de antes. */
+    fun isUrl(photo: String): Boolean = photo.startsWith("https://")
+
+    /** Foto em Base64 → bitmap; null se o texto estiver corrompido. */
     fun decode(base64: String): ImageBitmap? = try {
         val bytes = Base64.decode(base64, Base64.NO_WRAP)
         BitmapFactory.decodeByteArray(bytes, 0, bytes.size)?.asImageBitmap()

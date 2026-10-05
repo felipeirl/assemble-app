@@ -30,6 +30,10 @@ data class ApiDeck(
 @Serializable
 data class ApiReactionCards(val cards: List<ApiDeckCard>)
 
+/** Envio da foto ao Cloudinary: URL e campos do formulário, já assinados pelo backend. */
+@Serializable
+data class ApiPhotoSignature(val uploadUrl: String, val fields: Map<String, String>)
+
 @Serializable
 internal data class ApiTasteSignalRequest(val liked: Boolean)
 

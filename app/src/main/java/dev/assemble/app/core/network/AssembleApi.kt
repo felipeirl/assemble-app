@@ -40,6 +40,9 @@ interface AssembleApi {
 
     suspend fun stats(): ApiUserStats
 
+    /** Assinatura para enviar a foto do perfil ao Cloudinary; 503 se o backend não o configurou. */
+    suspend fun photoSignature(): ApiPhotoSignature
+
     suspend fun hideChats()
 
     suspend fun deactivateAccount(): ApiDeactivation
@@ -108,6 +111,8 @@ class HttpAssembleApi(
     }
 
     override suspend fun stats(): ApiUserStats = decode(call("GET", "/v2/me/stats"))
+
+    override suspend fun photoSignature(): ApiPhotoSignature = decode(call("POST", "/v2/me/photo/signature"))
 
     override suspend fun hideChats() {
         call("POST", "/v2/chats/hide")

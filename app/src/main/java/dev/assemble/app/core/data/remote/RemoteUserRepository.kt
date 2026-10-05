@@ -25,6 +25,9 @@ import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import dev.assemble.app.core.media.AvatarImage
+import dev.assemble.app.core.network.HttpPhotoUploader
+import dev.assemble.app.core.network.PhotoUploader
 import java.io.IOException
 
 private const val EMAIL_NAME_MAX = 60
@@ -43,6 +46,7 @@ class RemoteUserRepository(
     private val settingsStore: SettingsDataStore,
     scope: CoroutineScope,
     private val webClientId: String? = null,
+    private val photoUploader: PhotoUploader = HttpPhotoUploader(),
 ) : UserRepository {
 
     private sealed interface UserState {
@@ -165,7 +169,21 @@ class RemoteUserRepository(
     }
 
     override suspend fun updateProfile(profile: UserProfile) {
-        store.mergeUser(requireUid(), profileFields(profile, previousPhoto = currentProfile.value.photo))
+        val saved = profile.copy(photo = hostedPhoto(profile.photo))
+        store.mergeUser(requireUid(), profileFields(saved, previousPhoto = currentProfile.value.photo))
+    }
+
+    /**
+     * Foto nova (JPEG em Base64) vai para o Cloudinary e vira URL no perfil. Sem Cloudinary no
+     * backend, ou sem rede, a foto segue em Base64 no Firestore, como antes: salvar nunca falha por isso.
+     */
+    private suspend fun hostedPhoto(photo: String?): String? {
+        if (photo == null || AvatarImage.isUrl(photo) || photo == currentProfile.value.photo) return photo
+        return try {
+            photoUploader.upload(photo, api.photoSignature())
+        } catch (_: IOException) {
+            photo
+        }
     }
 
     override suspend fun updatePreferences(preferences: Preferences) {

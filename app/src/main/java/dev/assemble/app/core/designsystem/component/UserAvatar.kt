@@ -20,6 +20,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import coil3.compose.AsyncImage
 import dev.assemble.app.core.designsystem.icon.AssembleIcons
 import dev.assemble.app.core.designsystem.theme.AssembleColors
 import dev.assemble.app.core.designsystem.theme.AssembleTheme
@@ -57,7 +58,8 @@ fun UserAvatar(
     shape: Shape = AssembleTheme.shapes.pill,
     photo: String? = LocalUserPhoto.current,
 ) {
-    val bitmap = remember(photo) { photo?.let(AvatarImage::decode) }
+    val hostedUrl = photo?.takeIf(AvatarImage::isUrl)
+    val bitmap = remember(photo) { photo?.takeUnless(AvatarImage::isUrl)?.let(AvatarImage::decode) }
     val colors = AssembleTheme.colors
     val background = when (preset) {
         AvatarPreset.Energy -> Modifier.energyGradient(colors, shape)
@@ -67,7 +69,9 @@ fun UserAvatar(
         modifier = modifier.size(size).clip(shape).then(background),
         contentAlignment = Alignment.Center,
     ) {
-        if (bitmap != null) {
+        if (hostedUrl != null) {
+            AsyncImage(model = hostedUrl, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
+        } else if (bitmap != null) {
             Image(bitmap = bitmap, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
         } else {
             Icon(

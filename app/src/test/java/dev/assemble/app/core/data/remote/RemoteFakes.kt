@@ -11,6 +11,7 @@ import dev.assemble.app.core.network.ApiDeckCard
 import dev.assemble.app.core.network.ApiErrorCode
 import dev.assemble.app.core.network.ApiException
 import dev.assemble.app.core.network.ApiMatchResult
+import dev.assemble.app.core.network.ApiPhotoSignature
 import dev.assemble.app.core.network.ApiRegenerated
 import dev.assemble.app.core.network.ApiUserStats
 import dev.assemble.app.core.network.AssembleApi
@@ -99,6 +100,14 @@ internal class FakeAssembleApi : AssembleApi {
     }
 
     override suspend fun stats(): ApiUserStats = onStats()
+
+    var photoSignatureCalls = 0
+    var onPhotoSignature: () -> ApiPhotoSignature = { throw ApiException(ApiErrorCode.PROVIDER_UNAVAILABLE, 503) }
+
+    override suspend fun photoSignature(): ApiPhotoSignature {
+        photoSignatureCalls++
+        return onPhotoSignature()
+    }
 
     override suspend fun hideChats() {
         hideChatsCalls++
