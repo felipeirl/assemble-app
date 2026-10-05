@@ -26,6 +26,12 @@ interface AssembleApi {
 
     suspend fun sendMessage(connectionId: String, text: String, idempotencyKey: String): ApiCharacterReply
 
+    /** Gera outra resposta no lugar da última do personagem. */
+    suspend fun regenerate(connectionId: String): ApiRegenerated
+
+    /** Apaga tudo o que veio depois de uma resposta do personagem. */
+    suspend fun rewind(connectionId: String, messageId: String)
+
     suspend fun stats(): ApiUserStats
 
     suspend fun hideChats()
@@ -77,6 +83,14 @@ class HttpAssembleApi(
     override suspend fun sendMessage(connectionId: String, text: String, idempotencyKey: String): ApiCharacterReply {
         val body = json.encodeToString(ApiSendMessageRequest.serializer(), ApiSendMessageRequest(text))
         return decode(call("POST", "/v2/connections/${encode(connectionId)}/messages", body, idempotencyKey))
+    }
+
+    override suspend fun regenerate(connectionId: String): ApiRegenerated =
+        decode(call("POST", "/v2/connections/${encode(connectionId)}/messages/regenerate"))
+
+    override suspend fun rewind(connectionId: String, messageId: String) {
+        val body = json.encodeToString(ApiRewindRequest.serializer(), ApiRewindRequest(messageId))
+        call("POST", "/v2/connections/${encode(connectionId)}/messages/rewind", body)
     }
 
     override suspend fun stats(): ApiUserStats = decode(call("GET", "/v2/me/stats"))

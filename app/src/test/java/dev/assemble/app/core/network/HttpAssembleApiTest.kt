@@ -122,6 +122,42 @@ class HttpAssembleApiTest {
     }
 
     @Test
+    fun `regenerate posts to the connection and decodes the same message`() = runBlocking {
+        reply(
+            Reply(
+                200,
+                """{"reply":{"id":"m_1","connectionId":"storm","author":"CHARACTER","text":"Outra","createdAt":"2026-10-04T12:00:05Z","fictional":true,"blocked":false},"suggestions":["a","b","c"]}""",
+            ),
+        )
+
+        val regenerated = api().regenerate("storm")
+
+        assertEquals("m_1", regenerated.reply.id)
+        assertEquals(3, regenerated.suggestions.size)
+        assertEquals("POST", requests[0].method)
+        assertEquals("/v2/connections/storm/messages/regenerate", requests[0].path)
+    }
+
+    @Test
+    fun `regenerate with nothing to regenerate is a contract error`() = runBlocking {
+        reply(Reply(409, """{"error":"nothing_to_regenerate","message":"x"}"""))
+
+        val error = runCatching { api().regenerate("storm") }.exceptionOrNull() as ApiException
+
+        assertEquals(ApiErrorCode.NOTHING_TO_REGENERATE, error.code)
+    }
+
+    @Test
+    fun `rewind sends the message id and accepts 204`() = runBlocking {
+        reply(Reply(204))
+
+        api().rewind("storm", "m_9")
+
+        assertEquals("/v2/connections/storm/messages/rewind", requests[0].path)
+        assertEquals("""{"messageId":"m_9"}""", requests[0].body)
+    }
+
+    @Test
     fun `401 refreshes the token once and repeats the call`() = runBlocking {
         reply(
             Reply(401, """{"error":"unauthenticated","message":"x"}"""),

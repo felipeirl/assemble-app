@@ -63,6 +63,13 @@ data class ApiCharacterReply(
     val suggestions: List<String> = emptyList(),
 )
 
+/** Resposta de "gerar outra resposta": a mesma mensagem (mesmo id), com texto novo. */
+@Serializable
+data class ApiRegenerated(val reply: ApiMessage, val suggestions: List<String> = emptyList())
+
+@Serializable
+internal data class ApiRewindRequest(val messageId: String)
+
 @Serializable
 data class ApiWhyYouMatch(val category: String, val traits: List<String>)
 

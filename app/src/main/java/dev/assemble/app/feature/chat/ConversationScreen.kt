@@ -4,7 +4,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
 import dev.assemble.app.core.feedback.LocalFeedback
 import dev.assemble.app.core.feedback.Cue
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -23,6 +25,9 @@ import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -30,6 +35,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -38,6 +45,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -96,6 +105,9 @@ fun ConversationRoute(
         onSend = viewModel::send,
         onSuggestion = viewModel::sendSuggestion,
         onRetryMessage = viewModel::retry,
+        onRegenerate = viewModel::regenerate,
+        onRewind = viewModel::rewindTo,
+        onNoticeShown = viewModel::onNoticeShown,
         onReload = viewModel::reload,
         onBack = onBack,
         onOpenCharacter = onOpenCharacter,
@@ -116,12 +128,27 @@ fun ConversationScreen(
     onOpenCharacter: (characterId: String) -> Unit,
     modifier: Modifier = Modifier,
     onSuggestion: (text: String) -> Unit = {},
+    onRegenerate: () -> Unit = {},
+    onRewind: (messageId: String) -> Unit = {},
+    onNoticeShown: () -> Unit = {},
 ) {
     val colors = AssembleTheme.colors
     val content = state as? ConversationUiState.Content
+    val snackbarHostState = remember { SnackbarHostState() }
+    val resources = LocalResources.current
+    var rewindTarget by rememberSaveable { mutableStateOf<String?>(null) }
+    LaunchedEffect(content?.notice) {
+        val notice = content?.notice ?: return@LaunchedEffect
+        val text = when (notice) {
+            ConversationNotice.ActionFailed -> resources.getString(R.string.conversation_action_failed)
+        }
+        snackbarHostState.showSnackbar(text)
+        onNoticeShown()
+    }
     Scaffold(
         modifier = modifier,
         containerColor = colors.bg,
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 expandedHeight = scaledTopBarHeight(),
@@ -167,10 +194,38 @@ fun ConversationScreen(
                         message = stringResource(R.string.character_unavailable_message),
                     ),
                 )
-                is ConversationUiState.Content -> MessageList(state, onRetryMessage)
+                is ConversationUiState.Content -> MessageList(state, onRetryMessage, onRegenerate) { rewindTarget = it }
             }
         }
     }
+    rewindTarget?.let { messageId ->
+        RewindDialog(
+            onConfirm = {
+                rewindTarget = null
+                onRewind(messageId)
+            },
+            onDismiss = { rewindTarget = null },
+        )
+    }
+}
+
+@Composable
+private fun RewindDialog(onConfirm: () -> Unit, onDismiss: () -> Unit) {
+    val colors = AssembleTheme.colors
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = colors.surface,
+        title = { Text(stringResource(R.string.conversation_rewind_title), color = colors.text) },
+        text = { Text(stringResource(R.string.conversation_rewind_message), color = colors.textMuted) },
+        confirmButton = {
+            TextButton(onClick = onConfirm) {
+                Text(stringResource(R.string.conversation_rewind_confirm), color = colors.error, fontWeight = FontWeight.SemiBold)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel), color = colors.text) }
+        },
+    )
 }
 
 @Composable
@@ -203,9 +258,17 @@ private fun ConversationTitle(content: ConversationUiState.Content, onOpenCharac
  * Só mensagens que chegam com a conversa aberta saltam; o histórico aparece parado.
  */
 @Composable
-private fun MessageList(content: ConversationUiState.Content, onRetryMessage: (String) -> Unit) {
+private fun MessageList(
+    content: ConversationUiState.Content,
+    onRetryMessage: (String) -> Unit,
+    onRegenerate: () -> Unit,
+    onRewindRequest: (String) -> Unit,
+) {
     val spacing = AssembleTheme.spacing
     val newestFirst = content.messages.asReversed()
+    // Só a última resposta do personagem pode ser gerada de novo, e não enquanto ele digita.
+    val regenerableId = content.messages.lastOrNull()
+        ?.takeIf { it.author == MessageAuthor.Character && it.status == MessageStatus.Sent && !content.typing }?.id
     val animationsEnabled = rememberAnimationsEnabled()
     val shownIds = remember { content.messages.mapTo(mutableSetOf()) { it.id } }
     val feedback = LocalFeedback.current
@@ -237,32 +300,87 @@ private fun MessageList(content: ConversationUiState.Content, onRetryMessage: (S
                 wasSending = message.status == MessageStatus.Sending
             }
             BubblePopIn(message.author.toChatAuthor(), animate = animationsEnabled && isNew, modifier = Modifier.animateItem()) {
-                MessageItem(message, onRetryMessage)
+                MessageItem(message, message.id == regenerableId, onRetryMessage, onRegenerate, onRewindRequest)
             }
         }
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun MessageItem(message: Message, onRetry: (String) -> Unit) {
+private fun MessageItem(
+    message: Message,
+    canRegenerate: Boolean,
+    onRetry: (String) -> Unit,
+    onRegenerate: () -> Unit,
+    onRewindRequest: (String) -> Unit,
+) {
     val author = message.author.toChatAuthor()
+    var menuOpen by remember { mutableStateOf(false) }
     Column(
         modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = if (author == ChatAuthor.User) Alignment.End else Alignment.Start,
     ) {
         // Recusada pelo servidor, a mensagem volta sem texto: só o aviso aparece.
         if (message.text.isNotBlank()) {
-            ChatBubble(
-                text = message.text,
-                author = author,
-                modifier = Modifier.alpha(if (message.status == MessageStatus.Sending || message.status == MessageStatus.Blocked) SendingAlpha else 1f),
-            )
+            val dimmed = message.status == MessageStatus.Sending || message.status == MessageStatus.Blocked
+            // Segurar numa resposta do personagem abre o menu (voltar a conversa, gerar outra).
+            val menuModifier = if (author == ChatAuthor.Ai) {
+                Modifier.combinedClickable(
+                    onClick = {},
+                    onLongClick = { menuOpen = true },
+                    onLongClickLabel = stringResource(R.string.conversation_message_options),
+                )
+            } else {
+                Modifier
+            }
+            Box {
+                ChatBubble(
+                    text = message.text,
+                    author = author,
+                    modifier = Modifier.alpha(if (dimmed) SendingAlpha else 1f).then(menuModifier),
+                )
+                DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                    if (canRegenerate) {
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.conversation_regenerate)) },
+                            onClick = {
+                                menuOpen = false
+                                onRegenerate()
+                            },
+                        )
+                    }
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.conversation_rewind)) },
+                        onClick = {
+                            menuOpen = false
+                            onRewindRequest(message.id)
+                        },
+                    )
+                }
+            }
         }
         when (message.status) {
             MessageStatus.Failed -> FailedMessageRetry(onClick = { onRetry(message.id) })
             MessageStatus.Blocked -> BlockedMessageNotice()
             MessageStatus.Sending, MessageStatus.Sent -> Unit
         }
+        if (canRegenerate) RegenerateButton(onRegenerate)
+    }
+}
+
+/** Atalho para gerar outra resposta, logo abaixo da última do personagem. */
+@Composable
+private fun RegenerateButton(onClick: () -> Unit) {
+    val colors = AssembleTheme.colors
+    TextButton(onClick = onClick) {
+        Icon(AssembleIcons.Reset, contentDescription = null, tint = colors.textMuted, modifier = Modifier.size(ErrorIconSize))
+        Text(
+            text = stringResource(R.string.conversation_regenerate),
+            style = AssembleTheme.typography.caption,
+            color = colors.textMuted,
+            modifier = Modifier.padding(start = AssembleTheme.spacing.space1),
+        )
     }
 }
 

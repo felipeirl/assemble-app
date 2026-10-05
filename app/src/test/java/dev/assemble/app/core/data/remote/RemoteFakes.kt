@@ -11,6 +11,7 @@ import dev.assemble.app.core.network.ApiDeckCard
 import dev.assemble.app.core.network.ApiErrorCode
 import dev.assemble.app.core.network.ApiException
 import dev.assemble.app.core.network.ApiMatchResult
+import dev.assemble.app.core.network.ApiRegenerated
 import dev.assemble.app.core.network.ApiUserStats
 import dev.assemble.app.core.network.AssembleApi
 import dev.assemble.app.core.network.DecisionChoice
@@ -54,6 +55,10 @@ internal class FakeAssembleApi : AssembleApi {
     var onUndo: () -> ApiDeckCard = { throw ApiException(ApiErrorCode.NOTHING_TO_UNDO, 409) }
     var onCharacter: (String) -> ApiCharacterView = { throw ApiException(ApiErrorCode.NOT_FOUND, 404) }
     var onSend: (connectionId: String, text: String, key: String) -> ApiCharacterReply = { _, _, _ -> throw IOException("sem rede") }
+    val regenerateCalls = mutableListOf<String>()
+    val rewinds = mutableListOf<Pair<String, String>>()
+    var onRegenerate: (String) -> ApiRegenerated = { throw IOException("sem rede") }
+    var onRewind: (String, String) -> Unit = { _, _ -> }
     var onStats: () -> ApiUserStats = { ApiUserStats(0, 0, 0, 0) }
     var onDeactivate: () -> ApiDeactivation = { ApiDeactivation("2026-11-03T12:00:00Z") }
 
@@ -72,6 +77,16 @@ internal class FakeAssembleApi : AssembleApi {
     override suspend fun sendMessage(connectionId: String, text: String, idempotencyKey: String): ApiCharacterReply {
         sentKeys += idempotencyKey
         return onSend(connectionId, text, idempotencyKey)
+    }
+
+    override suspend fun regenerate(connectionId: String): ApiRegenerated {
+        regenerateCalls += connectionId
+        return onRegenerate(connectionId)
+    }
+
+    override suspend fun rewind(connectionId: String, messageId: String) {
+        rewinds += connectionId to messageId
+        onRewind(connectionId, messageId)
     }
 
     override suspend fun stats(): ApiUserStats = onStats()

@@ -113,6 +113,27 @@ class RemoteChatRepository(
     /** O backend grava a fala de abertura junto com o match; aqui não há nada a fazer. */
     override suspend fun startConversation(connectionId: String) = Unit
 
+    /** O texto muda no mesmo documento do Firestore (mesmo id); aqui só mostramos o "digitando". */
+    override suspend fun regenerateLast(connectionId: String) {
+        typing.update { it + connectionId }
+        try {
+            val regenerated = api.regenerate(connectionId)
+            echoes.update { list -> list.filterNot { it.id == regenerated.reply.id } + regenerated.reply.toMessage(read = true) }
+        } finally {
+            typing.update { it - connectionId }
+        }
+    }
+
+    override suspend fun rewindTo(connectionId: String, messageId: String) {
+        val cutoff = allMessages.value.firstOrNull { it.id == messageId }?.sentAt
+        api.rewind(connectionId, messageId)
+        // As cópias locais do que foi apagado não podem ressuscitar a mensagem na lista.
+        if (cutoff != null) {
+            echoes.update { list -> list.filterNot { it.connectionId == connectionId && it.sentAt.isAfter(cutoff) } }
+            pending.update { list -> list.filterNot { it.message.connectionId == connectionId && it.message.sentAt.isAfter(cutoff) } }
+        }
+    }
+
     override suspend fun markRead(connectionId: String) {
         val current = uid.value ?: return
         val hasUnread = allMessages.value.any { it.connectionId == connectionId && !it.read }

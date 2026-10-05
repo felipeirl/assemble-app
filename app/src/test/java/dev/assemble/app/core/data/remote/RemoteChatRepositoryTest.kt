@@ -7,11 +7,13 @@ import dev.assemble.app.core.network.ApiCharacterReply
 import dev.assemble.app.core.network.ApiErrorCode
 import dev.assemble.app.core.network.ApiException
 import dev.assemble.app.core.network.ApiMessage
+import dev.assemble.app.core.network.ApiRegenerated
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
+import org.junit.Assert.fail
 import org.junit.Test
 import java.io.IOException
 import java.time.Clock
@@ -124,6 +126,74 @@ class RemoteChatRepositoryTest {
     fun deleteAll_hidesChatsOnServer() = runRemoteTest { scope ->
         repository(scope).deleteAll()
         assertEquals(1, api.hideChatsCalls)
+    }
+
+    private fun apiMessage(id: String, author: String, text: String, at: String) =
+        ApiMessage(id, "thor", author, text, at, fictional = author == "CHARACTER")
+
+    @Test
+    fun regenerateLast_callsTheApiAndClearsTyping() = runRemoteTest { scope ->
+        store.matches.value = listOf(matchDoc("thor"))
+        api.onRegenerate = { ApiRegenerated(apiMessage("c1", "CHARACTER", "Outra resposta", "2026-10-04T12:00:05Z")) }
+        val chat = repository(scope)
+
+        chat.regenerateLast("thor")
+
+        assertEquals(listOf("thor"), api.regenerateCalls)
+        assertEquals(emptySet<String>(), chat.typingConnectionIds.value)
+        assertEquals(listOf("Outra resposta"), chat.observeMessages("thor").first().map { it.text })
+    }
+
+    @Test
+    fun regenerateLast_failureClearsTypingAndPropagates() = runRemoteTest { scope ->
+        store.matches.value = listOf(matchDoc("thor"))
+        val chat = repository(scope)
+
+        try {
+            chat.regenerateLast("thor")
+            fail("esperava IOException")
+        } catch (_: IOException) {
+            assertEquals(emptySet<String>(), chat.typingConnectionIds.value)
+        }
+    }
+
+    @Test
+    fun rewindTo_dropsLocalCopiesOfTheDeletedMessages() = runRemoteTest { scope ->
+        store.matches.value = listOf(matchDoc("thor"))
+        var turn = 0
+        api.onSend = { _, text, _ ->
+            turn++
+            val minute = "2026-10-04T12:0$turn"
+            ApiCharacterReply(
+                userMessage = apiMessage("u$turn", "USER", text, "$minute:00Z"),
+                reply = apiMessage("c$turn", "CHARACTER", "Resposta $turn", "$minute:05Z"),
+            )
+        }
+        val chat = repository(scope)
+        chat.send("thor", "Primeira")
+        chat.send("thor", "Segunda")
+        assertEquals(listOf("u1", "c1", "u2", "c2"), chat.observeMessages("thor").first().map { it.id })
+
+        chat.rewindTo("thor", "c1")
+
+        assertEquals(listOf("thor" to "c1"), api.rewinds)
+        assertEquals(listOf("u1", "c1"), chat.observeMessages("thor").first().map { it.id })
+    }
+
+    @Test
+    fun rewindTo_failureKeepsTheLocalMessages() = runRemoteTest { scope ->
+        store.matches.value = listOf(matchDoc("thor"))
+        api.onSend = { _, text, _ -> reply("thor", text) }
+        api.onRewind = { _, _ -> throw IOException("sem rede") }
+        val chat = repository(scope)
+        chat.send("thor", "Oi")
+
+        try {
+            chat.rewindTo("thor", "c1")
+            fail("esperava IOException")
+        } catch (_: IOException) {
+            assertEquals(listOf("u1", "c1"), chat.observeMessages("thor").first().map { it.id })
+        }
     }
 
     @Test

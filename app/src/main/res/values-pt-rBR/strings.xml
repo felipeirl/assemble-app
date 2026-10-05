@@ -330,4 +330,11 @@
     <string name="login_reset_sent">Se este e-mail tiver uma conta, enviamos um link para redefinir a senha.</string>
     <string name="login_show_password">Mostrar senha</string>
     <string name="login_hide_password">Ocultar senha</string>
+    <string name="conversation_regenerate">Gerar outra resposta</string>
+    <string name="conversation_rewind">Voltar a conversa até aqui</string>
+    <string name="conversation_rewind_title">Voltar até esta mensagem?</string>
+    <string name="conversation_rewind_message">Tudo o que veio depois será apagado. Não dá para desfazer.</string>
+    <string name="conversation_rewind_confirm">Voltar</string>
+    <string name="conversation_message_options">Opções da mensagem</string>
+    <string name="conversation_action_failed">Não foi possível concluir. Verifique sua conexão e tente de novo.</string>
 </resources>

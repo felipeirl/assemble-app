@@ -26,6 +26,12 @@ interface ChatRepository {
     /** Primeira mensagem do personagem, logo após a conexão. */
     suspend fun startConversation(connectionId: String)
 
+    /** Gera outra resposta no lugar da última do personagem (mesma mensagem, texto novo). */
+    suspend fun regenerateLast(connectionId: String)
+
+    /** Volta a conversa até [messageId] (uma resposta do personagem): o que veio depois é apagado. */
+    suspend fun rewindTo(connectionId: String, messageId: String)
+
     suspend fun markRead(connectionId: String)
 
     suspend fun deleteAll()

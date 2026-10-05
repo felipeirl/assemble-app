@@ -68,6 +68,20 @@ class HttpAssembleApiLiveTest {
         assertEquals("USER", reply.userMessage.author)
         assertEquals(SUGGESTIONS, reply.suggestions.size)
 
+        val regenerated = api.regenerate(connectionId)
+        assertEquals(reply.reply.id, regenerated.reply.id)
+        assertTrue(regenerated.reply.text.isNotBlank())
+
+        val second = api.sendMessage(connectionId, "E qual é o seu maior medo?", UUID.randomUUID().toString())
+        assertTrue(second.reply.id != reply.reply.id)
+        api.rewind(connectionId, reply.reply.id)
+        try {
+            api.rewind(connectionId, second.userMessage.id)
+            fail("esperava invalid_request: o alvo é do usuário")
+        } catch (error: ApiException) {
+            assertEquals(ApiErrorCode.NOT_FOUND, error.code) // já apagada pelo rewind anterior
+        }
+
         try {
             api.sendMessage(connectionId, "meu email é fulano@exemplo.com", UUID.randomUUID().toString())
             fail("esperava blocked_content")

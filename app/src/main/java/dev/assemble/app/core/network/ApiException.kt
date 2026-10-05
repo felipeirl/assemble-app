@@ -10,6 +10,7 @@ object ApiErrorCode {
     const val NOT_FOUND = "not_found"
     const val NOTHING_TO_UNDO = "nothing_to_undo"
     const val ALREADY_DECIDED = "already_decided"
+    const val NOTHING_TO_REGENERATE = "nothing_to_regenerate"
     const val BLOCKED_CONTENT = "blocked_content"
     const val RATE_LIMITED = "rate_limited"
     const val PROVIDER_UNAVAILABLE = "provider_unavailable"

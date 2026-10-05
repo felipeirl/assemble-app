@@ -37,6 +37,7 @@ class ConversationViewModel(
 ) : ViewModel() {
     private val reloads = MutableStateFlow(0)
     private val draftState = MutableStateFlow("")
+    private val noticeState = MutableStateFlow<ConversationNotice?>(null)
     val draft: StateFlow<String> = draftState.asStateFlow()
 
     val uiState: StateFlow<ConversationUiState> = reloads.flatMapLatest {
@@ -53,7 +54,8 @@ class ConversationViewModel(
                     chatRepository.observeMessages(connectionId),
                     chatRepository.typingConnectionIds,
                     chatRepository.observeSuggestions(connectionId),
-                ) { messages, typing, fromBackend ->
+                    noticeState,
+                ) { messages, typing, fromBackend, notice ->
                     ConversationUiState.Content(
                         characterId = character.id,
                         name = character.name,
@@ -63,6 +65,7 @@ class ConversationViewModel(
                         // As do backend vêm junto com cada resposta; sem elas, o app monta as suas.
                         suggestions = fromBackend?.let(::literalSuggestions)
                             ?: replySuggestions(character, messagesSent = messages.count { it.author == MessageAuthor.User }),
+                        notice = notice,
                     )
                 },
             )
@@ -90,6 +93,30 @@ class ConversationViewModel(
 
     private fun sendText(text: String) {
         applicationScope.launch { chatRepository.send(connectionId, text) }
+    }
+
+    /** Gera outra resposta no lugar da última do personagem. */
+    fun regenerate() {
+        runAction { chatRepository.regenerateLast(connectionId) }
+    }
+
+    /** Volta a conversa até uma resposta do personagem; o que veio depois é apagado. */
+    fun rewindTo(messageId: String) {
+        runAction { chatRepository.rewindTo(connectionId, messageId) }
+    }
+
+    fun onNoticeShown() {
+        noticeState.value = null
+    }
+
+    private fun runAction(action: suspend () -> Unit) {
+        applicationScope.launch {
+            try {
+                action()
+            } catch (_: IOException) {
+                noticeState.value = ConversationNotice.ActionFailed
+            }
+        }
     }
 
     fun retry(messageId: String) {

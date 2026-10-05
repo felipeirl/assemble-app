@@ -341,4 +341,11 @@
     <string name="login_reset_sent">If this email has an account, we sent a link to reset the password.</string>
     <string name="login_show_password">Show password</string>
     <string name="login_hide_password">Hide password</string>
+    <string name="conversation_regenerate">Generate another reply</string>
+    <string name="conversation_rewind">Go back to here</string>
+    <string name="conversation_rewind_title">Go back to this message?</string>
+    <string name="conversation_rewind_message">Everything after it will be deleted. This can\'t be undone.</string>
+    <string name="conversation_rewind_confirm">Go back</string>
+    <string name="conversation_message_options">Message options</string>
+    <string name="conversation_action_failed">Couldn\'t do that. Check your connection and try again.</string>
 </resources>

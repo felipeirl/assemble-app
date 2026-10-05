@@ -67,6 +67,26 @@ class FakeChatRepository(
         addCharacterMessage(connectionId, MockReplies.openerFor(characterId))
     }
 
+    override suspend fun regenerateLast(connectionId: String) {
+        val characterId = connections.getConnection(connectionId)?.characterId ?: return
+        val last = messages.value.lastOrNull { it.connectionId == connectionId }
+            ?.takeIf { it.author == MessageAuthor.Character } ?: return
+        typing.update { it + connectionId }
+        try {
+            delay(TYPING_MILLIS)
+            val turn = messages.value.count { it.connectionId == connectionId && it.author == MessageAuthor.Character }
+            val text = MockReplies.replyFor(characterId, turn)
+            messages.update { list -> list.map { if (it.id == last.id) it.copy(text = text) else it } }
+        } finally {
+            typing.update { it - connectionId }
+        }
+    }
+
+    override suspend fun rewindTo(connectionId: String, messageId: String) {
+        val target = messages.value.firstOrNull { it.id == messageId && it.connectionId == connectionId } ?: return
+        messages.update { list -> list.filterNot { it.connectionId == connectionId && it.sentAt.isAfter(target.sentAt) } }
+    }
+
     override suspend fun markRead(connectionId: String) {
         messages.update { list ->
             list.map { if (it.connectionId == connectionId && !it.read) it.copy(read = true) else it }
