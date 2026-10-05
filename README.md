@@ -114,7 +114,7 @@ Stack: Kotlin, Jetpack Compose + Material 3, Navigation 3, ViewModel + StateFlow
 
 ## Versões
 
-As versões seguem o [SemVer](https://semver.org/lang/pt-BR/) e estão no [`CHANGELOG.md`](CHANGELOG.md); cada uma tem uma tag `vX.Y.Z`. A versão atual está em `app/build.gradle` (`versionName` e `versionCode`). Para lançar: atualize a versão e o changelog, faça o commit e crie a tag (`git tag -a v0.2.0 -m "v0.2.0"`).
+As versões contam como um odômetro (`0.0.9` → `0.1.0`: ao chegar em 9, avança a casa seguinte), uma por grande adição, e estão no [`CHANGELOG.md`](CHANGELOG.md); cada uma tem uma tag `vX.Y.Z`. A versão atual está em `app/build.gradle` (`versionName` e `versionCode`). Para lançar: atualize a versão e o changelog, faça o commit e crie a tag (`git tag -a v0.0.7 -m "v0.0.7"`).
 
 ## Fontes e créditos
 

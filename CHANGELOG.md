@@ -1,8 +1,8 @@
 # Changelog
 
-Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/). O projeto segue [Versionamento Semântico](https://semver.org/lang/pt-BR/): cada versão `0.x.0` marca um conjunto grande de novidades, e as correções pequenas entram na versão seguinte.
+Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/). As versões contam como um odômetro: cada release é uma grande adição e o número sobe de um em um (`0.0.8`, `0.0.9`, `0.1.0`, `0.1.1`...). Ao chegar em 9, avança a casa seguinte. Correções pequenas entram na release seguinte.
 
-## [0.6.0] - 2026-10-05
+## [0.0.6] - 2026-10-05
 
 ### Adicionado
 - Foto do perfil enviada ao Cloudinary com uma assinatura feita pelo backend; sem Cloudinary, a foto segue no Firestore.
@@ -11,7 +11,7 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/). 
 ### Alterado
 - O rascunho antigo de `firestore.rules` saiu do repositório: as regras agora ficam no repositório da API.
 
-## [0.5.0] - 2026-10-05
+## [0.0.5] - 2026-10-05
 
 ### Adicionado
 - Cadastro novo: uma pergunta própria em cada passo, barra de progresso em segmentos com gradiente, chips maiores e slider de fama com exemplos.
@@ -23,19 +23,19 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/). 
 - Mensagem não duplica ao tentar de novo, e a resposta antiga não aparece enquanto outra é gerada.
 - O aviso de espera fala em "Assemble", não em "match", e um Assemble sem match não mostra mais mensagem.
 
-## [0.4.0] - 2026-10-04
+## [0.0.4] - 2026-10-04
 
 ### Adicionado
 - Gerar outra resposta e voltar a conversa no chat.
 - Foto do perfil escolhida na galeria.
 
-## [0.3.0] - 2026-10-04
+## [0.0.3] - 2026-10-04
 
 ### Adicionado
 - Login com a conta Google e tela de login e cadastro redesenhada.
 - Compatibilidade com "Qualquer" neutro e rivalidades entre grupos, igual ao backend.
 
-## [0.2.0] - 2026-10-04
+## [0.0.2] - 2026-10-04
 
 O app passa a falar com o backend de verdade.
 
@@ -48,7 +48,7 @@ O app passa a falar com o backend de verdade.
 ### Alterado
 - Chaves do Firebase e URL do backend vêm do `local.properties`.
 
-## [0.1.0] - 2026-09-30
+## [0.0.1] - 2026-09-30
 
 Primeira versão: o app completo funcionando com dados simulados.
 
