@@ -63,6 +63,18 @@ interface UserRepository {
 
     suspend fun reactivateAccount() = Unit
 
+    /** E-mail da conta, para a tela de verificação. */
+    val accountEmail: String? get() = null
+
+    /** true até o e-mail de um cadastro por e-mail e senha ser confirmado; o app fica na tela de verificação. */
+    val emailVerificationPending: StateFlow<Boolean> get() = NeverPending
+
+    /** Manda o e-mail de confirmação (o do app, em HTML; se o backend não puder, o do Firebase). */
+    suspend fun sendVerificationEmail() = Unit
+
+    /** Relê a conta e diz se o e-mail já foi confirmado. */
+    suspend fun refreshEmailVerified(): Boolean = true
+
     /** "Clear seen characters" contradiz "Pass nunca volta" quando o baralho vem do backend. */
     val canClearSeen: Boolean get() = true
 
@@ -74,3 +86,4 @@ interface UserRepository {
 }
 
 private val NeverDeactivated: StateFlow<Boolean> = MutableStateFlow(false).asStateFlow()
+private val NeverPending: StateFlow<Boolean> = MutableStateFlow(false).asStateFlow()

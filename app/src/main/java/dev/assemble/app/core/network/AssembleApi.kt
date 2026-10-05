@@ -43,6 +43,9 @@ interface AssembleApi {
     /** Assinatura para enviar a foto do perfil ao Cloudinary; 503 se o backend não o configurou. */
     suspend fun photoSignature(): ApiPhotoSignature
 
+    /** Manda o e-mail de confirmação em HTML; 503 quando o backend não tem SMTP (use o e-mail do Firebase). */
+    suspend fun sendEmailVerification()
+
     suspend fun hideChats()
 
     suspend fun deactivateAccount(): ApiDeactivation
@@ -72,6 +75,8 @@ class HttpAssembleApi(
     private val timeZoneId: () -> String,
     /** Chamado quando o backend diz que a conta está em carência (403 account_deactivated). */
     private val onAccountDeactivated: () -> Unit = {},
+    /** Chamado quando o backend diz que o e-mail da conta ainda não foi confirmado (403 email_not_verified). */
+    private val onEmailNotVerified: () -> Unit = {},
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) : AssembleApi {
     private val base = baseUrl.trimEnd('/')
@@ -114,6 +119,10 @@ class HttpAssembleApi(
 
     override suspend fun photoSignature(): ApiPhotoSignature = decode(call("POST", "/v2/me/photo/signature"))
 
+    override suspend fun sendEmailVerification() {
+        call("POST", "/v2/account/email-verification")
+    }
+
     override suspend fun hideChats() {
         call("POST", "/v2/chats/hide")
     }
@@ -134,6 +143,7 @@ class HttpAssembleApi(
         if (response.status in 200..299) return if (response.status == HTTP_NO_CONTENT) "" else response.body
         throw response.toException().also {
             if (it.code == ApiErrorCode.ACCOUNT_DEACTIVATED) onAccountDeactivated()
+            if (it.code == ApiErrorCode.EMAIL_NOT_VERIFIED) onEmailNotVerified()
         }
     }
 

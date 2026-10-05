@@ -327,6 +327,17 @@
     <string name="login_error_weak_password">Choose a stronger password.</string>
     <string name="login_error_invalid_email">Check the email address.</string>
     <string name="onboarding_ai_notice">Characters reply with AI-generated, fictional text. By continuing, you agree to chat with AI.</string>
+    <string name="verify_title">Confirm your email</string>
+    <string name="verify_body">We sent a link to %1$s. Open it to unlock your account, then come back here.</string>
+    <string name="verify_body_no_email">We sent you a link by email. Open it to unlock your account, then come back here.</string>
+    <string name="verify_checked">I\'ve confirmed</string>
+    <string name="verify_resend">Resend email</string>
+    <string name="verify_resend_wait">Resend in %1$d s</string>
+    <string name="verify_other_account">Use another account</string>
+    <string name="verify_msg_sent">Email sent. Check your inbox and the spam folder.</string>
+    <string name="verify_msg_pending">Not confirmed yet. Open the link in the email first.</string>
+    <string name="verify_msg_failed">Something went wrong. Check your connection and try again.</string>
+    <string name="verify_msg_rate_limited">Too many emails. Wait a moment to resend.</string>
     <string name="onboarding_kicker">Step %1$d of %2$d · %3$s</string>
     <string name="onboarding_title_origin">Where does your hero come from?</string>
     <string name="onboarding_title_powers">What can they do?</string>

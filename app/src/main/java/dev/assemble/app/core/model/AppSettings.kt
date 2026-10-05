@@ -15,4 +15,6 @@ data class AppSettings(
 data class SessionState(
     val isLoggedIn: Boolean = false,
     val hasCompletedOnboarding: Boolean = false,
+    /** Login por e-mail e senha com o e-mail ainda por confirmar: a conta fica na tela de verificação. */
+    val emailVerificationPending: Boolean = false,
 )

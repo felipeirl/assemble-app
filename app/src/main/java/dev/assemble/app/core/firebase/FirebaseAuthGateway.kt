@@ -1,7 +1,9 @@
 package dev.assemble.app.core.firebase
 
 import com.google.firebase.FirebaseNetworkException
+import com.google.firebase.auth.EmailAuthProvider
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException
 import com.google.firebase.auth.FirebaseAuthInvalidUserException
 import com.google.firebase.auth.FirebaseAuthUserCollisionException
@@ -24,9 +26,13 @@ class FirebaseAuthGateway(private val auth: FirebaseAuth) : AuthGateway {
     override val ready: StateFlow<Boolean> = readyState.asStateFlow()
     override val email: String? get() = auth.currentUser?.email
 
+    private val pendingState = MutableStateFlow(isPending(auth.currentUser))
+    override val emailVerificationPending: StateFlow<Boolean> = pendingState.asStateFlow()
+
     init {
         auth.addAuthStateListener { current ->
             uidState.value = current.currentUser?.uid
+            pendingState.value = isPending(current.currentUser)
             readyState.value = true
         }
     }
@@ -60,6 +66,24 @@ class FirebaseAuthGateway(private val auth: FirebaseAuth) : AuthGateway {
     override suspend fun signOut() {
         auth.signOut()
     }
+
+    override suspend fun reloadEmailVerified(): Boolean {
+        val user = auth.currentUser ?: throw NotSignedInException()
+        user.reload().awaitAuth()
+        // O backend lê "e-mail confirmado" do token: renova para a próxima chamada já passar.
+        user.getIdToken(true).awaitAuth()
+        pendingState.value = isPending(user)
+        return !pendingState.value
+    }
+
+    override suspend fun sendFirebaseVerificationEmail() {
+        val user = auth.currentUser ?: throw NotSignedInException()
+        user.sendEmailVerification().awaitAuth()
+    }
+
+    /** Só o login por e-mail e senha precisa confirmar o e-mail; o do Google já vem confirmado. */
+    private fun isPending(user: FirebaseUser?): Boolean =
+        user != null && !user.isEmailVerified && user.providerData.any { it.providerId == EmailAuthProvider.PROVIDER_ID }
 
     private suspend fun <T> com.google.android.gms.tasks.Task<T>.awaitAuth(): T = try {
         await()

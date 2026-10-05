@@ -101,6 +101,14 @@ internal class FakeAssembleApi : AssembleApi {
 
     override suspend fun stats(): ApiUserStats = onStats()
 
+    var emailVerificationCalls = 0
+    var onEmailVerification: () -> Unit = {}
+
+    override suspend fun sendEmailVerification() {
+        emailVerificationCalls++
+        onEmailVerification()
+    }
+
     var photoSignatureCalls = 0
     var onPhotoSignature: () -> ApiPhotoSignature = { throw ApiException(ApiErrorCode.PROVIDER_UNAVAILABLE, 503) }
 
@@ -177,6 +185,21 @@ internal class FakeAuthGateway(signedInUid: String? = null, override val email: 
 
     override suspend fun signOut() {
         uid.value = null
+    }
+
+    override val emailVerificationPending = MutableStateFlow(false)
+    var verifiedAfterReload = true
+    var firebaseEmails = 0
+    var reloads = 0
+
+    override suspend fun reloadEmailVerified(): Boolean {
+        reloads++
+        emailVerificationPending.value = !verifiedAfterReload
+        return verifiedAfterReload
+    }
+
+    override suspend fun sendFirebaseVerificationEmail() {
+        firebaseEmails++
     }
 
     private fun enter() {

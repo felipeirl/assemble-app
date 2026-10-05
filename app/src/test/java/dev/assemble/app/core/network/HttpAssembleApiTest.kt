@@ -140,6 +140,31 @@ class HttpAssembleApiTest {
     }
 
     @Test
+    fun `email verification posts to the account route and email_not_verified notifies the app`() = runBlocking {
+        reply(Reply(204), Reply(403, """{"error":"email_not_verified","message":"Confirme"}"""))
+        var notified = 0
+        val api = HttpAssembleApi(
+            baseUrl = "http://127.0.0.1:${server.address.port}/",
+            tokens = { "token" },
+            languageTag = { "pt-BR" },
+            timeZoneId = { "America/Sao_Paulo" },
+            onEmailNotVerified = { notified++ },
+        )
+
+        api.sendEmailVerification()
+        try {
+            api.stats()
+            fail("esperava ApiException")
+        } catch (error: ApiException) {
+            assertEquals(ApiErrorCode.EMAIL_NOT_VERIFIED, error.code)
+        }
+
+        assertEquals("POST", requests[0].method)
+        assertEquals("/v2/account/email-verification", requests[0].path)
+        assertEquals(1, notified)
+    }
+
+    @Test
     fun `regenerate posts to the connection and decodes the same message`() = runBlocking {
         reply(
             Reply(

@@ -98,6 +98,9 @@ object AssembleIcons {
         )
     }
     /** "Sobre": o mesmo círculo com i do Info, no traço fino do menu. */
+    val Mail: ImageVector by lazy {
+        lineIcon("Mail", "M4 6.5h16v11H4z", "M4.5 7.5l7.5 6 7.5-6", strokeWidth = MenuStrokeWidth)
+    }
     val About: ImageVector by lazy {
         lineIcon("About", circle(12f, 12f, 9f), "M12 11v5.2M12 7.8h.01", strokeWidth = MenuStrokeWidth)
     }

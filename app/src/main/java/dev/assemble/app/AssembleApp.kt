@@ -99,10 +99,12 @@ import dev.assemble.app.navigation.rememberNavigationState
 import dev.assemble.app.navigation.toEntries
 import dev.assemble.app.core.designsystem.component.LocalUserPhoto
 import dev.assemble.app.feature.account.AccountDeactivatedHost
+import dev.assemble.app.feature.verifyemail.VerifyEmailRoute
+import dev.assemble.app.feature.verifyemail.VerifyEmailViewModel
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
-private enum class AppFlow { Entry, Onboarding, Main }
+private enum class AppFlow { Entry, VerifyEmail, Onboarding, Main }
 
 private const val TransitionMillis = 250
 
@@ -112,6 +114,7 @@ fun AssembleApp(container: AppContainer) {
     val session by container.userRepository.session.collectAsStateWithLifecycle()
     val flow = when {
         !session.isLoggedIn -> AppFlow.Entry
+        session.emailVerificationPending -> AppFlow.VerifyEmail
         !session.hasCompletedOnboarding -> AppFlow.Onboarding
         else -> AppFlow.Main
     }
@@ -123,6 +126,7 @@ fun AssembleApp(container: AppContainer) {
     ) { current ->
         when (current) {
             AppFlow.Entry -> EntryFlow(container.userRepository)
+            AppFlow.VerifyEmail -> VerifyEmailRoute(viewModel { VerifyEmailViewModel(container.userRepository) })
             AppFlow.Onboarding -> OnboardingFlow(container.userRepository, container.tasteSource)
             AppFlow.Main -> MainFlow(container)
         }

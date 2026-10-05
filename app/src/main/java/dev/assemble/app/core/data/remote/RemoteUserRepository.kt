@@ -26,6 +26,8 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import dev.assemble.app.core.media.AvatarImage
+import dev.assemble.app.core.network.ApiErrorCode
+import dev.assemble.app.core.network.ApiException
 import dev.assemble.app.core.network.HttpPhotoUploader
 import dev.assemble.app.core.network.PhotoUploader
 import java.io.IOException
@@ -72,14 +74,23 @@ class RemoteUserRepository(
     private val settingsLoaded = MutableStateFlow(false)
     private val seen = MutableStateFlow<Set<String>>(emptySet())
     private val deactivatedByApi = MutableStateFlow(false)
+    private val unverifiedByApi = MutableStateFlow(false)
 
     override val ready: StateFlow<Boolean> = combine(userState, settingsLoaded) { user, loaded ->
         loaded && user != UserState.Unknown
     }.stateIn(scope, SharingStarted.Eagerly, false)
 
-    override val session: StateFlow<SessionState> = userState.map { user ->
+    override val emailVerificationPending: StateFlow<Boolean> =
+        combine(auth.emailVerificationPending, unverifiedByApi) { byAuth, byApi -> byAuth || byApi }
+            .stateIn(scope, SharingStarted.Eagerly, false)
+
+    override val session: StateFlow<SessionState> = combine(userState, emailVerificationPending) { user, pending ->
         when (user) {
-            is UserState.SignedIn -> SessionState(isLoggedIn = true, hasCompletedOnboarding = user.document.onboardingCompleted)
+            is UserState.SignedIn -> SessionState(
+                isLoggedIn = true,
+                hasCompletedOnboarding = user.document.onboardingCompleted,
+                emailVerificationPending = pending,
+            )
             else -> SessionState()
         }
     }.stateIn(scope, SharingStarted.Eagerly, SessionState())
@@ -125,6 +136,29 @@ class RemoteUserRepository(
         deactivatedByApi.value = true
     }
 
+    /** Avisado pela API quando o backend responde 403 email_not_verified. */
+    fun onEmailNotVerified() {
+        unverifiedByApi.value = true
+    }
+
+    override val accountEmail: String? get() = auth.email
+
+    override suspend fun sendVerificationEmail() {
+        try {
+            api.sendEmailVerification()
+        } catch (error: ApiException) {
+            // Sem SMTP no backend (503), o e-mail padrão do Firebase faz o mesmo trabalho, sem o HTML do app.
+            if (error.code != ApiErrorCode.PROVIDER_UNAVAILABLE) throw error
+            auth.sendFirebaseVerificationEmail()
+        }
+    }
+
+    override suspend fun refreshEmailVerified(): Boolean {
+        val verified = auth.reloadEmailVerified()
+        if (verified) unverifiedByApi.value = false
+        return verified
+    }
+
     override fun observeProfile(): Flow<UserProfile> = userState
         .filterIsInstance<UserState.SignedIn>()
         .map { it.document.profile }
@@ -137,6 +171,9 @@ class RemoteUserRepository(
     override suspend fun logInWithEmail(email: String, password: String, createAccount: Boolean) {
         if (createAccount) auth.createAccount(email, password) else auth.signIn(email, password)
         deactivatedByApi.value = false
+        unverifiedByApi.value = false
+        // Conta nova: o e-mail de confirmação sai sozinho; se falhar, a tela oferece reenviar.
+        if (createAccount) runCatching { sendVerificationEmail() }
     }
 
     override suspend fun logInWithGoogleToken(idToken: String) {

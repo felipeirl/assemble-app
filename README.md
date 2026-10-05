@@ -8,7 +8,7 @@ Este repositório é o **app Android**. O servidor fica em outro repositório: [
 
 ## O que o app faz
 
-- **Cadastro:** login por e-mail e senha ou com a conta Google, cinco passos de preferências (origem, poderes, equipes, estilo e fama), a rodada "este ou aquele" (que ensina o gosto sem virar decisão) e a revelação do seu perfil de herói, com o aviso de IA.
+- **Cadastro:** login por e-mail e senha ou com a conta Google. No cadastro por e-mail e senha, o app manda um e-mail de confirmação (em HTML, com o design system do app) e só libera a conta depois do clique no link; o login com Google já vem confirmado. Depois, cinco passos de preferências (origem, poderes, equipes, estilo e fama), a rodada "este ou aquele" (que ensina o gosto sem virar decisão) e a revelação do seu perfil de herói, com o aviso de IA.
 - **Descobrir:** baralho de até 40 personagens por dia, diferente para cada pessoa e sorteado de novo a cada abertura. Pass, Assemble e Undo do último Pass. Quem recebeu Pass não volta. A compatibilidade só aparece depois da conexão.
 - **Assemble:** o backend decide combinando compatibilidade, afinidade do personagem pelo usuário e acaso. O pop-up de Assemble entra em fila quando há vários.
 - **Conversar:** chat com a versão ficcional do personagem, com respostas sugeridas, gerar outra resposta e voltar a conversa. O personagem lembra do que foi dito, mesmo em conversas longas.

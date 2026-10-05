@@ -46,6 +46,7 @@ class RemoteGraph(
         languageTag = { backendLanguageTag() },
         timeZoneId = { deviceTimeZoneId() },
         onAccountDeactivated = { users.onAccountDeactivated() },
+        onEmailNotVerified = { users.onEmailNotVerified() },
     )
 
     val users: RemoteUserRepository = RemoteUserRepository(auth, store, api, settingsStore, scope, googleWebClientId)

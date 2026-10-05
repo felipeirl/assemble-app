@@ -4,6 +4,8 @@ import dev.assemble.app.core.model.Origin
 import dev.assemble.app.core.model.Preferences
 import dev.assemble.app.core.model.UserProfile
 import dev.assemble.app.core.network.ApiPhotoSignature
+import dev.assemble.app.core.network.ApiException
+import dev.assemble.app.core.network.ApiErrorCode
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.first
 import org.junit.Assert.assertEquals
@@ -128,6 +130,98 @@ class RemoteUserRepositoryTest {
 
         assertEquals(0, api.photoSignatureCalls)
         assertEquals(hostedUrl, store.merges.last()["avatarPhoto"])
+    }
+
+    @Test
+    fun sendVerificationEmail_usesTheBackendEmailFirst() = runRemoteTest { scope ->
+        val auth = FakeAuthGateway(signedInUid = "uid-1")
+        val users = repository(auth, scope)
+
+        users.sendVerificationEmail()
+
+        assertEquals(1, api.emailVerificationCalls)
+        assertEquals(0, auth.firebaseEmails)
+    }
+
+    @Test
+    fun sendVerificationEmail_fallsBackToTheFirebaseEmailWhenTheBackendHasNoSmtp() = runRemoteTest { scope ->
+        val auth = FakeAuthGateway(signedInUid = "uid-1")
+        val users = repository(auth, scope)
+        api.onEmailVerification = { throw ApiException(ApiErrorCode.PROVIDER_UNAVAILABLE, 503) }
+
+        users.sendVerificationEmail()
+
+        assertEquals(1, auth.firebaseEmails)
+    }
+
+    @Test
+    fun sendVerificationEmail_rateLimitReachesTheScreen() = runRemoteTest { scope ->
+        val auth = FakeAuthGateway(signedInUid = "uid-1")
+        val users = repository(auth, scope)
+        api.onEmailVerification = { throw ApiException(ApiErrorCode.RATE_LIMITED, 429, retryAfterSeconds = 30) }
+
+        try {
+            users.sendVerificationEmail()
+            fail("esperava ApiException")
+        } catch (error: ApiException) {
+            assertEquals(ApiErrorCode.RATE_LIMITED, error.code)
+        }
+        assertEquals(0, auth.firebaseEmails)
+    }
+
+    @Test
+    fun signUp_sendsTheVerificationEmailByItself_butSignInDoesNot() = runRemoteTest { scope ->
+        val users = repository(FakeAuthGateway(signedInUid = null), scope)
+
+        users.logInWithEmail("a@b.c", "secret1", createAccount = true)
+        assertEquals(1, api.emailVerificationCalls)
+
+        users.logInWithEmail("a@b.c", "secret1", createAccount = false)
+        assertEquals(1, api.emailVerificationCalls)
+    }
+
+    @Test
+    fun signUp_succeedsEvenWhenTheVerificationEmailFails() = runRemoteTest { scope ->
+        val users = repository(FakeAuthGateway(signedInUid = null), scope)
+        api.onEmailVerification = { throw IOException("sem rede") }
+
+        users.logInWithEmail("a@b.c", "secret1", createAccount = true)
+
+        assertTrue(users.session.value.isLoggedIn)
+    }
+
+    @Test
+    fun session_isPendingWhileTheEmailIsUnconfirmed_andClearsAfterTheCheck() = runRemoteTest { scope ->
+        val auth = FakeAuthGateway(signedInUid = "uid-1")
+        val users = repository(auth, scope)
+        users.awaitKnown()
+        assertFalse(users.session.value.emailVerificationPending)
+
+        auth.emailVerificationPending.value = true
+        users.session.first { it.emailVerificationPending }
+
+        auth.verifiedAfterReload = true
+        assertTrue(users.refreshEmailVerified())
+        users.session.first { !it.emailVerificationPending }
+        assertEquals(1, auth.reloads)
+    }
+
+    @Test
+    fun session_isPendingWhenTheBackendSaysTheEmailIsNotVerified_untilTheCheckPasses() = runRemoteTest { scope ->
+        val auth = FakeAuthGateway(signedInUid = "uid-1")
+        val users = repository(auth, scope)
+        users.awaitKnown()
+
+        users.onEmailNotVerified()
+        users.session.first { it.emailVerificationPending }
+
+        auth.verifiedAfterReload = false
+        assertFalse(users.refreshEmailVerified())
+        assertTrue(users.session.value.emailVerificationPending)
+
+        auth.verifiedAfterReload = true
+        assertTrue(users.refreshEmailVerified())
+        users.session.first { !it.emailVerificationPending }
     }
 
     @Test

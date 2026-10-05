@@ -316,6 +316,17 @@
     <string name="login_error_weak_password">Escolha uma senha mais forte.</string>
     <string name="login_error_invalid_email">Confira o endereço de e-mail.</string>
     <string name="onboarding_ai_notice">Os personagens respondem com textos fictícios gerados por IA. Ao continuar, você concorda em conversar com IA.</string>
+    <string name="verify_title">Confirme o seu e-mail</string>
+    <string name="verify_body">Enviamos um link para %1$s. Abra o link para liberar a sua conta e volte aqui.</string>
+    <string name="verify_body_no_email">Enviamos um link por e-mail. Abra o link para liberar a sua conta e volte aqui.</string>
+    <string name="verify_checked">Já confirmei</string>
+    <string name="verify_resend">Reenviar e-mail</string>
+    <string name="verify_resend_wait">Reenviar em %1$d s</string>
+    <string name="verify_other_account">Usar outra conta</string>
+    <string name="verify_msg_sent">E-mail enviado. Veja a caixa de entrada e o spam.</string>
+    <string name="verify_msg_pending">Ainda não confirmado. Abra primeiro o link do e-mail.</string>
+    <string name="verify_msg_failed">Algo deu errado. Verifique sua conexão e tente de novo.</string>
+    <string name="verify_msg_rate_limited">Muitos e-mails. Espere um pouco para reenviar.</string>
     <string name="onboarding_kicker">Passo %1$d de %2$d · %3$s</string>
     <string name="onboarding_title_origin">De onde vem o seu herói?</string>
     <string name="onboarding_title_powers">O que ele sabe fazer?</string>

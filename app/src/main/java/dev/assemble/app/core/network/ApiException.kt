@@ -7,6 +7,7 @@ object ApiErrorCode {
     const val INVALID_REQUEST = "invalid_request"
     const val UNAUTHENTICATED = "unauthenticated"
     const val ACCOUNT_DEACTIVATED = "account_deactivated"
+    const val EMAIL_NOT_VERIFIED = "email_not_verified"
     const val NOT_FOUND = "not_found"
     const val NOTHING_TO_UNDO = "nothing_to_undo"
     const val ALREADY_DECIDED = "already_decided"

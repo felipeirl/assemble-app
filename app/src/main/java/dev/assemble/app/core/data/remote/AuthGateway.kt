@@ -1,7 +1,9 @@
 package dev.assemble.app.core.data.remote
 
 import dev.assemble.app.core.network.IdTokenProvider
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import java.io.IOException
 
 /** Por que o login falhou, para a tela escolher a mensagem. */
@@ -31,4 +33,15 @@ interface AuthGateway : IdTokenProvider {
     suspend fun sendPasswordReset(email: String)
 
     suspend fun signOut()
+
+    /** true com login por e-mail e senha e o e-mail ainda não confirmado (o Google já vem confirmado). */
+    val emailVerificationPending: StateFlow<Boolean> get() = NeverPending
+
+    /** Relê o usuário no Firebase e renova o token; devolve true se o e-mail já está confirmado. */
+    suspend fun reloadEmailVerified(): Boolean = true
+
+    /** E-mail padrão do Firebase, usado quando o backend não consegue mandar o dele. */
+    suspend fun sendFirebaseVerificationEmail() = Unit
 }
+
+private val NeverPending: StateFlow<Boolean> = MutableStateFlow(false).asStateFlow()
