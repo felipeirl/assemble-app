@@ -1,0 +1,37 @@
+# Compila o app e roda os testes unitários a cada push na main e em todo PR.
+# Sem local.properties o app usa dados simulados, então o build não precisa de nenhum segredo.
+name: Android
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: gradle/actions/setup-gradle@v6
+      - name: Testes unitários e build de debug
+        run: bash ./gradlew testDebugUnitTest assembleDebug --stacktrace
+      - name: Relatório dos testes
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: relatorio-de-testes
+          path: app/build/reports/tests/
+          if-no-files-found: ignore
