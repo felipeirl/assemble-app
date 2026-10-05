@@ -19,17 +19,26 @@ import androidx.navigation3.runtime.NavEntryDecorator
 import androidx.navigation3.ui.LocalNavAnimatedContentScope
 
 private const val DiagonalMillis = 250
+private const val NoDiagonalRevealKey = "assemble.noDiagonalReveal"
+
+/** Metadado da tela que entra por elemento compartilhado em vez do corte diagonal. */
+val NoDiagonalReveal: Map<String, Any> = mapOf(NoDiagonalRevealKey to true)
 
 /**
  * Transição de tela em corte diagonal: a tela que entra aparece a partir do canto superior
  * esquerdo; a que sai some pela região complementar da mesma diagonal.
+ * Quando [fadeInstead] devolve true (troca de aba), as duas telas só se cruzam em fade.
  * Com as animações do sistema desligadas, a troca é imediata.
  */
 @Composable
-fun <T : Any> rememberDiagonalRevealDecorator(enabled: Boolean): NavEntryDecorator<T> =
+fun <T : Any> rememberDiagonalRevealDecorator(
+    enabled: Boolean,
+    fadeInstead: () -> Boolean = { false },
+): NavEntryDecorator<T> =
     remember(enabled) {
         NavEntryDecorator { entry ->
-            if (enabled) DiagonalReveal { entry.Content() } else entry.Content()
+            val animated = enabled && entry.metadata[NoDiagonalRevealKey] != true
+            if (animated) DiagonalReveal(fade = fadeInstead()) { entry.Content() } else entry.Content()
         }
     }
 
@@ -38,7 +47,7 @@ fun <S> AnimatedContentTransitionScope<S>.diagonalTransition(enabled: Boolean): 
     EnterTransition.None togetherWith if (enabled) ExitTransition.KeepUntilTransitionsFinished else ExitTransition.None
 
 @Composable
-private fun DiagonalReveal(content: @Composable () -> Unit) {
+private fun DiagonalReveal(fade: Boolean, content: @Composable () -> Unit) {
     val transition = LocalNavAnimatedContentScope.current.transition
     // 0 → 1 ao entrar; 1 → 0 ao sair.
     val progress by transition.animateFloat(transitionSpec = { tween(DiagonalMillis) }, label = "diagonalReveal") { state ->
@@ -47,8 +56,12 @@ private fun DiagonalReveal(content: @Composable () -> Unit) {
     val exiting = transition.targetState == EnterExitState.PostExit
     Box(
         Modifier.graphicsLayer {
-            clip = true
-            shape = if (exiting) beyondDiagonal(1f - progress) else beforeDiagonal(progress)
+            if (fade) {
+                alpha = progress
+            } else {
+                clip = true
+                shape = if (exiting) beyondDiagonal(1f - progress) else beforeDiagonal(progress)
+            }
         },
     ) {
         content()

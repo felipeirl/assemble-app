@@ -1,6 +1,10 @@
 package dev.assemble.app.core.designsystem.component
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.CubicBezierEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -10,9 +14,13 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.PreviewLightDark
@@ -25,6 +33,12 @@ enum class ChatAuthor { User, Ai }
 private const val MaxBubbleWidthFraction = 0.8f
 private val BubbleRadius = 16.dp
 private val BubbleTailRadius = 4.dp
+private const val PopInMillis = 420
+private const val PopInStartScale = 0.85f
+private val PopInLift = 14.dp
+
+/** Mola com leve excesso (cubic-bezier(.34,1.5,.5,1) da proposta de movimento). */
+private val PopInEasing = CubicBezierEasing(0.34f, 1.5f, 0.5f, 1f)
 
 internal fun bubbleShape(author: ChatAuthor): Shape = when (author) {
     ChatAuthor.User -> RoundedCornerShape(BubbleRadius, BubbleRadius, BubbleTailRadius, BubbleRadius)
@@ -78,6 +92,36 @@ internal fun ChatBubbleContainer(
             if (author == ChatAuthor.Ai && showAiLabel) AiLabelChip()
             content()
         }
+    }
+}
+
+/**
+ * Entrada da bolha: sobe 14dp e cresce de 0.85 a 1 a partir do canto da cauda
+ * (inferior direito para o usuário, inferior esquerdo para a IA). Com [animate] = false, aparece direto.
+ */
+@Composable
+fun BubblePopIn(
+    author: ChatAuthor,
+    animate: Boolean,
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit,
+) {
+    val progress = remember { Animatable(if (animate) 0f else 1f) }
+    LaunchedEffect(Unit) {
+        if (animate) progress.animateTo(1f, tween(PopInMillis, easing = PopInEasing))
+    }
+    Box(
+        modifier.graphicsLayer {
+            val p = progress.value
+            val scale = PopInStartScale + (1f - PopInStartScale) * p
+            alpha = p.coerceIn(0f, 1f)
+            scaleX = scale
+            scaleY = scale
+            translationY = (1f - p) * PopInLift.toPx()
+            transformOrigin = if (author == ChatAuthor.User) TransformOrigin(1f, 1f) else TransformOrigin(0f, 1f)
+        },
+    ) {
+        content()
     }
 }
 

@@ -1,6 +1,6 @@
 package dev.assemble.app.core.designsystem.component
 
-import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.EaseInOut
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
@@ -27,7 +27,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.TileMode
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
@@ -58,8 +58,15 @@ sealed interface StateViewType {
     data class Error(val title: String, val message: String, val onRetry: () -> Unit) : StateViewType
 }
 
-private const val ShimmerMillis = 1_400
-private const val ShimmerWidthFactor = 2f
+private const val ShimmerMillis = 1_500
+private const val ShimmerBandFactor = 2.5f
+private const val ShimmerSlope = 0.47f // ≈ tan(25°): faixa a 115°, como no resto da marca
+private const val ShimmerStartCenter = 1.3f
+private const val ShimmerEndCenter = -0.3f
+private const val ShimmerAlpha = 0.32f
+private const val SkeletonDotsAlpha = 0.35f
+private val SkeletonDotRadius = 1.1.dp
+private val SkeletonDotSpacing = 9.dp
 private const val SkeletonShortFraction = 0.6f
 private val StateMaxWidth = 280.dp
 private val StateIconSize = 40.dp
@@ -163,7 +170,10 @@ private fun MessageContent(
     }
 }
 
-/** Bloco de skeleton com shimmer (border → surface → border). Estático se as animações estiverem desligadas. */
+/**
+ * Bloco de skeleton da marca: base border, uma faixa diagonal rosa que atravessa o bloco
+ * e o meio-tom por cima. Estático (sem faixa) se as animações estiverem desligadas.
+ */
 @Composable
 fun SkeletonBlock(modifier: Modifier = Modifier) {
     val colors = AssembleTheme.colors
@@ -172,26 +182,39 @@ fun SkeletonBlock(modifier: Modifier = Modifier) {
     val progress by transition.animateFloat(
         initialValue = 0f,
         targetValue = 1f,
-        animationSpec = infiniteRepeatable(tween(ShimmerMillis, easing = LinearEasing), RepeatMode.Restart),
+        animationSpec = infiniteRepeatable(tween(ShimmerMillis, easing = EaseInOut), RepeatMode.Restart),
         label = "shimmerProgress",
     )
     Box(
         modifier
             .clip(AssembleTheme.shapes.md)
             .drawWithCache {
-                val bandWidth = size.width * ShimmerWidthFactor
+                val bandWidth = size.width * ShimmerBandFactor
+                val highlight = colors.accentText.copy(alpha = ShimmerAlpha)
                 onDrawBehind {
-                    val shift = if (animationsEnabled) -progress * bandWidth else 0f
-                    drawRect(
-                        brush = Brush.linearGradient(
-                            colors = listOf(colors.border, colors.surface, colors.border),
-                            start = Offset(shift, 0f),
-                            end = Offset(shift + bandWidth, 0f),
-                            tileMode = TileMode.Repeated,
-                        ),
-                    )
+                    drawRect(colors.border)
+                    if (animationsEnabled) {
+                        val center = size.width * (ShimmerStartCenter + (ShimmerEndCenter - ShimmerStartCenter) * progress)
+                        val startX = center - bandWidth / 2
+                        drawRect(
+                            brush = Brush.linearGradient(
+                                0.35f to Color.Transparent,
+                                0.5f to highlight,
+                                0.65f to Color.Transparent,
+                                start = Offset(startX, 0f),
+                                end = Offset(startX + bandWidth, bandWidth * ShimmerSlope),
+                            ),
+                        )
+                    }
                 }
-            },
+            }
+            .halftone(
+                color = colors.bg,
+                dotRadius = SkeletonDotRadius,
+                spacing = SkeletonDotSpacing,
+                alpha = SkeletonDotsAlpha,
+                fade = HalftoneFade.None,
+            ),
     )
 }
 

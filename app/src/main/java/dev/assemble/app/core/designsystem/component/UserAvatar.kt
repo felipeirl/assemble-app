@@ -11,6 +11,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -44,9 +45,9 @@ fun UserAvatar(
     preset: AvatarPreset,
     modifier: Modifier = Modifier,
     size: Dp = DefaultUserAvatarSize,
+    shape: Shape = AssembleTheme.shapes.pill,
 ) {
     val colors = AssembleTheme.colors
-    val shape = AssembleTheme.shapes.pill
     val background = when (preset) {
         AvatarPreset.Energy -> Modifier.energyGradient(colors, shape)
         else -> Modifier.background(preset.fill(colors), shape)

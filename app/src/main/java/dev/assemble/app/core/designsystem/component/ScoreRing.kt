@@ -1,6 +1,8 @@
 package dev.assemble.app.core.designsystem.component
 
+import android.graphics.BlurMaskFilter
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.EaseOutCubic
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
@@ -13,7 +15,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -30,12 +36,18 @@ import kotlin.math.roundToInt
 private const val MaxPercent = 100
 private const val StartAngle = -90f
 private const val FullSweep = 360f
-private const val CountUpMillis = 800
+private const val CountUpMillis = 900
+private const val GlowRiseMillis = 360
+private const val GlowFadeMillis = 540
 private val DefaultRingSize = 112.dp
 private val DefaultStrokeWidth = 8.dp
 private val TextInset = 8.dp
+private val GlowBlurRadius = 12.dp
 
-/** Anel de compatibilidade (score) com a porcentagem exata no centro. Só depois da conexão. */
+/**
+ * Anel de compatibilidade (score) com a porcentagem exata no centro. Só depois da conexão.
+ * Animado: conta de 0 ao valor e, ao chegar, emite um pulso de luz azul.
+ */
 @Composable
 fun ScoreRing(
     percent: Int,
@@ -47,9 +59,12 @@ fun ScoreRing(
     val target = percent.coerceIn(0, MaxPercent)
     val shouldAnimate = animate && rememberAnimationsEnabled()
     val progress = remember { Animatable(if (shouldAnimate) 0f else target.toFloat()) }
+    val glow = remember { Animatable(0f) }
     LaunchedEffect(target, shouldAnimate) {
         if (shouldAnimate) {
-            progress.animateTo(target.toFloat(), tween(CountUpMillis))
+            progress.animateTo(target.toFloat(), tween(CountUpMillis, easing = EaseOutCubic))
+            glow.animateTo(1f, tween(GlowRiseMillis))
+            glow.animateTo(0f, tween(GlowFadeMillis))
         } else {
             progress.snapTo(target.toFloat())
         }
@@ -66,6 +81,10 @@ fun ScoreRing(
                 val inset = stroke / 2
                 val arcSize = Size(this.size.width - stroke, this.size.height - stroke)
                 val topLeft = Offset(inset, inset)
+                val sweep = FullSweep * progress.value / MaxPercent
+                if (glow.value > 0f) {
+                    drawGlowArc(colors.score.copy(alpha = glow.value).toArgb(), topLeft, arcSize, sweep, stroke)
+                }
                 drawArc(
                     color = colors.border,
                     startAngle = 0f,
@@ -78,7 +97,7 @@ fun ScoreRing(
                 drawArc(
                     color = colors.score,
                     startAngle = StartAngle,
-                    sweepAngle = FullSweep * progress.value / MaxPercent,
+                    sweepAngle = sweep,
                     useCenter = false,
                     topLeft = topLeft,
                     size = arcSize,
@@ -100,6 +119,24 @@ fun ScoreRing(
             ring.place(0, 0)
             label.place((side - label.width) / 2, (side - label.height) / 2)
         }
+    }
+}
+
+/** Arco borrado atrás do progresso (BlurMaskFilter; sem efeito antes do Android 9, onde vira só o arco). */
+private fun DrawScope.drawGlowArc(argb: Int, topLeft: Offset, arcSize: Size, sweep: Float, stroke: Float) {
+    drawIntoCanvas { canvas ->
+        val paint = android.graphics.Paint().apply {
+            isAntiAlias = true
+            style = android.graphics.Paint.Style.STROKE
+            strokeWidth = stroke
+            strokeCap = android.graphics.Paint.Cap.ROUND
+            color = argb
+            maskFilter = BlurMaskFilter(GlowBlurRadius.toPx(), BlurMaskFilter.Blur.NORMAL)
+        }
+        canvas.nativeCanvas.drawArc(
+            topLeft.x, topLeft.y, topLeft.x + arcSize.width, topLeft.y + arcSize.height,
+            StartAngle, sweep, false, paint,
+        )
     }
 }
 

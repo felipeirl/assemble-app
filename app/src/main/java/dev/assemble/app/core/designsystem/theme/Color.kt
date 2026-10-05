@@ -18,6 +18,9 @@ internal object AssemblePalette {
     val ArcReactorBlue = Color(0xFF38BDF8)
     val LogoRed = Color(0xFFFF114B)
     val LogoPink = Color(0xFFFF3475)
+    // Destaques extras do perfil (só na personalização do usuário).
+    val AccentViolet = Color(0xFF7C5CFF)
+    val AccentGold = Color(0xFFE3A008)
 
     val SurfaceDark = Color(0xFF151B2E)
     val TextMutedDark = Color(0xFFA9B2C5)

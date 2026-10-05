@@ -29,6 +29,9 @@ class NavigationState(
 ) {
     var topLevelRoute: NavKey by topLevelRoute
 
+    /** true quando a última navegação trocou de aba (a transição vira fade em vez do corte diagonal). */
+    var lastWasTabSwitch: Boolean by mutableStateOf(false)
+
     val stacksInUse: List<NavKey>
         get() = if (topLevelRoute == startRoute) listOf(startRoute) else listOf(startRoute, topLevelRoute)
 
@@ -80,8 +83,11 @@ class Navigator(private val state: NavigationState) {
     /** Aba: troca de pilha (tocar na aba atual volta à raiz dela). Outra tela: empilha na aba atual. */
     fun navigate(route: NavKey) {
         if (route in state.backStacks.keys) {
-            if (route == state.topLevelRoute) popToRoot(route) else state.topLevelRoute = route
+            val switchesTab = route != state.topLevelRoute
+            state.lastWasTabSwitch = switchesTab
+            if (switchesTab) state.topLevelRoute = route else popToRoot(route)
         } else {
+            state.lastWasTabSwitch = false
             state.backStacks.getValue(state.topLevelRoute).add(route)
         }
     }
@@ -89,8 +95,11 @@ class Navigator(private val state: NavigationState) {
     fun goBack() {
         val stack = state.backStacks.getValue(state.topLevelRoute)
         if (stack.last() == state.topLevelRoute) {
+            // Voltar da raiz de outra aba leva ao Discover: também é troca de aba.
+            state.lastWasTabSwitch = true
             state.topLevelRoute = state.startRoute
         } else {
+            state.lastWasTabSwitch = false
             stack.removeLastOrNull()
         }
     }

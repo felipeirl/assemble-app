@@ -41,6 +41,7 @@ fun CharacterArt(
     imageUrl: String?,
     modifier: Modifier = Modifier,
     initialsStyle: TextStyle = AssembleTheme.typography.displayMd,
+    imageAlignment: Alignment = Alignment.Center,
 ) {
     val colors = AssembleTheme.colors
     Box(
@@ -61,6 +62,7 @@ fun CharacterArt(
                 model = imageUrl,
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
+                alignment = imageAlignment,
                 modifier = Modifier.fillMaxSize(),
             )
         }

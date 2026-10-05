@@ -7,22 +7,24 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
-import dev.assemble.app.core.designsystem.component.AssembleTopBar
-import dev.assemble.app.core.designsystem.component.TopBarNavigation
-import dev.assemble.app.core.designsystem.component.TopBarTitle
+import dev.assemble.app.core.designsystem.component.AssembleLargeTopBar
 import dev.assemble.app.core.designsystem.theme.AssembleTheme
 
 /** Seção de uma página de texto: título + parágrafo. */
 data class InfoSection(@StringRes val title: Int, @StringRes val body: Int)
 
-/** Página de texto simples (About, Help). */
+/** Página de texto simples (About), com título grande que encolhe ao rolar. */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun InfoPage(
     @StringRes title: Int,
@@ -32,11 +34,12 @@ fun InfoPage(
 ) {
     val colors = AssembleTheme.colors
     val spacing = AssembleTheme.spacing
+    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     Scaffold(
-        modifier = modifier,
+        modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         containerColor = colors.bg,
         topBar = {
-            AssembleTopBar(title = TopBarTitle.Text(stringResource(title)), navigation = TopBarNavigation.Back(onBack))
+            AssembleLargeTopBar(title = stringResource(title), onBack = onBack, scrollBehavior = scrollBehavior)
         },
     ) { padding ->
         Column(

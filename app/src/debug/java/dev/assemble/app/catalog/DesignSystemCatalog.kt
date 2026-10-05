@@ -52,7 +52,6 @@ import dev.assemble.app.core.designsystem.component.ChatAuthor
 import dev.assemble.app.core.designsystem.component.ChatBubble
 import dev.assemble.app.core.designsystem.component.InAppToast
 import dev.assemble.app.core.designsystem.component.LockedSection
-import dev.assemble.app.core.designsystem.component.MatchBandChip
 import dev.assemble.app.core.designsystem.component.ScoreRing
 import dev.assemble.app.core.designsystem.component.StateView
 import dev.assemble.app.core.designsystem.component.StateViewType
@@ -60,7 +59,6 @@ import dev.assemble.app.core.designsystem.component.TopBarNavigation
 import dev.assemble.app.core.designsystem.component.TopBarTitle
 import dev.assemble.app.core.designsystem.component.TraitChip
 import dev.assemble.app.core.designsystem.component.TypingIndicator
-import dev.assemble.app.core.model.MatchBand
 import dev.assemble.app.core.designsystem.component.energyGradient
 import dev.assemble.app.core.designsystem.component.halftone
 import dev.assemble.app.core.designsystem.icon.AssembleIcons
@@ -75,6 +73,7 @@ private val TileSize = 72.dp
 private val IconPreviewSize = 28.dp
 private val GradientHeight = 160.dp
 private val LogoHeight = 64.dp
+private val SampleCardHeight = 480.dp
 
 @Composable
 fun DesignSystemCatalog(themeMode: ThemeMode, onThemeModeChange: (ThemeMode) -> Unit) {
@@ -331,13 +330,10 @@ private fun ComponentSamples() {
         CharacterCardTeaser(
             name = SampleCharacter,
             imageUrl = null,
-            band = MatchBand.High,
             traitsInCommon = SampleTraits,
             onClick = {},
+            modifier = Modifier.fillMaxWidth().height(SampleCardHeight),
         )
-        Row(horizontalArrangement = Arrangement.spacedBy(spacing.space2)) {
-            MatchBand.entries.forEach { MatchBandChip(it) }
-        }
         var selected by remember { mutableStateOf(setOf(SampleTraits.first())) }
         Row(horizontalArrangement = Arrangement.spacedBy(spacing.space2)) {
             SampleTraits.forEach { trait ->

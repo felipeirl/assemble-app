@@ -7,93 +7,173 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import dev.assemble.app.R
+import dev.assemble.app.core.designsystem.icon.AssembleIcons
 import dev.assemble.app.core.designsystem.theme.AssembleShadow
 import dev.assemble.app.core.designsystem.theme.AssembleTheme
 import dev.assemble.app.core.designsystem.theme.assembleShadow
-import dev.assemble.app.core.model.MatchBand
 
 private const val MaxTraitsInCommon = 3
-private val ArtHeight = 220.dp
+private const val MaxNameLines = 2
+private const val MaxTaglineLines = 3
+private const val ScrimHeightFraction = 0.55f
+private const val ScrimMaxAlpha = 0.92f
+private const val SecondaryTextAlpha = 0.75f
+private const val OverlayChipAlpha = 0.2f
+private val InfoButtonSize = 48.dp
+private val PreviewCardHeight = 480.dp
 
 /**
- * Card do Discover: arte, faixa de compatibilidade, nome, até 3 traços em comum e a fonte.
- * O logo nunca aparece aqui.
+ * Card do Discover: a arte ocupa o card inteiro (recorte a partir do topo) e um degradê midnight
+ * embaixo segura nome, até 3 traços em comum, a fonte e o botão de informação. O texto é sempre branco.
+ * Sem faixa de compatibilidade: o card não antecipa o match.
+ * O tamanho vem do [modifier]; o logo nunca aparece aqui.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun CharacterCardTeaser(
     name: String,
     imageUrl: String?,
-    band: MatchBand,
     traitsInCommon: List<String>,
     modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null,
+    artModifier: Modifier = Modifier,
+    tagline: String? = null,
 ) {
     val colors = AssembleTheme.colors
     val spacing = AssembleTheme.spacing
     val shape = AssembleTheme.shapes.lg
 
-    Column(
+    Box(
         modifier = modifier
             .assembleShadow(AssembleShadow.Card, shape, colors)
             .clip(shape)
-            .then(if (onClick != null) Modifier.clickable(role = Role.Button, onClick = onClick) else Modifier)
-            .background(colors.surface),
+            .then(if (onClick != null) Modifier.clickable(role = Role.Button, onClick = onClick) else Modifier),
     ) {
-        Box(Modifier.fillMaxWidth().height(ArtHeight)) {
-            CharacterArt(name = name, imageUrl = imageUrl, modifier = Modifier.fillMaxWidth().height(ArtHeight))
-            MatchBandChip(
-                band = band,
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(spacing.space3),
-            )
-        }
+        CharacterArt(
+            name = name,
+            imageUrl = imageUrl,
+            imageAlignment = Alignment.TopCenter,
+            modifier = Modifier
+                .fillMaxSize()
+                .then(artModifier)
+                .clip(shape),
+        )
+        Box(
+            Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .fillMaxHeight(ScrimHeightFraction)
+                .background(
+                    Brush.verticalGradient(listOf(Color.Transparent, colors.midnight.copy(alpha = ScrimMaxAlpha))),
+                ),
+        )
         Column(
-            modifier = Modifier.padding(spacing.space4),
+            modifier = Modifier
+                .align(Alignment.BottomStart)
+                .fillMaxWidth()
+                .padding(spacing.space4),
             verticalArrangement = Arrangement.spacedBy(spacing.space2),
         ) {
-            Text(text = name.uppercase(), style = AssembleTheme.typography.displayMd, color = colors.text)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = name.uppercase(),
+                    style = AssembleTheme.typography.displayMd,
+                    color = Color.White,
+                    maxLines = MaxNameLines,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
+                )
+                if (onClick != null) InfoButton(onClick = onClick)
+            }
+            if (!tagline.isNullOrBlank()) {
+                Text(
+                    text = tagline,
+                    style = AssembleTheme.typography.body,
+                    color = Color.White.copy(alpha = SecondaryTextAlpha),
+                    maxLines = MaxTaglineLines,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
             val traits = traitsInCommon.take(MaxTraitsInCommon)
             if (traits.isNotEmpty()) {
                 Text(
                     text = stringResource(R.string.card_in_common).uppercase(),
                     style = AssembleTheme.typography.eyebrow,
-                    color = colors.textMuted,
+                    color = Color.White.copy(alpha = SecondaryTextAlpha),
                 )
                 FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(spacing.space2),
                     verticalArrangement = Arrangement.spacedBy(spacing.space2),
                 ) {
-                    traits.forEach { TraitChip(label = it) }
+                    traits.forEach { OverlayTraitChip(label = it) }
                 }
             }
-            SourceLabel()
+            SourceLabel(color = Color.White.copy(alpha = SecondaryTextAlpha))
         }
     }
 }
 
-/** "Source: Comic Vine" (12sp, text-muted). Obrigatório em todo card e perfil. */
+/** Abre a pré-visualização, como tocar no card. Alvo de 48dp. */
 @Composable
-fun SourceLabel(modifier: Modifier = Modifier) {
+private fun InfoButton(onClick: () -> Unit) {
+    Box(
+        modifier = Modifier
+            .size(InfoButtonSize)
+            .clip(AssembleTheme.shapes.pill)
+            .clickable(role = Role.Button, onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            imageVector = AssembleIcons.Info,
+            contentDescription = stringResource(R.string.card_more_info),
+            tint = Color.White,
+        )
+    }
+}
+
+/** Traço sobre a arte: pill branca translúcida, texto branco. Só leitura. */
+@Composable
+private fun OverlayTraitChip(label: String) {
+    Text(
+        text = label,
+        style = AssembleTheme.typography.caption.copy(fontWeight = FontWeight.Bold),
+        color = Color.White,
+        modifier = Modifier
+            .background(Color.White.copy(alpha = OverlayChipAlpha), AssembleTheme.shapes.pill)
+            .padding(horizontal = AssembleTheme.spacing.space3, vertical = AssembleTheme.spacing.space1),
+    )
+}
+
+/** "Source: Comic Vine" (12sp). Obrigatório em todo card e perfil. */
+@Composable
+fun SourceLabel(modifier: Modifier = Modifier, color: Color = AssembleTheme.colors.textMuted) {
     Text(
         text = stringResource(R.string.source_comic_vine),
         style = AssembleTheme.typography.small,
-        color = AssembleTheme.colors.textMuted,
+        color = color,
         modifier = modifier,
     )
 }
@@ -105,9 +185,8 @@ private fun CharacterCardTeaserPreview() {
         CharacterCardTeaser(
             name = "Spider-Man",
             imageUrl = null,
-            band = MatchBand.High,
             traitsInCommon = listOf("Science", "Humor", "Avengers"),
-            modifier = Modifier.width(320.dp),
+            modifier = Modifier.width(320.dp).height(PreviewCardHeight),
             onClick = {},
         )
     }
