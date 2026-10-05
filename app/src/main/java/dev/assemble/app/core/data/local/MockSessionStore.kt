@@ -68,6 +68,7 @@ class MockSessionStore(
             prefs[Keys.NAME] = stored.profile.name
             prefs[Keys.BIO] = stored.profile.bio
             prefs[Keys.AVATAR] = stored.profile.avatarPreset
+            stored.profile.photo?.let { prefs[Keys.PHOTO] = it } ?: prefs.remove(Keys.PHOTO)
             val style = stored.profile.style
             prefs[Keys.COVER] = style.cover.name
             prefs[Keys.ACCENT] = style.accent.name
@@ -95,6 +96,7 @@ class MockSessionStore(
         val NAME = stringPreferencesKey("profile_name")
         val BIO = stringPreferencesKey("profile_bio")
         val AVATAR = intPreferencesKey("profile_avatar")
+        val PHOTO = stringPreferencesKey("profile_photo")
         val COVER = stringPreferencesKey("style_cover")
         val ACCENT = stringPreferencesKey("style_accent")
         val FRAME = stringPreferencesKey("style_frame")
@@ -121,6 +123,7 @@ class MockSessionStore(
             bio = this[Keys.BIO] ?: defaults.profile.bio,
             avatarPreset = this[Keys.AVATAR] ?: defaults.profile.avatarPreset,
             style = toProfileStyle(defaults.profile.style),
+            photo = this[Keys.PHOTO] ?: defaults.profile.photo,
         ),
     )
 

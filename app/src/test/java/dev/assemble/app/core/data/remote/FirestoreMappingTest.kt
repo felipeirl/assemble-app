@@ -61,6 +61,26 @@ class FirestoreMappingTest {
     }
 
     @Test
+    fun photo_isWrittenReadAndRemoved() {
+        val withPhoto = UserProfile("Kamala", "", 1, photo = "AAAA")
+        val fields = profileFields(withPhoto)
+        assertEquals("AAAA", fields["avatarPhoto"])
+        assertEquals("AAAA", userDocument(fields, "x").profile.photo)
+
+        val removed = profileFields(withPhoto.copy(photo = null), previousPhoto = "AAAA")
+        assertEquals(DeleteField, removed["avatarPhoto"])
+
+        // Sem foto antes nem agora, o campo nem entra: não depende das regras novas do Firestore.
+        assertFalse(profileFields(withPhoto.copy(photo = null)).containsKey("avatarPhoto"))
+    }
+
+    @Test
+    fun photo_isIgnoredWhenBlankOrTooLarge() {
+        assertNull(userDocument(mapOf("avatarPhoto" to " "), "x").profile.photo)
+        assertNull(userDocument(mapOf("avatarPhoto" to "A".repeat(AVATAR_PHOTO_MAX_CHARS + 1)), "x").profile.photo)
+    }
+
+    @Test
     fun matchDocument_requiresNameAndCreatedAt() {
         assertNull(matchDocument(Document("wolverine", mapOf("createdAt" to TestNow))))
         assertNull(matchDocument(Document("wolverine", mapOf("characterName" to "Wolverine"))))

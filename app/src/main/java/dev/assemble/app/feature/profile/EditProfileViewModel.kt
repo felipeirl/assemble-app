@@ -31,6 +31,7 @@ sealed interface EditProfileUiState {
         val name: String,
         val bio: String,
         val avatarPreset: Int,
+        val photo: String? = null,
         val style: ProfileStyle = ProfileStyle(),
         val archetype: Archetype? = null,
         /** Conquistas desbloqueadas: liberam molduras e podem ir para os destaques. */
@@ -40,8 +41,9 @@ sealed interface EditProfileUiState {
         val saving: Boolean = false,
         val showNameError: Boolean = false,
         val showSaveError: Boolean = false,
+        val showPhotoError: Boolean = false,
     ) : EditProfileUiState {
-        val profile: UserProfile get() = UserProfile(name = name, bio = bio, avatarPreset = avatarPreset, style = style)
+        val profile: UserProfile get() = UserProfile(name = name, bio = bio, avatarPreset = avatarPreset, style = style, photo = photo)
     }
 
     data object Error : EditProfileUiState
@@ -76,6 +78,7 @@ class EditProfileViewModel(
                     name = profile.name,
                     bio = profile.bio,
                     avatarPreset = profile.avatarPreset,
+                    photo = profile.photo,
                     style = ProfileRules.sanitize(profile.style, unlocked, connections.mapTo(mutableSetOf()) { it.characterId }),
                     archetype = ProfileRules.archetype(userRepository.preferences.value),
                     unlocked = unlocked,
@@ -91,7 +94,12 @@ class EditProfileViewModel(
 
     fun onBioChange(bio: String) = updateForm { it.copy(bio = bio) }
 
-    fun onAvatarChange(preset: Int) = updateForm { it.copy(avatarPreset = preset) }
+    /** Escolher um preset tira a foto. */
+    fun onAvatarChange(preset: Int) = updateForm { it.copy(avatarPreset = preset, photo = null, showPhotoError = false) }
+
+    fun onPhotoChange(photo: String?) = updateForm { it.copy(photo = photo, showPhotoError = false) }
+
+    fun onPhotoError() = updateForm { it.copy(showPhotoError = true) }
 
     fun onCoverChange(cover: ProfileCover) = updateStyle { it.copy(cover = cover) }
 
@@ -128,7 +136,7 @@ class EditProfileViewModel(
         viewModelScope.launch {
             try {
                 userRepository.updateProfile(
-                    UserProfile(name = name, bio = form.bio.trim(), avatarPreset = form.avatarPreset, style = style),
+                    UserProfile(name = name, bio = form.bio.trim(), avatarPreset = form.avatarPreset, style = style, photo = form.photo),
                 )
                 onSaved()
             } catch (_: IOException) {

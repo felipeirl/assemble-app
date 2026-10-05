@@ -2,6 +2,7 @@ package dev.assemble.app.core.data.remote
 
 import dev.assemble.app.core.model.Origin
 import dev.assemble.app.core.model.Preferences
+import dev.assemble.app.core.model.UserProfile
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.first
 import org.junit.Assert.assertEquals
@@ -109,6 +110,29 @@ class RemoteUserRepositoryTest {
 
         assertEquals("google-id-token", auth.lastGoogleToken)
         assertEquals(FakeAuthGateway.SIGNED_IN_UID, auth.uid.value)
+    }
+
+    @Test
+    fun updateProfile_savesAndRemovesThePhoto() = runRemoteTest { scope ->
+        val users = repository(FakeAuthGateway(signedInUid = "uid-1"), scope)
+        users.awaitKnown()
+
+        users.updateProfile(UserProfile("Tony", "", 0, photo = "AAAA"))
+        assertEquals("AAAA", users.currentProfile.value.photo)
+
+        users.updateProfile(UserProfile("Tony", "", 0, photo = null))
+        assertEquals(null, users.currentProfile.value.photo)
+        assertEquals(DeleteField, store.merges.last()["avatarPhoto"])
+    }
+
+    @Test
+    fun updateProfile_withoutAnyPhoto_doesNotTouchThePhotoField() = runRemoteTest { scope ->
+        val users = repository(FakeAuthGateway(signedInUid = "uid-1"), scope)
+        users.awaitKnown()
+
+        users.updateProfile(UserProfile("Tony", "", 0))
+
+        assertFalse(store.merges.last().containsKey("avatarPhoto"))
     }
 
     @Test

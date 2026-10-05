@@ -6,6 +6,7 @@ import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.SetOptions
+import dev.assemble.app.core.data.remote.DeleteField
 import dev.assemble.app.core.data.remote.Document
 import dev.assemble.app.core.data.remote.ServerTime
 import dev.assemble.app.core.data.remote.UserDataStore
@@ -79,6 +80,7 @@ private fun Map<String, Any?>.toFirestore(): Map<String, Any?> = mapValues { (_,
 
 private fun toFirestoreValue(value: Any?): Any? = when (value) {
     ServerTime -> FieldValue.serverTimestamp()
+    DeleteField -> FieldValue.delete()
     is Map<*, *> -> value.entries.associate { (key, inner) -> key.toString() to toFirestoreValue(inner) }
     else -> value
 }

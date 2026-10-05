@@ -1,5 +1,17 @@
 package dev.assemble.app.feature.profile
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.platform.LocalContext
+import dev.assemble.app.core.designsystem.component.LocalUserPhoto
+import dev.assemble.app.core.designsystem.component.SecondaryButton
+import dev.assemble.app.core.media.AvatarImage
+import java.io.IOException
+import kotlinx.coroutines.launch
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -88,6 +100,8 @@ data class EditProfileActions(
     val onNameChange: (String) -> Unit = {},
     val onBioChange: (String) -> Unit = {},
     val onAvatarChange: (Int) -> Unit = {},
+    val onPhotoChange: (String?) -> Unit = {},
+    val onPhotoError: () -> Unit = {},
     val onCoverChange: (ProfileCover) -> Unit = {},
     val onAccentChange: (ProfileAccent) -> Unit = {},
     val onFrameChange: (AvatarFrame) -> Unit = {},
@@ -108,6 +122,8 @@ fun EditProfileRoute(viewModel: EditProfileViewModel, onBack: () -> Unit, modifi
             onNameChange = viewModel::onNameChange,
             onBioChange = viewModel::onBioChange,
             onAvatarChange = viewModel::onAvatarChange,
+            onPhotoChange = viewModel::onPhotoChange,
+            onPhotoError = viewModel::onPhotoError,
             onCoverChange = viewModel::onCoverChange,
             onAccentChange = viewModel::onAccentChange,
             onFrameChange = viewModel::onFrameChange,
@@ -149,7 +165,10 @@ fun EditProfileScreen(
                         onRetry = onRetry,
                     ),
                 )
-                is EditProfileUiState.Form -> ProfileForm(state, actions)
+                // A prévia e as molduras mostram a foto ainda não salva.
+                is EditProfileUiState.Form -> CompositionLocalProvider(LocalUserPhoto provides state.photo) {
+                    ProfileForm(state, actions)
+                }
             }
         }
     }
@@ -223,6 +242,44 @@ private fun ProfileForm(form: EditProfileUiState.Form, actions: EditProfileActio
     }
 }
 
+/** Foto da galeria (seletor do sistema, sem permissão): reduzida e guardada no próprio perfil. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun PhotoPicker(form: EditProfileUiState.Form, actions: EditProfileActions) {
+    val colors = AssembleTheme.colors
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val picker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+        if (uri != null) {
+            scope.launch {
+                try {
+                    actions.onPhotoChange(AvatarImage.encode(context.contentResolver, uri))
+                } catch (_: IOException) {
+                    actions.onPhotoError()
+                }
+            }
+        }
+    }
+    Column(verticalArrangement = Arrangement.spacedBy(AssembleTheme.spacing.space2)) {
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(AssembleTheme.spacing.space3)) {
+            SecondaryButton(
+                text = stringResource(R.string.edit_profile_photo_choose),
+                onClick = { picker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
+            )
+            if (form.photo != null) {
+                TextButton(onClick = { actions.onPhotoChange(null) }) {
+                    Text(stringResource(R.string.edit_profile_photo_remove), color = colors.error)
+                }
+            }
+        }
+        Text(
+            text = stringResource(if (form.showPhotoError) R.string.edit_profile_photo_error else R.string.edit_profile_photo_hint),
+            style = AssembleTheme.typography.caption,
+            color = if (form.showPhotoError) colors.error else colors.textMuted,
+        )
+    }
+}
+
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun IdentityFields(form: EditProfileUiState.Form, actions: EditProfileActions, fieldColors: TextFieldColors) {
@@ -240,6 +297,7 @@ private fun IdentityFields(form: EditProfileUiState.Form, actions: EditProfileAc
                 val selected = form.avatarPreset == index
                 UserAvatar(
                     preset = preset,
+                    photo = null,
                     size = PickerAvatarSize,
                     modifier = Modifier
                         .border(SelectedBorderWidth, if (selected) colors.text else Color.Transparent, AssembleTheme.shapes.pill)
@@ -249,6 +307,7 @@ private fun IdentityFields(form: EditProfileUiState.Form, actions: EditProfileAc
                 )
             }
         }
+        PhotoPicker(form, actions)
         OutlinedTextField(
             value = form.name,
             onValueChange = actions.onNameChange,

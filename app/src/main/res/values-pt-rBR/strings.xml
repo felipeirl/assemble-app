@@ -337,4 +337,8 @@
     <string name="conversation_rewind_confirm">Voltar</string>
     <string name="conversation_message_options">Opções da mensagem</string>
     <string name="conversation_action_failed">Não foi possível concluir. Verifique sua conexão e tente de novo.</string>
+    <string name="edit_profile_photo_choose">Escolher foto</string>
+    <string name="edit_profile_photo_remove">Remover foto</string>
+    <string name="edit_profile_photo_hint">Só você vê a sua foto.</string>
+    <string name="edit_profile_photo_error">Não foi possível usar essa imagem. Tente outra.</string>
 </resources>

@@ -348,4 +348,8 @@
     <string name="conversation_rewind_confirm">Go back</string>
     <string name="conversation_message_options">Message options</string>
     <string name="conversation_action_failed">Couldn\'t do that. Check your connection and try again.</string>
+    <string name="edit_profile_photo_choose">Choose a photo</string>
+    <string name="edit_profile_photo_remove">Remove photo</string>
+    <string name="edit_profile_photo_hint">Only you can see your photo.</string>
+    <string name="edit_profile_photo_error">Couldn\'t use that image. Try another one.</string>
 </resources>

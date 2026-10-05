@@ -117,7 +117,9 @@ internal class InMemoryUserDataStore : UserDataStore {
 
     override suspend fun mergeUser(uid: String, fields: Map<String, Any?>) {
         merges += fields
-        user.value = user.value.orEmpty() + fields.mapValues { (_, value) -> if (value == ServerTime) TestNow else value }
+        val written = fields.filterValues { it != DeleteField }.mapValues { (_, value) -> if (value == ServerTime) TestNow else value }
+        val removed = fields.filterValues { it == DeleteField }.keys
+        user.value = (user.value.orEmpty() - removed) + written
     }
 
     override fun observeMatches(uid: String): Flow<List<Document>> = matches

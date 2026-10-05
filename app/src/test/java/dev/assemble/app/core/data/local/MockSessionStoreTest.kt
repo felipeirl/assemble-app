@@ -77,6 +77,16 @@ class MockSessionStoreTest {
     }
 
     @Test
+    fun photo_isPersistedAndRemoved() = runBlocking {
+        val withPhoto = defaults.copy(profile = defaults.profile.copy(photo = "AAAA"))
+        store.save(withPhoto)
+        assertEquals("AAAA", store.read().profile.photo)
+
+        store.save(withPhoto.copy(profile = withPhoto.profile.copy(photo = null)))
+        assertEquals(null, store.read().profile.photo)
+    }
+
+    @Test
     fun clear_restoresDefaults() = runBlocking {
         store.save(defaults.copy(session = SessionState(isLoggedIn = true, hasCompletedOnboarding = true)))
         store.clear()

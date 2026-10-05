@@ -91,6 +91,7 @@ import dev.assemble.app.navigation.Settings
 import dev.assemble.app.navigation.TopLevelRoutes
 import dev.assemble.app.navigation.rememberNavigationState
 import dev.assemble.app.navigation.toEntries
+import dev.assemble.app.core.designsystem.component.LocalUserPhoto
 import dev.assemble.app.feature.account.AccountDeactivatedHost
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
@@ -175,9 +176,15 @@ private fun OnboardingFlow(userRepository: UserRepository) {
     )
 }
 
-@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 private fun MainFlow(container: AppContainer) {
+    val profile by container.userRepository.currentProfile.collectAsStateWithLifecycle()
+    CompositionLocalProvider(LocalUserPhoto provides profile.photo) { MainFlowContent(container) }
+}
+
+@OptIn(ExperimentalSharedTransitionApi::class)
+@Composable
+private fun MainFlowContent(container: AppContainer) {
     val animationsEnabled = rememberAnimationsEnabled()
     val scope = rememberCoroutineScope()
     val navigationState = rememberNavigationState(startRoute = Discover, topLevelRoutes = TopLevelRoutes)

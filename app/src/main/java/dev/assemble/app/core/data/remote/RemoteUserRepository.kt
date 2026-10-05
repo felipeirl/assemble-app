@@ -152,7 +152,7 @@ class RemoteUserRepository(
         val uid = requireUid()
         store.mergeUser(
             uid,
-            profileFields(currentProfile.value) + mapOf(
+            profileFields(currentProfile.value, currentProfile.value.photo) + mapOf(
                 "preferences" to preferencesFields(preferences),
                 "onboardingCompletedAt" to ServerTime,
                 // O passo final do onboarding mostra o aviso de IA; continuar é o aceite.
@@ -164,7 +164,7 @@ class RemoteUserRepository(
     }
 
     override suspend fun updateProfile(profile: UserProfile) {
-        store.mergeUser(requireUid(), profileFields(profile))
+        store.mergeUser(requireUid(), profileFields(profile, previousPhoto = currentProfile.value.photo))
     }
 
     override suspend fun updatePreferences(preferences: Preferences) {

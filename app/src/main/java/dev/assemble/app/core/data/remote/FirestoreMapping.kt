@@ -29,6 +29,9 @@ private const val AVATAR_PRESET_MAX = 5
 private const val DISPLAY_NAME_MAX = 60
 private const val BIO_MAX = 500
 
+/** Tamanho máximo da foto em Base64; as regras do Firestore usam o mesmo limite. */
+const val AVATAR_PHOTO_MAX_CHARS = 120_000
+
 /** `users/{uid}` como o app usa. */
 data class UserDocument(
     val profile: UserProfile,
@@ -59,6 +62,7 @@ fun userDocument(data: Map<String, Any?>?, defaultName: String): UserDocument {
             bio = map["bio"] as? String ?: "",
             avatarPreset = (map["avatarPreset"] as? Number)?.toInt()?.coerceIn(0, AVATAR_PRESET_MAX) ?: 0,
             style = profileStyle(map["profileStyle"] as? Map<*, *>),
+            photo = (map["avatarPhoto"] as? String)?.takeIf { it.isNotBlank() && it.length <= AVATAR_PHOTO_MAX_CHARS },
         ),
         preferences = preferences(map["preferences"] as? Map<*, *>),
         onboardingCompleted = map["onboardingCompletedAt"] != null,
@@ -114,12 +118,23 @@ fun messageFrom(document: Document, connectionId: String, lastReadAt: Instant?):
     )
 }
 
-fun profileFields(profile: UserProfile): Map<String, Any?> = mapOf(
-    "displayName" to profile.name.trim().take(DISPLAY_NAME_MAX),
-    "bio" to profile.bio.take(BIO_MAX),
-    "avatarPreset" to profile.avatarPreset.coerceIn(0, AVATAR_PRESET_MAX),
-    "profileStyle" to profileStyleFields(profile.style),
-)
+/**
+ * Campos do perfil. A foto só entra quando existe, ou quando é removida ([previousPhoto] não nulo):
+ * assim, quem nunca usou foto não depende das regras novas do Firestore para salvar o perfil.
+ */
+fun profileFields(profile: UserProfile, previousPhoto: String? = null): Map<String, Any?> {
+    val fields = mapOf(
+        "displayName" to profile.name.trim().take(DISPLAY_NAME_MAX),
+        "bio" to profile.bio.take(BIO_MAX),
+        "avatarPreset" to profile.avatarPreset.coerceIn(0, AVATAR_PRESET_MAX),
+        "profileStyle" to profileStyleFields(profile.style),
+    )
+    return when {
+        profile.photo != null -> fields + ("avatarPhoto" to profile.photo)
+        previousPhoto != null -> fields + ("avatarPhoto" to DeleteField)
+        else -> fields
+    }
+}
 
 fun preferencesFields(preferences: Preferences): Map<String, Any?> = mapOf(
     "origins" to preferences.origins.sortedBy { it.ordinal }.map { it.name },

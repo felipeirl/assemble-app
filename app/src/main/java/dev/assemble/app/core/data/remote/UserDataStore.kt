@@ -8,6 +8,9 @@ data class Document(val id: String, val data: Map<String, Any?>)
 /** Marca um campo para receber o horário do servidor ao gravar. */
 object ServerTime
 
+/** Marca um campo para ser removido do documento ao gravar. */
+object DeleteField
+
 /**
  * O que o app lê e grava direto no Firestore (contrato §2). Todo o resto passa pelo backend.
  * As regras do Firestore limitam a escrita aos campos do perfil, às preferências, ao `aiConsent`
