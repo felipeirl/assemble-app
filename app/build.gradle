@@ -29,7 +29,7 @@ android {
         minSdk = 26
         targetSdk = 36
         versionCode = 1
-        versionName = '0.1-dev'
+        versionName = '0.1.0'
         buildConfigField 'String', 'BACKEND_URL', '"' + backendUrl + '"'
         buildConfigField 'String', 'FIREBASE_API_KEY', '"' + firebaseApiKey + '"'
         buildConfigField 'String', 'FIREBASE_APP_ID', '"' + firebaseAppId + '"'

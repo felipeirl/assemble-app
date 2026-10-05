@@ -1,115 +1,97 @@
 # Assemble
 
-Aplicativo Android para **descobrir personagens de quadrinhos e conversar com eles**. Você desliza cards de personagens, dá **Pass** ou **Assemble**, e quando o personagem também decide pelo match, abre uma conversa com uma versão **ficcional** dele, gerada por inteligência artificial.
+Aplicativo Android para **descobrir personagens de quadrinhos e conversar com eles**. Você desliza cards de personagens, dá **Pass** ou **Assemble** e, quando o personagem também decide pelo match, abre uma conversa com uma versão **ficcional** dele, gerada por inteligência artificial.
 
 > **Projeto acadêmico.** Não é afiliado, patrocinado ou endossado pela Marvel, pela Comic Vine ou por qualquer editora. Nomes e marcas pertencem aos seus donos. Toda conversa é ficção gerada por IA: não é canon nem material aprovado pela editora.
 
-## Estado atual
+Este repositório é o **app Android**. O servidor fica em outro repositório: [assemble-backend](https://github.com/felipeirl/assemble-backend).
 
-Este repositório contém o **aplicativo Android completo, funcionando com dados simulados** (sem servidor, sem login real, sem IA real). Serve para validar a experiência de ponta a ponta antes da integração.
+## O que o app faz
 
-| Já existe | Ainda não existe |
-|---|---|
-| Splash, login simulado, onboarding (5 passos) | Login real (Firebase Auth) |
-| Discover com swipe, Undo, pull to refresh | Persistência na nuvem (Firestore) |
-| Pré-visualização bloqueada, pop-up de match, perfil completo | Catálogo real (Comic Vine) |
-| Chat com respostas simuladas, aviso de nova mensagem | Chat com IA real |
-| Perfil, preferências, configurações, tema claro/escuro | Backend |
-| Design system próprio, animações respeitando a configuração do sistema | Tradução para português (a interface está em inglês) |
+- **Cadastro:** login por e-mail e senha ou com a conta Google, cinco passos de preferências (origem, poderes, equipes, estilo e fama), a rodada "este ou aquele" (que ensina o gosto sem virar decisão) e a revelação do seu perfil de herói, com o aviso de IA.
+- **Descobrir:** baralho de até 40 personagens por dia, diferente para cada pessoa e sorteado de novo a cada abertura. Pass, Assemble e Undo do último Pass. Quem recebeu Pass não volta. A compatibilidade só aparece depois do match.
+- **Match:** o backend decide combinando compatibilidade, afinidade do personagem pelo usuário e acaso. O pop-up de match entra em fila quando há vários.
+- **Conversar:** chat com a versão ficcional do personagem, com respostas sugeridas, gerar outra resposta e voltar a conversa. O personagem lembra do que foi dito, mesmo em conversas longas.
+- **Conhecer:** perfil completo do personagem (atributos, aparência, colegas de equipe, fontes) liberado depois da conexão.
+- **Perfil:** foto, capa, destaque, moldura, frase de apresentação, conquistas e preferências editáveis.
+- **Configurações:** tema claro, escuro ou do sistema, som, vibração e notificações; excluir conversas e a conta, com 30 dias de carência.
+- Interface em **português e inglês**, com animações que respeitam a configuração do sistema.
 
-### Como rodar
+## Como rodar
 
-Requisitos: Android Studio com suporte ao **AGP 9.0.0**, **JDK 17**, Android 8.0+ (minSdk 26).
+Requisitos: Android Studio com suporte ao **AGP 9.0.0**, **JDK 17** e Android 8.0+ (minSdk 26).
 
 ```bash
 ./gradlew assembleDebug        # compila
 ./gradlew testDebugUnitTest    # testes unitários
-./gradlew installDebug         # instala em um aparelho/emulador conectado
+./gradlew installDebug         # instala em um aparelho ou emulador conectado
 ```
 
-O build de debug instala **dois ícones**: *Assemble* (o app) e *Assemble DS* (catálogo interno do design system, só em debug). Sem backend, os dados voltam ao estado inicial quando o app é fechado; só as configurações (tema e notificações) persistem.
+O build de debug instala **dois ícones**: *Assemble* (o app) e *Assemble DS* (catálogo interno do design system, só em debug).
+
+### Com ou sem backend
+
+O app escolhe sozinho. Crie o arquivo `local.properties` na raiz (ele fica fora do git) com as chaves abaixo:
+
+```properties
+BACKEND_URL=https://seu-dominio.ngrok-free.dev
+FIREBASE_API_KEY=...
+FIREBASE_APP_ID=...
+FIREBASE_PROJECT_ID=...
+GOOGLE_WEB_CLIENT_ID=...
+```
+
+- **Com `BACKEND_URL` e as três chaves do Firebase:** o app usa o backend, o login real e o Firestore.
+- **Sem elas:** roda com dados simulados no aparelho (sem servidor, sem login real, sem IA real). Serve para ver as telas e rodar os testes.
+- `GOOGLE_WEB_CLIENT_ID` só é necessário para o login com Google.
+
+### Configurando o Firebase
+
+1. Crie um projeto no [Firebase Console](https://console.firebase.google.com/) e adicione um app Android com o pacote **`dev.assemble.app`**.
+2. Ative **Authentication** com e-mail e senha e com Google. Para o Google, cadastre o **SHA-1** da chave de debug do seu computador (`./gradlew signingReport`).
+3. Crie o **Firestore** em modo de produção, na região `us-central1` (a região não pode ser mudada depois).
+4. Copie `apiKey`, `appId` e `projectId` das configurações do app para o `local.properties`. O app inicializa o Firebase em código, **sem** `google-services.json`.
+5. Publique as regras de segurança que estão no repositório do backend (`firestore.rules`).
+6. A credencial do Admin SDK fica só no backend, nunca no app.
 
 ## Como o produto funciona
 
-1. **Descobrir.** O Discover mostra um baralho de **até 30 personagens por dia**. Ao reabrir o app, os cards restantes do dia são embaralhados; no dia seguinte vem um baralho novo. Quem recebeu **Pass nunca volta**. O card mostra arte, nome e traços em comum; a compatibilidade não aparece antes do match.
+1. **Descobrir.** O card mostra arte, nome, uma frase sobre o personagem e traços em comum. Metade do baralho vem da compatibilidade com as suas preferências; a outra metade, do gosto aprendido pelas suas decisões.
 2. **Escolher.** **Pass** descarta. **Assemble** demonstra interesse.
-3. **Match.** O personagem também decide. A compatibilidade com suas preferências é **um fator**, não a regra. A decisão combina três coisas:
+3. **Match.** A decisão é tomada **uma única vez** por par usuário–personagem:
 
    ```
-   chance = p1 × compatibilidade + p2 × afinidade com a persona do personagem + p3 × acaso
+   chance = p1 × compatibilidade + p2 × afinidade com a persona + p3 × acaso
    ```
 
-   A decisão é tomada **uma única vez** por par usuário–personagem e fica registrada. O pop-up de match mostra os traços em comum.
-4. **Conversar.** Cada conexão abre um chat com uma versão ficcional do personagem. Toda resposta carrega o selo **"AI-generated · fictional"**.
-5. **Conhecer.** O perfil completo só é liberado depois da conexão. Dados vêm da fonte e dizem qual é; campo ausente é omitido, nunca inventado.
+4. **Conversar.** Toda resposta carrega o selo **"AI-generated · fictional"**.
 
-**Princípios:** personagens, nunca pessoas; sem linguagem de namoro nem conteúdo sexual; ficção e fatos claramente separados.
+**Princípios:** personagens, nunca pessoas; sem conteúdo sexual; ficção e fatos claramente separados; campo ausente é omitido, nunca inventado.
 
 ### Compatibilidade
 
-Estimativa explicável entre as preferências do usuário e as características do personagem, com pesos Origin 25, Powers 30, Teams 15, Style 20 e Fame 10. Por categoria, pontua-se `peso × (itens em comum ÷ menor entre escolhidos e os do personagem)`; conjunto vazio ("Any") vale o peso cheio. O valor só aparece depois da conexão, como porcentagem exata. Não é uma avaliação psicológica.
+Estimativa explicável entre as suas preferências e as características do personagem, com pesos Origin 25, Powers 30, Teams 15, Style 20 e Fame 10. Escolher "Qualquer" em uma categoria vale metade do peso, e grupos rivais (por exemplo Avengers e X-Men) tiram metade do peso quando não há nada em comum. O valor só aparece depois da conexão. A tabela é idêntica à do backend. Não é uma avaliação psicológica.
 
-## Versão de produção (arquitetura planejada)
-
-```
-App Android ──(token do Firebase)──▶ Backend Python (repositório separado, Hugging Face Space)
-                                     ├─ Firestore: usuários, decisões, conexões, mensagens, baralho
-                                     ├─ Ingestão da Comic Vine + fichas de persona (cache global)
-                                     ├─ Decisão de match + baralho diário
-                                     └─ IA: LiteLLM + guardrail Laya (entrada e saída)
-                                          ▶ Qwen 3.7 Flash via Command Code (retenção zero)
-GitHub Actions agendado ──▶ rotas protegidas do backend (ingestão, fichas, faxina)
-```
-
-- **Um único servidor, em Python.** O app nunca guarda chaves: todas ficam no backend. O `uid` vem sempre do token do Firebase, nunca do corpo da requisição.
-- **Catálogo.** Fatos da Comic Vine (nome real, origem, poderes, equipes, primeira aparição, imagem). Personagens entram em níveis de qualidade: **A** (curados, com ficha revisada) e **B** (ficha gerada e validada por regras); quem não tem dados suficientes não entra no baralho.
-- **Fichas de persona.** Cada personagem tem uma ficha (voz, valores, jeito de falar, limites, exemplos) gerada **uma vez** e guardada em cache global com versão. O prompt de sistema global é montado a cada mensagem a partir da ficha; o servidor de IA não guarda estado.
-- **Segurança da conversa.** Um guardrail local (Laya) filtra a mensagem do usuário e a resposta do modelo: injeção de prompt, dados pessoais, conteúdo sexual ou romântico, autoagressão (com encaminhamento seguro) e fuga de papel. A descrição vinda da fonte (editável por terceiros) é tratada como dado não confiável. Modelos que treinam com os dados **nunca** recebem mensagens de usuários.
-- **Idiomas.** Português (pt-BR) e inglês, seguindo o idioma do aparelho. O personagem responde no idioma em que o usuário escrever.
-
-### Dados (Firestore)
+## Arquitetura
 
 ```
-users/{uid}                       perfil, preferências, consentimento de IA, status da conta
-├── decisions/{characterId}       Pass ou Assemble (gravado pelo backend)
-├── matches/{characterId}         conexão, score, decisão de match
-│   └── messages/{messageId}      conversa (gravada pelo backend)
-└── decks/{AAAA-MM-DD}            baralho do dia
-characters/{id}  personas/{id}    caches globais, só o backend escreve
+App Android ──(token do Firebase)──▶ Backend Python (assemble-backend)
+     │                                ├─ Firestore: usuários, decisões, conexões, mensagens
+     │                                ├─ Catálogo (Comic Vine, Marvel Database, Superhero API)
+     └─ lê o Firestore em tempo real   ├─ Baralho, compatibilidade e decisão de match
+                                      └─ IA: LiteLLM + guardrail Laya (entrada e saída)
 ```
 
-O app **nunca** escreve score, conexão, mensagem ou baralho; as regras em [`firestore.rules`](firestore.rules) negam qualquer campo autoritativo. E-mail e senha ficam só no Firebase Auth. Tema e notificações ficam no aparelho.
+O app **nunca** guarda chaves de IA nem escreve score, conexão, mensagem ou baralho; quem escreve é o backend. O `uid` vem sempre do token do Firebase. A foto do perfil sobe para o Cloudinary com uma assinatura feita pelo servidor, ou, sem Cloudinary, segue no Firestore.
 
 ### Privacidade e exclusão (LGPD)
 
-- **Excluir conta** desativa na hora (login bloqueado) e, após **30 dias de carência**, o backend apaga ou anonimiza perfil, preferências, decisões, conexões e mensagens, e remove o usuário do Firebase Auth. Nesse prazo a conta pode ser reativada.
+- **Excluir conta** desativa na hora e, após **30 dias de carência**, o backend apaga perfil, preferências, decisões, conexões e mensagens, e remove o usuário do Firebase Auth. Nesse prazo a conta pode ser reativada.
 - **Excluir conversas** oculta na hora e remove depois da carência.
-- **Registros de acesso** (IP, data e hora) ficam separados por 6 meses, como exige o Marco Civil da Internet, e depois são apagados.
-- O usuário aceita o uso de IA no onboarding (`aiConsent`).
+- **Registros de acesso** (IP, data e hora) ficam separados por 6 meses, como exige o Marco Civil da Internet.
+- O usuário aceita o uso de IA no cadastro (`aiConsent`).
 
-> Esta seção descreve o desenho do produto, não é aconselhamento jurídico; valide com orientação especializada antes de publicar.
-
-### Hospedagem planejada
-
-| Peça | Onde |
-|---|---|
-| Login e banco | Firebase (Auth + Firestore, região nos EUA) |
-| Backend Python | Hugging Face Space (Docker; segredos nas variáveis ocultas do Space) |
-| Tarefas agendadas | GitHub Actions |
-| Distribuição para testes | Firebase App Distribution |
-
-## Configurando o Firebase (quando a integração começar)
-
-O app já traz o código de inicialização manual do Firebase, que fica inativo enquanto não houver `google-services.json`. Para ativar:
-
-1. Crie um projeto no [Firebase Console](https://console.firebase.google.com/) e adicione um app Android com o pacote **`dev.assemble.app`**.
-2. Ative **Authentication** (Google e e-mail/senha).
-3. Crie o **Firestore** em modo de produção, na região `us-central1` (a região não pode ser mudada depois).
-4. Baixe o `google-services.json` e coloque em `app/`. **Ele está no `.gitignore`: nunca o envie ao repositório.**
-5. Publique as regras de [`firestore.rules`](firestore.rules).
-6. No backend (repositório separado), configure a credencial do Admin SDK como segredo; nunca no app.
-
-Segredos locais (chaves de API) ficam em um arquivo `.env`, também ignorado pelo git.
+> Esta seção descreve o desenho do produto, não é aconselhamento jurídico.
 
 ## Estrutura do código
 
@@ -118,19 +100,27 @@ app/src/main/java/dev/assemble/app/
 ├── core/
 │   ├── designsystem/   tema, tipografia, cores, ícones e componentes
 │   ├── model/          modelos de domínio
-│   ├── data/           interfaces de repositório + implementações simuladas e mock
-│   └── domain/         cálculo de compatibilidade (função pura, com testes)
-├── navigation/         Navigation 3: rotas, back stack por aba, gaveta e barra inferior
-└── feature/            splash, login, onboarding, discover, character, chat, profile, settings, about, help
+│   ├── data/           repositórios: simulados (fake) e remotos (Firebase + API)
+│   ├── network/        cliente HTTP do backend e envio de foto
+│   ├── domain/         compatibilidade, conquistas e regras do perfil (funções puras)
+│   ├── firebase/       Auth e Firestore
+│   └── media/ ui/ feedback/
+├── navigation/         Navigation 3: rotas, back stack por aba, menu lateral e barra inferior
+└── feature/            splash, login, onboarding, discover, character, chat, profile,
+                        achievements, settings, account, about, help
 ```
 
-Stack: Kotlin, Jetpack Compose + Material 3, Navigation 3, ViewModel + StateFlow, DataStore, Coil, JUnit.
+Stack: Kotlin, Jetpack Compose + Material 3, Navigation 3, ViewModel + StateFlow, DataStore, Firebase Auth e Firestore, Credential Manager (login com Google), Coil e JUnit.
+
+## Versões
+
+As versões seguem o [SemVer](https://semver.org/lang/pt-BR/) e estão no [`CHANGELOG.md`](CHANGELOG.md); cada uma tem uma tag `vX.Y.Z`. A versão atual está em `app/build.gradle` (`versionName` e `versionCode`). Para lançar: atualize a versão e o changelog, faça o commit e crie a tag (`git tag -a v0.2.0 -m "v0.2.0"`).
 
 ## Fontes e créditos
 
 - Fatos e imagens de personagens: [Comic Vine](https://comicvine.gamespot.com/) (a origem é sempre exibida no app).
 - Fontes tipográficas: Barlow Condensed e Inter, sob a licença SIL Open Font License (cópias em `app/src/main/assets/licenses/`).
-- Quando usada, a seção "Personality" da Marvel Database (Fandom) segue a licença **CC BY-SA**, com crédito.
+- A seção "Personality" da Marvel Database (Fandom), quando usada, segue a licença **CC BY-SA**, com crédito.
 
 ## Licença
 
