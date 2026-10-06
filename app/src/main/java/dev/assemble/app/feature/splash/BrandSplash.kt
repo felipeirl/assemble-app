@@ -69,7 +69,7 @@ private const val LetterMillis = 500
 private const val WordOutStart = 1_700
 private const val WordOutMillis = 250
 private const val DockStart = 1_750
-private const val SoundStart = 1_500
+private const val SoundStart = 1_450
 private const val DockMillis = 600
 private const val BgFadeStart = 1_850
 private const val BgFadeMillis = 500
@@ -124,7 +124,7 @@ fun BrandSplash(anchor: LogoAnchor, onFinished: () -> Unit, modifier: Modifier =
     }
     val feedback = LocalFeedback.current
     LaunchedEffect(Unit) {
-        // O arquivo de som tem o sino aos 0,6 s: começa antes do encaixe para o sino cair nele.
+        // O arquivo de som tem o pico aos 0,9 s: começa antes do encaixe para o pico cair no fim dele (2,35 s).
         delay(SoundStart.toLong())
         feedback.play(Cue.Splash)
     }
