@@ -59,6 +59,17 @@ class FirestoreUserDataStore(private val firestore: FirebaseFirestore) : UserDat
         awaitClose { registration.remove() }
     }
 
+    override fun observeDecision(uid: String, characterId: String): Flow<Map<String, Any?>?> = callbackFlow {
+        val registration = firestore.document("users/$uid/decisions/$characterId").addSnapshotListener { snapshot, error ->
+            if (error != null) {
+                close(IOException("decisions: ${error.code}", error))
+                return@addSnapshotListener
+            }
+            trySend(snapshot?.normalizedData())
+        }
+        awaitClose { registration.remove() }
+    }
+
     override suspend fun updateMatch(uid: String, connectionId: String, fields: Map<String, Any?>) {
         firestore.document("users/$uid/matches/$connectionId").update(fields.toFirestore()).awaitIo()
     }

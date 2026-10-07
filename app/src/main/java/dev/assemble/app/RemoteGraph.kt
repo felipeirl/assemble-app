@@ -53,7 +53,7 @@ class RemoteGraph(
     val connections = RemoteConnectionRepository(auth.uid, store, api, scope)
     val characters = RemoteCharacterRepository(api, connections) { backendLanguageTag() }
     val chat = RemoteChatRepository(auth.uid, store, api, connections, scope, clock)
-    val deck = RemoteDeckSource(api, characters, users)
+    val deck = RemoteDeckSource(api, characters, users, connections, store, auth.uid, scope)
     val taste = RemoteTasteSource(api)
     val details = RemoteCharacterDetailsSource(api, characters, connections)
 

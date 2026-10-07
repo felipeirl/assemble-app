@@ -4,9 +4,7 @@ import dev.assemble.app.core.data.ChatRepository
 import dev.assemble.app.core.model.Message
 import dev.assemble.app.core.model.MessageAuthor
 import dev.assemble.app.core.model.MessageStatus
-import dev.assemble.app.core.network.ApiErrorCode
-import dev.assemble.app.core.network.ApiException
-import dev.assemble.app.core.network.ApiMessage
+import dev.assemble.app.core.network.ApiStatus
 import dev.assemble.app.core.network.AssembleApi
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -14,29 +12,55 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.withTimeoutOrNull
 import java.io.IOException
 import java.time.Clock
 import java.time.Duration
 import java.time.Instant
 import java.util.UUID
 
-// Uma mensagem bloqueada localmente some quando a cópia do servidor (sem texto) chega.
-private val BLOCKED_ECHO_WINDOW: Duration = Duration.ofMinutes(2)
+/**
+ * Pendente no servidor por mais que isto: o servidor reiniciou e a fila em memória se perdeu.
+ * A mensagem vira falha e o "tentar de novo" (mesma chave) a põe de volta na fila.
+ */
+internal val PENDING_STALE_AFTER: Duration = Duration.ofMinutes(3)
+
+/** Quanto esperar o Firestore mostrar "gerar outra resposta" antes de soltar o aviso local. */
+private const val REGENERATE_ECHO_TIMEOUT_MILLIS = 10_000L
+
+private const val FIELD_AUTHOR = "author"
+private const val FIELD_STATUS = "status"
+private const val FIELD_KEY = "idempotencyKey"
+private const val FIELD_CREATED_AT = "createdAt"
+private const val FIELD_HIDDEN = "hidden"
+private const val FIELD_REGENERATED_AT = "regeneratedAt"
+private const val FIELD_REGENERATE_REQUESTED_AT = "regenerateRequestedAt"
+private const val AUTHOR_USER_VALUE = "USER"
+private const val AUTHOR_CHARACTER_VALUE = "CHARACTER"
+
+/** Mensagem do usuário que o app acompanha até o servidor responder; [key] é a Idempotency-Key. */
+internal data class PendingMessage(
+    val key: String,
+    val message: Message,
+    /** Quando o backend aceitou (202); null enquanto o envio não foi aceito. */
+    val acceptedAt: Instant? = null,
+)
 
 /**
  * Conversas: histórico em `users/{uid}/matches/{id}/messages` (Firestore, tempo real) e envio
- * pelo backend, que grava a mensagem do usuário e a resposta do personagem. Enquanto o envio
- * não volta, a mensagem aparece como "enviando"; em falha, fica para "tentar de novo" com a
- * mesma Idempotency-Key (repetir não duplica a mensagem nem a resposta).
+ * pelo backend, que aceita a mensagem na hora (202) e gera a resposta numa fila. O documento da
+ * mensagem do usuário diz o estado (`pending`, `sent`, `blocked`, `failed`); enquanto ele está
+ * pendente, o app mostra a cópia local (o servidor só grava o texto depois do filtro) e o
+ * "digitando". Em falha, "tentar de novo" repete com a mesma Idempotency-Key.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class RemoteChatRepository(
@@ -47,42 +71,49 @@ class RemoteChatRepository(
     scope: CoroutineScope,
     private val clock: Clock,
     private val newKey: () -> String = { UUID.randomUUID().toString() },
+    private val regenerateEchoTimeoutMillis: Long = REGENERATE_ECHO_TIMEOUT_MILLIS,
 ) : ChatRepository {
 
-    /** Mensagem do usuário ainda sem confirmação do servidor; [key] é a Idempotency-Key. */
-    private data class Pending(val key: String, val message: Message)
+    private val pending = MutableStateFlow<List<PendingMessage>>(emptyList())
 
-    private val pending = MutableStateFlow<List<Pending>>(emptyList())
-
-    /** Mensagens já confirmadas pelo backend, até o listener do Firestore trazê-las. */
-    private val echoes = MutableStateFlow<List<Message>>(emptyList())
-
-    private val typing = MutableStateFlow<Set<String>>(emptySet())
-    override val typingConnectionIds: StateFlow<Set<String>> = typing.asStateFlow()
-
+    /** "Gerar outra resposta" pedido, até o Firestore mostrar a mensagem sendo gerada. */
     private val regenerating = MutableStateFlow<Set<String>>(emptySet())
-    override val regeneratingConnectionIds: StateFlow<Set<String>> = regenerating.asStateFlow()
 
-    /** Texto novo de uma resposta gerada de novo, até o Firestore trazer o mesmo texto (mesmo id). */
-    private val textOverrides = MutableStateFlow<Map<String, String>>(emptyMap())
+    /** Documentos de todas as conversas, por conexão: base do "digitando" e do "gerando outra". */
+    private val threads: StateFlow<Map<String, List<Document>>> = connections.matchDocuments
+        .map { list -> list.map { it.connection.id } }
+        .distinctUntilChanged()
+        .flatMapLatest { ids ->
+            if (ids.isEmpty()) {
+                flowOf(emptyMap())
+            } else {
+                combine(ids.map { id -> serverDocuments(id).map { id to it } }) { pairs -> pairs.toMap() }
+            }
+        }
+        .catch { emit(emptyMap()) }
+        .stateIn(scope, SharingStarted.Eagerly, emptyMap())
+
+    override val typingConnectionIds: StateFlow<Set<String>> = combine(threads, pending) { docs, local ->
+        awaitingReply(docs, local, Instant.now(clock))
+    }.stateIn(scope, SharingStarted.Eagerly, emptySet())
+
+    override val regeneratingConnectionIds: StateFlow<Set<String>> = combine(threads, regenerating) { docs, local ->
+        val now = Instant.now(clock)
+        local + docs.filterValues { regeneratingNow(it, now) }.keys
+    }.stateIn(scope, SharingStarted.Eagerly, emptySet())
 
     override fun observeMessages(connectionId: String): Flow<List<Message>> {
         val lastReadAt = connections.matchDocuments
             .map { list -> list.firstOrNull { it.connection.id == connectionId }?.lastReadAt }
             .distinctUntilChanged()
-        val server = uid.flatMapLatest { current ->
-            if (current == null) flowOf(emptyList()) else store.observeMessages(current, connectionId)
-        }
-        return combine(server, lastReadAt, pending, echoes, textOverrides) { documents, readAt, local, confirmed, overrides ->
-            val fromServer = documents.mapNotNull { messageFrom(it, connectionId, readAt) }
-            // Pedido que estourou o tempo, mas que o servidor chegou a processar: a cópia do
-            // Firestore (mesma Idempotency-Key) vale, e a local sairia duplicada.
-            val serverKeys = documents.mapNotNullTo(mutableSetOf()) { it.data["idempotencyKey"] as? String }
-            mergeMessages(
-                server = fromServer,
-                confirmed = confirmed.filter { it.connectionId == connectionId },
-                local = local.filterNot { it.key in serverKeys }.map { it.message }.filter { it.connectionId == connectionId },
-            ).map { message -> overrides[message.id]?.let { message.copy(text = it) } ?: message }
+        return combine(serverDocuments(connectionId), lastReadAt, pending) { documents, readAt, local ->
+            mergeThread(
+                documents = documents,
+                connectionId = connectionId,
+                readAt = readAt,
+                local = local.filter { it.message.connectionId == connectionId },
+                now = Instant.now(clock),
+            )
         }
     }
 
@@ -109,30 +140,38 @@ class RemoteChatRepository(
             sentAt = Instant.now(clock),
             status = MessageStatus.Sending,
         )
-        pending.update { it + Pending(key, message) }
-        deliver(key, message)
+        pending.update { list -> list.filterNot { settled(it) } + PendingMessage(key, message) }
+        deliver(key)
     }
 
+    /** Repete o envio com a mesma chave: o backend devolve o estado gravado ou retoma a fila. */
     override suspend fun retry(messageId: String) {
-        val item = pending.value.firstOrNull { it.message.id == messageId && it.message.status == MessageStatus.Failed } ?: return
-        setPendingStatus(item.key, MessageStatus.Sending)
-        deliver(item.key, item.message)
+        val item = pending.value.firstOrNull { it.message.id == messageId } ?: return
+        if (item.message.status == MessageStatus.Sending) return
+        setStatus(item.key, MessageStatus.Sending)
+        deliver(item.key)
     }
 
     /** O backend grava a fala de abertura junto com o match; aqui não há nada a fazer. */
     override suspend fun startConversation(connectionId: String) = Unit
 
-    /** O texto muda no mesmo documento do Firestore (mesmo id); aqui só mostramos o "digitando". */
+    /**
+     * Pede outra resposta. O texto novo chega pelo Firestore, na mesma mensagem; enquanto isso, a
+     * conversa fica marcada como "gerando outra" (primeiro por aqui, depois pelo documento).
+     */
     override suspend fun regenerateLast(connectionId: String) {
-        typing.update { it + connectionId }
+        val before = threads.value[connectionId].orEmpty().associate { it.id to it.data[FIELD_REGENERATED_AT] }
         regenerating.update { it + connectionId }
         try {
-            val regenerated = api.regenerate(connectionId)
-            textOverrides.update { it + (regenerated.reply.id to regenerated.reply.text) }
-            echoes.update { list -> list.filterNot { it.id == regenerated.reply.id } + regenerated.reply.toMessage(read = true) }
+            val accepted = api.regenerate(connectionId)
+            withTimeoutOrNull(regenerateEchoTimeoutMillis) {
+                threads.first { docs ->
+                    val doc = docs[connectionId]?.firstOrNull { it.id == accepted.reply.id }
+                    doc != null && (doc.data[FIELD_STATUS] != ApiStatus.SENT || doc.data[FIELD_REGENERATED_AT] != before[doc.id])
+                }
+            }
         } finally {
             regenerating.update { it - connectionId }
-            typing.update { it - connectionId }
         }
     }
 
@@ -141,7 +180,6 @@ class RemoteChatRepository(
         api.rewind(connectionId, messageId)
         // As cópias locais do que foi apagado não podem ressuscitar a mensagem na lista.
         if (cutoff != null) {
-            echoes.update { list -> list.filterNot { it.connectionId == connectionId && it.sentAt.isAfter(cutoff) } }
             pending.update { list -> list.filterNot { it.message.connectionId == connectionId && it.message.sentAt.isAfter(cutoff) } }
         }
     }
@@ -160,57 +198,106 @@ class RemoteChatRepository(
     override suspend fun deleteAll() {
         api.hideChats()
         pending.value = emptyList()
-        echoes.value = emptyList()
     }
 
-    private suspend fun deliver(key: String, message: Message) {
-        typing.update { it + message.connectionId }
+    private fun serverDocuments(connectionId: String): Flow<List<Document>> = uid.flatMapLatest { current ->
+        if (current == null) flowOf(emptyList()) else store.observeMessages(current, connectionId)
+    }
+
+    private suspend fun deliver(key: String) {
+        val item = pending.value.firstOrNull { it.key == key } ?: return
         try {
-            val reply = api.sendMessage(message.connectionId, message.text, key)
-            echoes.update { it + reply.userMessage.toMessage(read = true) + reply.reply.toMessage(read = false) }
-            pending.update { list -> list.filterNot { it.key == key } }
-        } catch (error: ApiException) {
-            val status = if (error.code == ApiErrorCode.BLOCKED_CONTENT) MessageStatus.Blocked else MessageStatus.Failed
-            setPendingStatus(key, status)
+            api.sendMessage(item.message.connectionId, item.message.text, key)
+            val acceptedAt = Instant.now(clock)
+            pending.update { list ->
+                list.map { if (it.key == key) it.copy(message = it.message.copy(status = MessageStatus.Sent), acceptedAt = acceptedAt) else it }
+            }
         } catch (_: IOException) {
-            setPendingStatus(key, MessageStatus.Failed)
-        } finally {
-            typing.update { it - message.connectionId }
+            setStatus(key, MessageStatus.Failed)
         }
     }
 
-    private fun setPendingStatus(key: String, status: MessageStatus) {
+    private fun setStatus(key: String, status: MessageStatus) {
         pending.update { list ->
             list.map { if (it.key == key) it.copy(message = it.message.copy(status = status)) else it }
         }
     }
+
+    /** O servidor já resolveu a mensagem (respondida ou recusada): a cópia local não serve mais. */
+    private fun settled(item: PendingMessage): Boolean {
+        val doc = threads.value[item.message.connectionId]?.firstOrNull { it.data[FIELD_KEY] == item.key } ?: return false
+        return doc.data[FIELD_STATUS] != ApiStatus.PENDING && doc.data[FIELD_STATUS] != ApiStatus.FAILED
+    }
 }
 
 /**
- * Junta o histórico do servidor com o que ainda não chegou por ele. O servidor vence quando a
- * mesma mensagem aparece nos dois (mesmo id). Uma recusa local some quando a do servidor chega.
+ * Junta o histórico do servidor com as cópias locais. Mensagem do usuário pendente ou com falha no
+ * servidor não tem texto (ele só é gravado depois do filtro de entrada): quem aparece é a cópia
+ * local, com o estado do servidor; sem a cópia (o app foi reaberto), ela não aparece. Respondida ou
+ * recusada, vale a do servidor.
  */
-internal fun mergeMessages(server: List<Message>, confirmed: List<Message>, local: List<Message>): List<Message> {
-    val serverIds = server.mapTo(mutableSetOf()) { it.id }
-    val serverBlocked = server.filter { it.status == MessageStatus.Blocked }
-    val localVisible = local.filterNot { mine ->
-        mine.status == MessageStatus.Blocked && serverBlocked.any {
-            Duration.between(mine.sentAt, it.sentAt).abs() <= BLOCKED_ECHO_WINDOW
+internal fun mergeThread(
+    documents: List<Document>,
+    connectionId: String,
+    readAt: Instant?,
+    local: List<PendingMessage>,
+    now: Instant,
+): List<Message> {
+    val byKey = documents.filter { it.data[FIELD_KEY] is String }.associateBy { it.data[FIELD_KEY] as String }
+    val fromServer = documents.mapNotNull { doc ->
+        if (doc.isUnresolvedUserMessage()) null else messageFrom(doc, connectionId, readAt)
+    }
+    val fromLocal = local.mapNotNull { item ->
+        val doc = byKey[item.key]
+        when {
+            item.message.status == MessageStatus.Sending -> item.message
+            doc == null -> if (isStale(item.acceptedAt, now)) item.message.copy(status = MessageStatus.Failed) else item.message
+            doc.data[FIELD_STATUS] == ApiStatus.PENDING -> {
+                val stale = isStale(maxOf(doc.createdAt(), item.acceptedAt ?: Instant.MIN), now)
+                item.message.copy(status = if (stale) MessageStatus.Failed else MessageStatus.Sent)
+            }
+            doc.data[FIELD_STATUS] == ApiStatus.FAILED -> item.message.copy(status = MessageStatus.Failed)
+            else -> null
         }
     }
-    return (server + confirmed.filter { it.id !in serverIds } + localVisible).sortedBy { it.sentAt }
+    return (fromServer + fromLocal).sortedBy { it.sentAt }
 }
 
-internal fun ApiMessage.toMessage(read: Boolean): Message {
-    val fromUser = author == "USER"
-    return Message(
-        id = id,
-        connectionId = connectionId,
-        author = if (fromUser) MessageAuthor.User else MessageAuthor.Character,
-        text = text,
-        sentAt = Instant.parse(createdAt),
-        // Pedido de ajuda (autoagressão): a fala é respondida com apoio, mas o texto não é guardado.
-        status = if (fromUser && blocked) MessageStatus.Blocked else MessageStatus.Sent,
-        read = read,
-    )
+/** Conversas esperando a resposta do personagem: envio em andamento ou pendente no servidor. */
+internal fun awaitingReply(threads: Map<String, List<Document>>, local: List<PendingMessage>, now: Instant): Set<String> {
+    val localKeys = local.map { it.key }.toSet()
+    val fromLocal = local.filter { item ->
+        val doc = threads[item.message.connectionId]?.firstOrNull { it.data[FIELD_KEY] == item.key }
+        when {
+            item.message.status == MessageStatus.Sending -> true
+            // O servidor manda: o envio pode ter estourado o tempo no app e mesmo assim ter entrado na fila.
+            doc != null -> doc.data[FIELD_STATUS] == ApiStatus.PENDING &&
+                !isStale(maxOf(doc.createdAt(), item.acceptedAt ?: Instant.MIN), now)
+            else -> item.message.status == MessageStatus.Sent && !isStale(item.acceptedAt, now)
+        }
+    }.map { it.message.connectionId }
+    // App reaberto com a resposta ainda na fila: o servidor diz que está pendente.
+    val fromServer = threads.filterValues { docs ->
+        docs.any { doc ->
+            doc.data[FIELD_AUTHOR] == AUTHOR_USER_VALUE && doc.data[FIELD_STATUS] == ApiStatus.PENDING &&
+                doc.data[FIELD_KEY] !in localKeys && !isStale(doc.createdAt(), now)
+        }
+    }.keys
+    return fromLocal.toSet() + fromServer
 }
+
+/** A última resposta do personagem está sendo gerada de novo no servidor. */
+internal fun regeneratingNow(documents: List<Document>, now: Instant): Boolean {
+    val last = documents.lastOrNull { it.data[FIELD_HIDDEN] != true } ?: return false
+    if (last.data[FIELD_AUTHOR] != AUTHOR_CHARACTER_VALUE || last.data[FIELD_STATUS] != ApiStatus.PENDING) return false
+    val requestedAt = last.data[FIELD_REGENERATE_REQUESTED_AT] as? Instant ?: return false
+    return !isStale(requestedAt, now)
+}
+
+private fun Document.isUnresolvedUserMessage(): Boolean =
+    data[FIELD_AUTHOR] == AUTHOR_USER_VALUE && (data[FIELD_STATUS] == ApiStatus.PENDING || data[FIELD_STATUS] == ApiStatus.FAILED)
+
+private fun Document.createdAt(): Instant = data[FIELD_CREATED_AT] as? Instant ?: Instant.MIN
+
+private fun isStale(since: Instant?, now: Instant): Boolean =
+    since != null && since != Instant.MIN && Duration.between(since, now) > PENDING_STALE_AFTER

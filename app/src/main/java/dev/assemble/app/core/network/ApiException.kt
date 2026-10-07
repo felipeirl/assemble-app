@@ -12,7 +12,7 @@ object ApiErrorCode {
     const val NOTHING_TO_UNDO = "nothing_to_undo"
     const val ALREADY_DECIDED = "already_decided"
     const val NOTHING_TO_REGENERATE = "nothing_to_regenerate"
-    const val BLOCKED_CONTENT = "blocked_content"
+    const val REPLY_PENDING = "reply_pending"
     const val RATE_LIMITED = "rate_limited"
     const val PROVIDER_UNAVAILABLE = "provider_unavailable"
 
@@ -27,7 +27,7 @@ object ApiErrorCode {
 class ApiException(
     val code: String,
     val httpStatus: Int,
-    /** Segundos de espera do cabeçalho Retry-After (só no 429). */
+    /** Segundos de espera do cabeçalho Retry-After (429, e 503 com a fila do backend cheia). */
     val retryAfterSeconds: Long? = null,
     message: String = "",
 ) : IOException("$httpStatus $code${if (message.isBlank()) "" else ": $message"}")

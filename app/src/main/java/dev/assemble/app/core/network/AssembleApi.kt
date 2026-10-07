@@ -2,6 +2,7 @@ package dev.assemble.app.core.network
 
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
@@ -17,8 +18,8 @@ enum class DecisionChoice { PASS, ASSEMBLE }
 interface AssembleApi {
     suspend fun deck(): ApiDeck
 
-    /** PASS devolve null (204); ASSEMBLE devolve o resultado do match. */
-    suspend fun decide(characterId: String, choice: DecisionChoice, idempotencyKey: String): ApiMatchResult?
+    /** PASS devolve null (204); ASSEMBLE devolve o estado (o match chega pelo Firestore). */
+    suspend fun decide(characterId: String, choice: DecisionChoice, idempotencyKey: String): ApiAssembleAccepted?
 
     suspend fun undo(): ApiDeckCard
 
@@ -30,10 +31,11 @@ interface AssembleApi {
 
     suspend fun character(characterId: String): ApiCharacterView
 
-    suspend fun sendMessage(connectionId: String, text: String, idempotencyKey: String): ApiCharacterReply
+    /** A resposta do personagem é gerada numa fila do backend e chega pelo Firestore. */
+    suspend fun sendMessage(connectionId: String, text: String, idempotencyKey: String): ApiAcceptedMessage
 
-    /** Gera outra resposta no lugar da última do personagem. */
-    suspend fun regenerate(connectionId: String): ApiRegenerated
+    /** Pede outra resposta no lugar da última do personagem; o texto novo chega pelo Firestore. */
+    suspend fun regenerate(connectionId: String): ApiRegenerationAccepted
 
     /** Apaga tudo o que veio depois de uma resposta do personagem. */
     suspend fun rewind(connectionId: String, messageId: String)
@@ -59,10 +61,18 @@ fun interface IdTokenProvider {
 }
 
 private const val CONNECT_TIMEOUT_MILLIS = 15_000
-// O match gera a fala de abertura com o modelo antes de responder: a leitura pode passar de 30 s.
-private const val READ_TIMEOUT_MILLIS = 90_000
+// O trabalho pesado (modelo e Laya) roda numa fila do backend: nenhuma rota fica longa.
+private const val READ_TIMEOUT_MILLIS = 30_000
 private const val HTTP_NO_CONTENT = 204
 private const val HTTP_UNAUTHORIZED = 401
+private const val HTTP_SERVICE_UNAVAILABLE = 503
+
+// Repetição automática: só em leitura (GET) e em pedidos com Idempotency-Key, que o backend
+// reconhece e não processa duas vezes.
+private const val MAX_ATTEMPTS = 3
+private const val RETRY_BASE_DELAY_MILLIS = 1_000L
+private const val RETRY_MAX_DELAY_MILLIS = 10_000L
+private const val MILLIS_PER_SECOND = 1_000L
 
 /**
  * Cliente HTTP do contrato com a JDK (sem biblioteca nova). Em 401, renova o token uma vez e
@@ -78,12 +88,14 @@ class HttpAssembleApi(
     /** Chamado quando o backend diz que o e-mail da conta ainda não foi confirmado (403 email_not_verified). */
     private val onEmailNotVerified: () -> Unit = {},
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
+    /** Espera entre tentativas; os testes trocam por uma que não dorme. */
+    private val sleep: suspend (Long) -> Unit = { delay(it) },
 ) : AssembleApi {
     private val base = baseUrl.trimEnd('/')
 
     override suspend fun deck(): ApiDeck = decode(call("GET", "/v2/deck"))
 
-    override suspend fun decide(characterId: String, choice: DecisionChoice, idempotencyKey: String): ApiMatchResult? {
+    override suspend fun decide(characterId: String, choice: DecisionChoice, idempotencyKey: String): ApiAssembleAccepted? {
         val body = json.encodeToString(ApiDecisionRequest.serializer(), ApiDecisionRequest(characterId, choice.name))
         val response = call("POST", "/v2/decisions", body, idempotencyKey)
         return if (response.isEmpty()) null else decode(response)
@@ -102,12 +114,12 @@ class HttpAssembleApi(
     override suspend fun character(characterId: String): ApiCharacterView =
         decode(call("GET", "/v2/characters/${encode(characterId)}"))
 
-    override suspend fun sendMessage(connectionId: String, text: String, idempotencyKey: String): ApiCharacterReply {
+    override suspend fun sendMessage(connectionId: String, text: String, idempotencyKey: String): ApiAcceptedMessage {
         val body = json.encodeToString(ApiSendMessageRequest.serializer(), ApiSendMessageRequest(text))
         return decode(call("POST", "/v2/connections/${encode(connectionId)}/messages", body, idempotencyKey))
     }
 
-    override suspend fun regenerate(connectionId: String): ApiRegenerated =
+    override suspend fun regenerate(connectionId: String): ApiRegenerationAccepted =
         decode(call("POST", "/v2/connections/${encode(connectionId)}/messages/regenerate"))
 
     override suspend fun rewind(connectionId: String, messageId: String) {
@@ -134,17 +146,45 @@ class HttpAssembleApi(
     }
 
     private suspend fun call(method: String, path: String, body: String? = null, idempotencyKey: String? = null): String {
-        val first = execute(method, path, body, idempotencyKey, tokens.idToken(forceRefresh = false))
-        val response = if (first.status == HTTP_UNAUTHORIZED) {
-            execute(method, path, body, idempotencyKey, tokens.idToken(forceRefresh = true))
-        } else {
-            first
+        val retriable = method == "GET" || idempotencyKey != null
+        var attempt = 1
+        while (true) {
+            val response = try {
+                authorized(method, path, body, idempotencyKey)
+            } catch (error: IOException) {
+                // Sem resposta (rede caiu, tempo esgotado): repetir é seguro com a mesma chave.
+                if (!retriable || attempt == MAX_ATTEMPTS || error is NotSignedInException) throw error
+                sleep(retryDelayMillis(attempt, retryAfterSeconds = null))
+                attempt++
+                continue
+            }
+            if (response.status == HTTP_SERVICE_UNAVAILABLE && retriable && attempt < MAX_ATTEMPTS) {
+                sleep(retryDelayMillis(attempt, response.retryAfterSeconds))
+                attempt++
+                continue
+            }
+            return response.result()
         }
-        if (response.status in 200..299) return if (response.status == HTTP_NO_CONTENT) "" else response.body
-        throw response.toException().also {
+    }
+
+    private suspend fun authorized(method: String, path: String, body: String?, idempotencyKey: String?): RawResponse {
+        val first = execute(method, path, body, idempotencyKey, tokens.idToken(forceRefresh = false))
+        if (first.status != HTTP_UNAUTHORIZED) return first
+        return execute(method, path, body, idempotencyKey, tokens.idToken(forceRefresh = true))
+    }
+
+    private fun RawResponse.result(): String {
+        if (status in 200..299) return if (status == HTTP_NO_CONTENT) "" else body
+        throw toException().also {
             if (it.code == ApiErrorCode.ACCOUNT_DEACTIVATED) onAccountDeactivated()
             if (it.code == ApiErrorCode.EMAIL_NOT_VERIFIED) onEmailNotVerified()
         }
+    }
+
+    /** Espera crescente (1 s, 2 s...), ou o Retry-After do backend, sempre até 10 s. */
+    private fun retryDelayMillis(attempt: Int, retryAfterSeconds: Long?): Long {
+        val wanted = retryAfterSeconds?.times(MILLIS_PER_SECOND) ?: (RETRY_BASE_DELAY_MILLIS shl (attempt - 1))
+        return wanted.coerceAtMost(RETRY_MAX_DELAY_MILLIS)
     }
 
     private suspend fun execute(

@@ -7,17 +7,18 @@ import dev.assemble.app.core.data.remote.RemoteCharacterRepository
 import dev.assemble.app.core.data.remote.RemoteConnectionRepository
 import dev.assemble.app.core.data.remote.RemoteUserRepository
 import dev.assemble.app.core.data.remote.inMemorySettings
+import dev.assemble.app.core.data.remote.matchDoc
 import dev.assemble.app.core.data.remote.runRemoteTest
 import dev.assemble.app.core.model.Origin
 import dev.assemble.app.core.model.Team
+import dev.assemble.app.core.network.ApiAssembleAccepted
 import dev.assemble.app.core.network.ApiDeck
 import dev.assemble.app.core.network.ApiDeckCard
 import dev.assemble.app.core.network.ApiErrorCode
 import dev.assemble.app.core.network.ApiException
-import dev.assemble.app.core.network.ApiMatchCharacter
-import dev.assemble.app.core.network.ApiMatchResult
 import dev.assemble.app.core.network.DecisionChoice
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -28,12 +29,12 @@ import java.io.IOException
 
 class RemoteDeckSourceTest {
     private val api = FakeAssembleApi()
+    private val store = InMemoryUserDataStore()
     private lateinit var users: RemoteUserRepository
     private var keyCounter = 0
 
     private suspend fun deck(scope: CoroutineScope, vararg ids: String, canUndo: Boolean = false): RemoteDeckSource {
         val auth = FakeAuthGateway(signedInUid = "uid-1")
-        val store = InMemoryUserDataStore()
         users = RemoteUserRepository(auth, store, api, inMemorySettings(), scope)
         val connections = RemoteConnectionRepository(auth.uid, store, api, scope)
         val characters = RemoteCharacterRepository(api, connections) { "en" }
@@ -47,7 +48,19 @@ class RemoteDeckSourceTest {
                 canUndo = canUndo,
             )
         }
-        return RemoteDeckSource(api, characters, users) { "key-${++keyCounter}" }.also { it.reload() }
+        return RemoteDeckSource(
+            api = api,
+            characters = characters,
+            userRepository = users,
+            connections = connections,
+            store = store,
+            uid = auth.uid,
+            scope = scope,
+            newKey = { "key-${++keyCounter}" },
+            decisionWaitMillis = 50,
+            matchWaitMillis = 50,
+            outboxFirstDelayMillis = 10,
+        ).also { it.reload() }
     }
 
     private suspend fun RemoteDeckSource.cardIds(): List<String> =
@@ -56,6 +69,10 @@ class RemoteDeckSourceTest {
             DeckState.Empty -> emptyList()
             else -> error("estado inesperado: $state")
         }
+
+    private fun decided(characterId: String, status: String) {
+        store.decisions.value = store.decisions.value + (characterId to mapOf("choice" to "ASSEMBLE", "status" to status))
+    }
 
     @Test
     fun reload_mapsCardsAndTraits() = runRemoteTest { scope ->
@@ -87,9 +104,27 @@ class RemoteDeckSourceTest {
     }
 
     @Test
-    fun pass_failure_putsCardBackOnTop() = runRemoteTest { scope ->
+    fun pass_withoutNetwork_keepsTheCardOutAndResendsWithTheSameKey() = runRemoteTest { scope ->
         val source = deck(scope, "storm", "cyclops")
         api.onDecide = { throw IOException("offline") }
+
+        source.pass("cyclops")
+
+        assertEquals(listOf("storm"), source.cardIds())
+        assertTrue("cyclops" in users.seenCharacterIds.value)
+        source.reload()
+        assertEquals(listOf("storm"), source.cardIds())
+
+        api.onDecide = { null }
+        delay(200)
+        assertEquals(listOf("key-1"), api.decisions.map { it.key }.distinct())
+        assertTrue(api.decisions.size >= 2)
+    }
+
+    @Test
+    fun pass_rejectedByTheBackend_putsCardBackOnTop() = runRemoteTest { scope ->
+        val source = deck(scope, "storm", "cyclops")
+        api.onDecide = { throw ApiException(ApiErrorCode.NOT_FOUND, 404) }
         source.pass("cyclops")
         assertEquals(listOf("cyclops", "storm"), source.cardIds())
         assertFalse("cyclops" in users.seenCharacterIds.value)
@@ -104,25 +139,49 @@ class RemoteDeckSourceTest {
     }
 
     @Test
-    fun assemble_matched_returnsMatchWithReasons() = runRemoteTest { scope ->
+    fun assemble_matched_waitsForTheQueueAndReadsTheConnection() = runRemoteTest { scope ->
         val source = deck(scope, "storm")
         api.onDecide = {
-            ApiMatchResult(true, "storm", ApiMatchCharacter("storm", "Storm", "https://img/storm"), 87, listOf("Mutant"))
+            decided("storm", "matched")
+            store.matches.value = listOf(
+                matchDoc(
+                    "storm",
+                    name = "Storm",
+                    extra = mapOf("score" to 87, "whyYouMatch" to listOf(mapOf("category" to "origin", "traits" to listOf("Mutant")))),
+                ),
+            )
+            ApiAssembleAccepted("storm", "pending")
         }
         source.dismiss("storm")
+
         val outcome = source.assemble("storm") as AssembleOutcome.Matched
+
         assertEquals(87, outcome.match.score)
         assertEquals("storm", outcome.match.connectionId)
+        assertEquals("Storm", outcome.match.name)
         assertEquals(listOf(Origin.Mutant), outcome.match.traitsInCommon)
     }
 
     @Test
     fun assemble_notMatched_andAlreadyDecided() = runRemoteTest { scope ->
         val source = deck(scope, "storm", "cyclops")
-        api.onDecide = { ApiMatchResult(matched = false) }
+        api.onDecide = {
+            decided("storm", "not_matched")
+            ApiAssembleAccepted("storm", "pending")
+        }
         assertEquals(AssembleOutcome.NotMatched, source.assemble("storm"))
         api.onDecide = { throw ApiException(ApiErrorCode.ALREADY_DECIDED, 409) }
         assertEquals(AssembleOutcome.NotMatched, source.assemble("cyclops"))
+    }
+
+    @Test
+    fun assemble_slowQueue_endsQuietlyWithoutPuttingTheCardBack() = runRemoteTest { scope ->
+        val source = deck(scope, "storm", "cyclops")
+        api.onDecide = { ApiAssembleAccepted("storm", "pending") }
+        source.dismiss("storm")
+
+        assertEquals(AssembleOutcome.NotMatched, source.assemble("storm"))
+        assertEquals(listOf("cyclops"), source.cardIds())
     }
 
     @Test
@@ -138,7 +197,7 @@ class RemoteDeckSourceTest {
         }
         assertEquals(listOf("cyclops", "storm"), source.cardIds())
 
-        api.onDecide = { ApiMatchResult(matched = false) }
+        api.onDecide = { ApiAssembleAccepted("cyclops", "not_matched") }
         source.assemble("cyclops")
         assertEquals(api.decisions[0].key, api.decisions[1].key)
     }

@@ -128,7 +128,7 @@ class AppContainer(context: Context) {
     val assembleService = AssembleService(
         deckSource = deckSource,
         scope = applicationScope,
-        // Com backend, a própria chamada já leva o tempo de gerar a fala de abertura.
+        // Com backend, a espera é a da fila que decide o match e grava a fala de abertura.
         replyDelay = if (remote != null) Duration.ZERO else CharacterReplyDelay,
     )
 

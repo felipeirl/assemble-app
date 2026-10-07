@@ -1,6 +1,7 @@
 package dev.assemble.app.core.network
 
 import dev.assemble.app.feature.character.remoteProfileContent
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -49,45 +50,31 @@ class HttpAssembleApiLiveTest {
         }
         assertEquals(passed, api.undo().characterId)
 
-        val match = deck.cards.drop(2).take(MAX_ASSEMBLES).firstNotNullOfOrNull { card ->
+        // O Assemble é decidido numa fila: repetir com a mesma chave devolve o estado atual.
+        val connectionId = deck.cards.drop(2).take(MAX_ASSEMBLES).firstNotNullOfOrNull { card ->
             val key = UUID.randomUUID().toString()
-            api.decide(card.characterId, DecisionChoice.ASSEMBLE, key)?.takeIf { it.matched }?.also { result ->
-                assertEquals(result, api.decide(card.characterId, DecisionChoice.ASSEMBLE, key))
-            }
+            val status = settle { api.decide(card.characterId, DecisionChoice.ASSEMBLE, key)!!.status }
+            card.characterId.takeIf { status == ApiStatus.MATCHED }
         }
-        assertNotNull("nenhum match nos primeiros cards", match)
-        val connectionId = match!!.connectionId!!
+        assertNotNull("nenhum match nos primeiros cards", connectionId)
 
-        val profile = api.character(connectionId)
+        val profile = api.character(connectionId!!)
         assertTrue(profile.connected)
-        val content = remoteProfileContent(profile, unlockPending = true)
-        assertEquals(match.score, content.score)
+        assertNotNull(remoteProfileContent(profile, unlockPending = true).score)
 
-        val reply = api.sendMessage(connectionId, "Oi! Qual é a sua maior qualidade?", UUID.randomUUID().toString())
-        assertTrue(reply.reply.fictional)
-        assertEquals("USER", reply.userMessage.author)
-        assertEquals(SUGGESTIONS, reply.suggestions.size)
+        val key = UUID.randomUUID().toString()
+        val accepted = api.sendMessage(connectionId, "Oi! Qual é a sua maior qualidade?", key)
+        assertEquals("USER", accepted.userMessage.author)
+        assertEquals(ApiStatus.SENT, settle { api.sendMessage(connectionId, "Oi! Qual é a sua maior qualidade?", key).userMessage.status })
 
         val regenerated = api.regenerate(connectionId)
-        assertEquals(reply.reply.id, regenerated.reply.id)
-        assertTrue(regenerated.reply.text.isNotBlank())
+        assertEquals(ApiStatus.PENDING, regenerated.reply.status)
 
-        val second = api.sendMessage(connectionId, "E qual é o seu maior medo?", UUID.randomUUID().toString())
-        assertTrue(second.reply.id != reply.reply.id)
-        api.rewind(connectionId, reply.reply.id)
-        try {
-            api.rewind(connectionId, second.userMessage.id)
-            fail("esperava invalid_request: o alvo é do usuário")
-        } catch (error: ApiException) {
-            assertEquals(ApiErrorCode.NOT_FOUND, error.code) // já apagada pelo rewind anterior
+        val blockedKey = UUID.randomUUID().toString()
+        val blocked = settle {
+            api.sendMessage(connectionId, "meu email é fulano@exemplo.com", blockedKey).userMessage.status
         }
-
-        try {
-            api.sendMessage(connectionId, "meu email é fulano@exemplo.com", UUID.randomUUID().toString())
-            fail("esperava blocked_content")
-        } catch (error: ApiException) {
-            assertEquals(ApiErrorCode.BLOCKED_CONTENT, error.code)
-        }
+        assertEquals(ApiStatus.BLOCKED, blocked)
 
         val stats = api.stats()
         assertTrue(stats.connections >= 1 && stats.messagesSent >= 1)
@@ -105,8 +92,25 @@ class HttpAssembleApiLiveTest {
         api.deck()
     }
 
+    /** Repete [read] até o estado sair de `pending` (a fila terminou), por até um minuto. */
+    private suspend fun settle(read: suspend () -> String): String {
+        repeat(SETTLE_ATTEMPTS) {
+            val status = try {
+                read()
+            } catch (error: ApiException) {
+                if (error.code != ApiErrorCode.REPLY_PENDING) throw error
+                ApiStatus.PENDING
+            }
+            if (status != ApiStatus.PENDING) return status
+            delay(SETTLE_INTERVAL_MILLIS)
+        }
+        fail("a fila do backend não terminou")
+        error("inalcançável")
+    }
+
     private companion object {
         const val MAX_ASSEMBLES = 10
-        const val SUGGESTIONS = 3
+        const val SETTLE_ATTEMPTS = 60
+        const val SETTLE_INTERVAL_MILLIS = 1_000L
     }
 }

@@ -27,6 +27,7 @@ class HttpAssembleApiTest {
     private var replies: MutableList<Reply> = mutableListOf()
     private val tokens = mutableListOf<Boolean>()
     private var deactivatedCalls = 0
+    private val slept = mutableListOf<Long>()
 
     @Before
     fun start() {
@@ -56,6 +57,7 @@ class HttpAssembleApiTest {
         languageTag = { "pt-BR" },
         timeZoneId = { "America/Sao_Paulo" },
         onAccountDeactivated = { deactivatedCalls++ },
+        sleep = { slept += it },
     )
 
     private fun reply(vararg all: Reply) {
@@ -105,20 +107,13 @@ class HttpAssembleApiTest {
     }
 
     @Test
-    fun `assemble decodes a match and a non-match`() = runBlocking {
-        reply(
-            Reply(200, """{"matched":true,"connectionId":"storm","character":{"characterId":"storm","name":"Storm"},"score":82,"reasons":["Mutant"]}"""),
-            Reply(200, """{"matched":false}"""),
-        )
+    fun `assemble decodes the accepted state`() = runBlocking {
+        reply(Reply(202, """{"characterId":"storm","status":"pending"}"""))
 
-        val match = api().decide("storm", DecisionChoice.ASSEMBLE, "k1")!!
-        val noMatch = api().decide("rocket", DecisionChoice.ASSEMBLE, "k2")!!
+        val accepted = api().decide("storm", DecisionChoice.ASSEMBLE, "k1")!!
 
-        assertTrue(match.matched)
-        assertEquals(82, match.score)
-        assertEquals(listOf("Mutant"), match.reasons)
-        assertFalse(noMatch.matched)
-        assertNull(noMatch.score)
+        assertEquals("storm", accepted.characterId)
+        assertEquals(ApiStatus.PENDING, accepted.status)
     }
 
     @Test
@@ -168,15 +163,15 @@ class HttpAssembleApiTest {
     fun `regenerate posts to the connection and decodes the same message`() = runBlocking {
         reply(
             Reply(
-                200,
-                """{"reply":{"id":"m_1","connectionId":"storm","author":"CHARACTER","text":"Outra","createdAt":"2026-10-04T12:00:05Z","fictional":true,"blocked":false},"suggestions":["a","b","c"]}""",
+                202,
+                """{"reply":{"id":"m_1","connectionId":"storm","author":"CHARACTER","text":"Antiga","createdAt":"2026-10-04T12:00:05Z","fictional":true,"blocked":false,"status":"pending"}}""",
             ),
         )
 
         val regenerated = api().regenerate("storm")
 
         assertEquals("m_1", regenerated.reply.id)
-        assertEquals(3, regenerated.suggestions.size)
+        assertEquals(ApiStatus.PENDING, regenerated.reply.status)
         assertEquals("POST", requests[0].method)
         assertEquals("/v2/connections/storm/messages/regenerate", requests[0].path)
     }
@@ -313,26 +308,60 @@ class HttpAssembleApiTest {
     }
 
     @Test
-    fun `send message decodes the reply and suggestions`() = runBlocking {
+    fun `send message decodes the accepted user message`() = runBlocking {
         reply(
             Reply(
-                200,
-                """{"userMessage":{"id":"m1","connectionId":"storm","author":"USER","text":"Oi","createdAt":"2026-10-04T15:00:00Z","fictional":false,"blocked":false},
-                   "reply":{"id":"m2","connectionId":"storm","author":"CHARACTER","text":"Olá.","createdAt":"2026-10-04T15:00:01Z","fictional":true,"blocked":false},
-                   "suggestions":["a","b","c"]}""",
+                202,
+                """{"userMessage":{"id":"m1","connectionId":"storm","author":"USER","text":"Oi","createdAt":"2026-10-04T15:00:00Z","fictional":false,"blocked":false,"status":"pending"}}""",
             ),
         )
 
-        val reply = api().sendMessage("storm", "Oi", "k")
+        val accepted = api().sendMessage("storm", "Oi", "k")
 
-        assertEquals("CHARACTER", reply.reply.author)
-        assertTrue(reply.reply.fictional)
-        assertEquals(3, reply.suggestions.size)
+        assertEquals("USER", accepted.userMessage.author)
+        assertEquals(ApiStatus.PENDING, accepted.userMessage.status)
         assertEquals("""{"text":"Oi"}""", requests.single().body)
     }
 
     @Test
-    fun `network failure without a server is a plain IOException`() = runBlocking {
+    fun `503 with an idempotency key is repeated after Retry-After`() = runBlocking {
+        reply(
+            Reply(503, """{"error":"provider_unavailable","message":"x"}""", mapOf("Retry-After" to "4")),
+            Reply(202, """{"characterId":"storm","status":"pending"}"""),
+        )
+
+        val accepted = api().decide("storm", DecisionChoice.ASSEMBLE, "k1")
+
+        assertEquals(ApiStatus.PENDING, accepted?.status)
+        assertEquals(listOf("k1", "k1"), requests.map { it.headers["idempotency-key"] })
+        assertEquals(listOf(4_000L), slept)
+    }
+
+    @Test
+    fun `a request without an idempotency key is never repeated`() = runBlocking {
+        reply(Reply(503, """{"error":"provider_unavailable","message":"x"}"""))
+
+        val error = runCatching { api().hideChats() }.exceptionOrNull() as ApiException
+
+        assertEquals(503, error.httpStatus)
+        assertEquals(1, requests.size)
+        assertTrue(slept.isEmpty())
+    }
+
+    @Test
+    fun `503 that persists gives up after three attempts`() = runBlocking {
+        val busy = Reply(503, """{"error":"provider_unavailable","message":"x"}""")
+        reply(busy, busy, busy)
+
+        val error = runCatching { api().deck() }.exceptionOrNull() as ApiException
+
+        assertEquals(ApiErrorCode.PROVIDER_UNAVAILABLE, error.code)
+        assertEquals(3, requests.size)
+        assertEquals(listOf(1_000L, 2_000L), slept)
+    }
+
+    @Test
+    fun `network failure without a server is a plain IOException after the retries`() = runBlocking {
         server.stop(0)
 
         try {
@@ -341,5 +370,6 @@ class HttpAssembleApiTest {
         } catch (error: IOException) {
             assertFalse(error is ApiException)
         }
+        assertEquals(listOf(1_000L, 2_000L), slept)
     }
 }

@@ -16,6 +16,7 @@ import dev.assemble.app.core.model.ProfileTitle
 import dev.assemble.app.core.model.Style
 import dev.assemble.app.core.model.Team
 import dev.assemble.app.core.model.UserProfile
+import dev.assemble.app.core.network.ApiStatus
 import java.time.Instant
 
 // Conversão entre os documentos do Firestore (contrato §2–§3) e os modelos do app. Funções puras:
@@ -56,6 +57,8 @@ data class MatchDocument(
     val suggestions: List<String>,
     val userMessageCount: Int,
     val hidden: Boolean,
+    /** Traços em comum que explicam a conexão (`whyYouMatch`), para o pop-up de match. */
+    val reasons: List<String> = emptyList(),
 )
 
 fun userDocument(data: Map<String, Any?>?, defaultName: String): UserDocument {
@@ -97,6 +100,9 @@ fun matchDocument(document: Document): MatchDocument? {
         suggestions = (data["suggestions"] as? List<*>).orEmpty().filterIsInstance<String>(),
         userMessageCount = (data["userMessageCount"] as? Number)?.toInt() ?: 0,
         hidden = data["hidden"] == true,
+        reasons = (data["whyYouMatch"] as? List<*>).orEmpty()
+            .flatMap { item -> ((item as? Map<*, *>)?.get("traits") as? List<*>).orEmpty() }
+            .filterIsInstance<String>(),
     )
 }
 
@@ -117,9 +123,18 @@ fun messageFrom(document: Document, connectionId: String, lastReadAt: Instant?):
         author = author,
         text = data["text"] as? String ?: "",
         sentAt = createdAt,
-        status = if (author == MessageAuthor.User && blocked) MessageStatus.Blocked else MessageStatus.Sent,
+        status = userMessageStatus(author, blocked, data["status"]),
         read = author == MessageAuthor.User || (lastReadAt != null && !createdAt.isAfter(lastReadAt)),
     )
+}
+
+/** Estado da mensagem do usuário gravado pelo backend; a do personagem é sempre enviada. */
+private fun userMessageStatus(author: MessageAuthor, blocked: Boolean, status: Any?): MessageStatus = when {
+    author != MessageAuthor.User -> MessageStatus.Sent
+    blocked || status == ApiStatus.BLOCKED -> MessageStatus.Blocked
+    status == ApiStatus.FAILED -> MessageStatus.Failed
+    status == ApiStatus.PENDING -> MessageStatus.Sending
+    else -> MessageStatus.Sent
 }
 
 /**

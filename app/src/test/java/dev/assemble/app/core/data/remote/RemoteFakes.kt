@@ -3,16 +3,16 @@ package dev.assemble.app.core.data.remote
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.emptyPreferences
 import dev.assemble.app.core.data.local.SettingsDataStore
-import dev.assemble.app.core.network.ApiCharacterReply
+import dev.assemble.app.core.network.ApiAcceptedMessage
+import dev.assemble.app.core.network.ApiAssembleAccepted
 import dev.assemble.app.core.network.ApiCharacterView
 import dev.assemble.app.core.network.ApiDeactivation
 import dev.assemble.app.core.network.ApiDeck
 import dev.assemble.app.core.network.ApiDeckCard
 import dev.assemble.app.core.network.ApiErrorCode
 import dev.assemble.app.core.network.ApiException
-import dev.assemble.app.core.network.ApiMatchResult
 import dev.assemble.app.core.network.ApiPhotoSignature
-import dev.assemble.app.core.network.ApiRegenerated
+import dev.assemble.app.core.network.ApiRegenerationAccepted
 import dev.assemble.app.core.network.ApiUserStats
 import dev.assemble.app.core.network.AssembleApi
 import dev.assemble.app.core.network.DecisionChoice
@@ -52,20 +52,20 @@ internal class FakeAssembleApi : AssembleApi {
     var reactivateCalls = 0
 
     var onDeck: () -> ApiDeck = { throw IOException("deck não configurado") }
-    var onDecide: (Decision) -> ApiMatchResult? = { null }
+    var onDecide: (Decision) -> ApiAssembleAccepted? = { null }
     var onUndo: () -> ApiDeckCard = { throw ApiException(ApiErrorCode.NOTHING_TO_UNDO, 409) }
     var onCharacter: (String) -> ApiCharacterView = { throw ApiException(ApiErrorCode.NOT_FOUND, 404) }
-    var onSend: (connectionId: String, text: String, key: String) -> ApiCharacterReply = { _, _, _ -> throw IOException("sem rede") }
+    var onSend: (connectionId: String, text: String, key: String) -> ApiAcceptedMessage = { _, _, _ -> throw IOException("sem rede") }
     val regenerateCalls = mutableListOf<String>()
     val rewinds = mutableListOf<Pair<String, String>>()
-    var onRegenerate: (String) -> ApiRegenerated = { throw IOException("sem rede") }
+    var onRegenerate: (String) -> ApiRegenerationAccepted = { throw IOException("sem rede") }
     var onRewind: (String, String) -> Unit = { _, _ -> }
     var onStats: () -> ApiUserStats = { ApiUserStats(0, 0, 0, 0) }
     var onDeactivate: () -> ApiDeactivation = { ApiDeactivation("2026-11-03T12:00:00Z") }
 
     override suspend fun deck(): ApiDeck = onDeck()
 
-    override suspend fun decide(characterId: String, choice: DecisionChoice, idempotencyKey: String): ApiMatchResult? {
+    override suspend fun decide(characterId: String, choice: DecisionChoice, idempotencyKey: String): ApiAssembleAccepted? {
         val decision = Decision(characterId, choice, idempotencyKey)
         decisions += decision
         return onDecide(decision)
@@ -84,12 +84,12 @@ internal class FakeAssembleApi : AssembleApi {
 
     override suspend fun character(characterId: String): ApiCharacterView = onCharacter(characterId)
 
-    override suspend fun sendMessage(connectionId: String, text: String, idempotencyKey: String): ApiCharacterReply {
+    override suspend fun sendMessage(connectionId: String, text: String, idempotencyKey: String): ApiAcceptedMessage {
         sentKeys += idempotencyKey
         return onSend(connectionId, text, idempotencyKey)
     }
 
-    override suspend fun regenerate(connectionId: String): ApiRegenerated {
+    override suspend fun regenerate(connectionId: String): ApiRegenerationAccepted {
         regenerateCalls += connectionId
         return onRegenerate(connectionId)
     }
@@ -136,6 +136,7 @@ internal class InMemoryUserDataStore : UserDataStore {
     val user = MutableStateFlow<Map<String, Any?>?>(null)
     val matches = MutableStateFlow<List<Document>>(emptyList())
     val messages = MutableStateFlow<Map<String, List<Document>>>(emptyMap())
+    val decisions = MutableStateFlow<Map<String, Map<String, Any?>>>(emptyMap())
     val merges = mutableListOf<Map<String, Any?>>()
     val matchUpdates = mutableListOf<Pair<String, Map<String, Any?>>>()
 
@@ -152,6 +153,9 @@ internal class InMemoryUserDataStore : UserDataStore {
 
     override fun observeMessages(uid: String, connectionId: String): Flow<List<Document>> =
         messages.map { it[connectionId].orEmpty() }
+
+    override fun observeDecision(uid: String, characterId: String): Flow<Map<String, Any?>?> =
+        decisions.map { it[characterId] }
 
     override suspend fun updateMatch(uid: String, connectionId: String, fields: Map<String, Any?>) {
         matchUpdates += connectionId to fields

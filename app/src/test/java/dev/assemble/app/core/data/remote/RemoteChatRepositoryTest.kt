@@ -3,20 +3,20 @@ package dev.assemble.app.core.data.remote
 import dev.assemble.app.core.model.Message
 import dev.assemble.app.core.model.MessageAuthor
 import dev.assemble.app.core.model.MessageStatus
-import dev.assemble.app.core.network.ApiCharacterReply
-import dev.assemble.app.core.network.ApiErrorCode
-import dev.assemble.app.core.network.ApiException
+import dev.assemble.app.core.network.ApiAcceptedMessage
 import dev.assemble.app.core.network.ApiMessage
-import dev.assemble.app.core.network.ApiRegenerated
+import dev.assemble.app.core.network.ApiRegenerationAccepted
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
 import org.junit.Test
 import java.io.IOException
 import java.time.Clock
+import java.time.Instant
 import java.time.ZoneOffset
 
 class RemoteChatRepositoryTest {
@@ -25,7 +25,7 @@ class RemoteChatRepositoryTest {
     private val uid = MutableStateFlow<String?>("uid-1")
     private var keyCounter = 0
 
-    private fun repository(scope: CoroutineScope): RemoteChatRepository {
+    private fun repository(scope: CoroutineScope, echoTimeoutMillis: Long = 1_000): RemoteChatRepository {
         val connections = RemoteConnectionRepository(uid, store, api, scope)
         return RemoteChatRepository(
             uid = uid,
@@ -35,57 +35,106 @@ class RemoteChatRepositoryTest {
             scope = scope,
             clock = Clock.fixed(TestNow, ZoneOffset.UTC),
             newKey = { "key-${++keyCounter}" },
+            regenerateEchoTimeoutMillis = echoTimeoutMillis,
         )
     }
 
-    private fun reply(connectionId: String, text: String, blocked: Boolean = false) = ApiCharacterReply(
-        userMessage = ApiMessage("u1", connectionId, "USER", if (blocked) "" else text, "2026-10-04T12:00:00Z", blocked = blocked),
-        reply = ApiMessage("c1", connectionId, "CHARACTER", "Hello, mortal.", "2026-10-04T12:00:05Z", fictional = true),
+    private fun accepted(connectionId: String, text: String) = ApiAcceptedMessage(
+        ApiMessage("m_user", connectionId, "USER", text, "2026-10-04T12:00:00Z", status = "pending"),
     )
 
+    private fun userDoc(id: String, key: String, status: String, text: String = "", at: Instant = TestNow) =
+        Document(id, mapOf("createdAt" to at, "author" to "USER", "text" to text, "idempotencyKey" to key, "status" to status))
+
+    private fun characterDoc(id: String, text: String, at: Instant = TestNow.plusSeconds(5), extra: Map<String, Any?> = emptyMap()) =
+        Document(id, mapOf("createdAt" to at, "author" to "CHARACTER", "text" to text, "status" to "sent") + extra)
+
+    private fun serverThread(vararg documents: Document) {
+        store.messages.value = mapOf("thor" to documents.toList())
+    }
+
     @Test
-    fun send_success_showsConfirmedMessagesBeforeFirestore() = runRemoteTest { scope ->
+    fun send_accepted_showsTheLocalCopyAndTypingUntilTheReplyArrives() = runRemoteTest { scope ->
         store.matches.value = listOf(matchDoc("thor"))
-        api.onSend = { connectionId, text, _ -> reply(connectionId, text) }
+        api.onSend = { connectionId, text, _ -> accepted(connectionId, text) }
         val chat = repository(scope)
 
         chat.send("thor", "Hi")
 
         val messages = chat.observeMessages("thor").first()
-        assertEquals(listOf("u1", "c1"), messages.map { it.id })
-        assertTrue(messages.all { it.status == MessageStatus.Sent })
+        assertEquals(listOf("Hi"), messages.map { it.text })
+        assertEquals(listOf(MessageStatus.Sent), messages.map { it.status })
+        assertEquals(setOf("thor"), chat.typingConnectionIds.value)
+    }
+
+    @Test
+    fun send_pendingOnTheServer_keepsTheLocalTextInsteadOfTheEmptyDocument() = runRemoteTest { scope ->
+        store.matches.value = listOf(matchDoc("thor"))
+        api.onSend = { connectionId, text, key ->
+            serverThread(userDoc("m_user", key, "pending"))
+            accepted(connectionId, text)
+        }
+        val chat = repository(scope)
+
+        chat.send("thor", "Hi")
+
+        val message = chat.observeMessages("thor").first().single()
+        assertEquals("Hi", message.text)
+        assertEquals(MessageStatus.Sent, message.status)
+        assertEquals(setOf("thor"), chat.typingConnectionIds.value)
+    }
+
+    @Test
+    fun send_answeredOnTheServer_showsTheServerMessagesAndStopsTyping() = runRemoteTest { scope ->
+        store.matches.value = listOf(matchDoc("thor"))
+        api.onSend = { connectionId, text, _ -> accepted(connectionId, text) }
+        val chat = repository(scope)
+        chat.send("thor", "Hi")
+
+        serverThread(userDoc("m_user", "key-1", "sent", text = "Hi"), characterDoc("m_reply", "Hello, mortal."))
+
+        assertEquals(listOf("m_user", "m_reply"), chat.observeMessages("thor").first().map { it.id })
         assertEquals(emptySet<String>(), chat.typingConnectionIds.value)
     }
 
     @Test
-    fun send_blockedByGuardrail_marksBlocked() = runRemoteTest { scope ->
+    fun send_blockedOnTheServer_showsTheBlockedMessageWithoutText() = runRemoteTest { scope ->
         store.matches.value = listOf(matchDoc("thor"))
-        api.onSend = { _, _, _ -> throw ApiException(ApiErrorCode.BLOCKED_CONTENT, 422) }
+        api.onSend = { connectionId, text, _ -> accepted(connectionId, text) }
         val chat = repository(scope)
-
         chat.send("thor", "bad words")
+
+        serverThread(userDoc("m_user", "key-1", "blocked"))
 
         val message = chat.observeMessages("thor").first().single()
         assertEquals(MessageStatus.Blocked, message.status)
-        assertEquals("bad words", message.text)
+        assertEquals("", message.text)
     }
 
     @Test
-    fun send_selfHarmReply_keepsUserMessageBlockedWithoutText() = runRemoteTest { scope ->
+    fun send_failedOnTheServer_offersRetryWithTheSameKey() = runRemoteTest { scope ->
         store.matches.value = listOf(matchDoc("thor"))
-        api.onSend = { connectionId, text, _ -> reply(connectionId, text, blocked = true) }
+        api.onSend = { connectionId, text, _ -> accepted(connectionId, text) }
         val chat = repository(scope)
+        chat.send("thor", "Hi")
+        serverThread(userDoc("m_user", "key-1", "failed"))
 
-        chat.send("thor", "help")
+        val failed = chat.observeMessages("thor").first().single()
+        assertEquals(MessageStatus.Failed, failed.status)
+        assertEquals("Hi", failed.text)
 
-        val (mine, theirs) = chat.observeMessages("thor").first()
-        assertEquals(MessageStatus.Blocked, mine.status)
-        assertEquals("", mine.text)
-        assertEquals(MessageAuthor.Character, theirs.author)
+        api.onSend = { connectionId, text, key ->
+            serverThread(userDoc("m_user", key, "pending"))
+            accepted(connectionId, text)
+        }
+        chat.retry(failed.id)
+
+        assertEquals(listOf("key-1", "key-1"), api.sentKeys)
+        assertEquals(listOf(MessageStatus.Sent), chat.observeMessages("thor").first().map { it.status })
     }
 
     @Test
-    fun retry_afterFailure_reusesIdempotencyKey() = runRemoteTest { scope ->
+    fun send_networkFailure_marksFailedAndRetryReusesTheKey() = runRemoteTest { scope ->
         store.matches.value = listOf(matchDoc("thor"))
         api.onSend = { _, _, _ -> throw IOException("offline") }
         val chat = repository(scope)
@@ -93,12 +142,166 @@ class RemoteChatRepositoryTest {
         chat.send("thor", "Hi")
         val failed = chat.observeMessages("thor").first().single()
         assertEquals(MessageStatus.Failed, failed.status)
+        assertEquals(emptySet<String>(), chat.typingConnectionIds.value)
 
-        api.onSend = { connectionId, text, _ -> reply(connectionId, text) }
+        api.onSend = { connectionId, text, _ -> accepted(connectionId, text) }
         chat.retry(failed.id)
 
         assertEquals(listOf("key-1", "key-1"), api.sentKeys)
+        assertEquals(setOf("thor"), chat.typingConnectionIds.value)
+    }
+
+    @Test
+    fun send_thatTimedOutButWasProcessed_isNotShownTwice() = runRemoteTest { scope ->
+        store.matches.value = listOf(matchDoc("thor"))
+        api.onSend = { _, _, _ -> throw IOException("tempo esgotado") }
+        val chat = repository(scope)
+
+        chat.send("thor", "Oi")
+        assertEquals(listOf(MessageStatus.Failed), chat.observeMessages("thor").first().map { it.status })
+
+        // O servidor terminou o pedido depois do tempo esgotado: o Firestore traz a mensagem com a mesma chave.
+        serverThread(userDoc("m_1", "key-1", "sent", text = "Oi"), characterDoc("m_2", "Olá"))
+
+        assertEquals(listOf("m_1", "m_2"), chat.observeMessages("thor").first().map { it.id })
+    }
+
+    @Test
+    fun pendingOnTheServerAfterTheAppReopens_showsTypingWithoutAnEmptyBubble() = runRemoteTest { scope ->
+        store.matches.value = listOf(matchDoc("thor"))
+        serverThread(characterDoc("c0", "Olá", at = TestNow.minusSeconds(60)), userDoc("m_user", "old-key", "pending"))
+        val chat = repository(scope)
+
+        assertEquals(listOf("c0"), chat.observeMessages("thor").first().map { it.id })
+        assertEquals(setOf("thor"), chat.typingConnectionIds.value)
+    }
+
+    @Test
+    fun mergeThread_aPendingReplyLostInARestartBecomesARetry() {
+        val local = listOf(
+            PendingMessage(
+                key = "k1",
+                message = message("pending-k1", MessageAuthor.User, seconds = 0, status = MessageStatus.Sent),
+                acceptedAt = TestNow,
+            ),
+        )
+        val documents = listOf(userDoc("m_user", "k1", "pending"))
+        val later = TestNow.plus(PENDING_STALE_AFTER).plusSeconds(1)
+
+        val merged = mergeThread(documents, "thor", readAt = null, local = local, now = later)
+
+        assertEquals(listOf(MessageStatus.Failed), merged.map { it.status })
+        assertEquals(emptySet<String>(), awaitingReply(mapOf("thor" to documents), local, later))
+    }
+
+    @Test
+    fun aSendThatTimedOutButEnteredTheQueue_showsTypingAndNoRetry() {
+        val local = listOf(
+            PendingMessage("k1", message("pending-k1", MessageAuthor.User, seconds = 0, status = MessageStatus.Failed)),
+        )
+        val documents = listOf(userDoc("m_user", "k1", "pending"))
+
+        val merged = mergeThread(documents, "thor", readAt = null, local = local, now = TestNow)
+
+        assertEquals(listOf(MessageStatus.Sent), merged.map { it.status })
+        assertEquals(setOf("thor"), awaitingReply(mapOf("thor" to documents), local, TestNow))
+    }
+
+    @Test
+    fun regenerateLast_marksTheConversationUntilTheServerShowsTheNewText() = runRemoteTest { scope ->
+        store.matches.value = listOf(matchDoc("thor"))
+        serverThread(characterDoc("c1", "Resposta antiga"))
+        lateinit var chat: RemoteChatRepository
+        var markedWhileWaiting = false
+        api.onRegenerate = {
+            markedWhileWaiting = "thor" in chat.regeneratingConnectionIds.value
+            serverThread(characterDoc("c1", "Resposta antiga", extra = mapOf("status" to "pending", "regenerateRequestedAt" to TestNow)))
+            ApiRegenerationAccepted(ApiMessage("c1", "thor", "CHARACTER", "Resposta antiga", "2026-10-04T12:00:05Z", status = "pending"))
+        }
+        chat = repository(scope)
+
+        chat.regenerateLast("thor")
+
+        assertTrue(markedWhileWaiting)
+        assertEquals(setOf("thor"), chat.regeneratingConnectionIds.value)
+
+        serverThread(characterDoc("c1", "Resposta nova", extra = mapOf("regeneratedAt" to TestNow)))
+
+        assertEquals(emptySet<String>(), chat.regeneratingConnectionIds.value)
+        assertEquals(listOf("Resposta nova"), chat.observeMessages("thor").first().map { it.text })
+    }
+
+    @Test
+    fun regenerateLast_givesUpWaitingWhenTheServerNeverShowsIt() = runRemoteTest { scope ->
+        store.matches.value = listOf(matchDoc("thor"))
+        serverThread(characterDoc("c1", "Resposta antiga"))
+        api.onRegenerate = {
+            ApiRegenerationAccepted(ApiMessage("c1", "thor", "CHARACTER", "Resposta antiga", "2026-10-04T12:00:05Z", status = "pending"))
+        }
+        val chat = repository(scope, echoTimeoutMillis = 20)
+
+        chat.regenerateLast("thor")
+
+        assertEquals(emptySet<String>(), chat.regeneratingConnectionIds.value)
+    }
+
+    @Test
+    fun regenerateLast_failureClearsTheMarkAndPropagates() = runRemoteTest { scope ->
+        store.matches.value = listOf(matchDoc("thor"))
+        val chat = repository(scope)
+
+        try {
+            chat.regenerateLast("thor")
+            fail("esperava IOException")
+        } catch (_: IOException) {
+            assertEquals(emptySet<String>(), chat.regeneratingConnectionIds.value)
+        }
+    }
+
+    @Test
+    fun regeneratingNow_ignoresARequestLostInARestart() {
+        val stale = characterDoc(
+            "c1",
+            "Resposta antiga",
+            extra = mapOf("status" to "pending", "regenerateRequestedAt" to TestNow.minus(PENDING_STALE_AFTER).minusSeconds(1)),
+        )
+
+        assertFalse(regeneratingNow(listOf(stale), TestNow))
+    }
+
+    @Test
+    fun rewindTo_dropsLocalCopiesOfTheDeletedMessages() = runRemoteTest { scope ->
+        store.matches.value = listOf(matchDoc("thor"))
+        serverThread(
+            userDoc("u1", "old", "sent", text = "Primeira", at = TestNow.minusSeconds(60)),
+            characterDoc("c1", "Resposta 1", at = TestNow.minusSeconds(55)),
+        )
+        api.onSend = { _, _, _ -> throw IOException("sem rede") }
+        val chat = repository(scope)
+        chat.send("thor", "Segunda")
+        assertEquals(3, chat.observeMessages("thor").first().size)
+
+        chat.rewindTo("thor", "c1")
+
+        assertEquals(listOf("thor" to "c1"), api.rewinds)
         assertEquals(listOf("u1", "c1"), chat.observeMessages("thor").first().map { it.id })
+    }
+
+    @Test
+    fun rewindTo_failureKeepsTheLocalMessages() = runRemoteTest { scope ->
+        store.matches.value = listOf(matchDoc("thor"))
+        serverThread(characterDoc("c1", "Resposta 1", at = TestNow.minusSeconds(55)))
+        api.onSend = { _, _, _ -> throw IOException("sem rede") }
+        api.onRewind = { _, _ -> throw IOException("sem rede") }
+        val chat = repository(scope)
+        chat.send("thor", "Oi")
+
+        try {
+            chat.rewindTo("thor", "c1")
+            fail("esperava IOException")
+        } catch (_: IOException) {
+            assertEquals(2, chat.observeMessages("thor").first().size)
+        }
     }
 
     @Test
@@ -115,9 +318,7 @@ class RemoteChatRepositoryTest {
         chat.markRead("thor")
         assertTrue(store.matchUpdates.isEmpty())
 
-        store.messages.value = mapOf(
-            "thor" to listOf(Document("m1", mapOf("createdAt" to TestNow, "author" to "CHARACTER", "text" to "Greetings"))),
-        )
+        serverThread(Document("m1", mapOf("createdAt" to TestNow, "author" to "CHARACTER", "text" to "Greetings")))
         chat.markRead("thor")
         assertEquals(listOf("thor" to mapOf<String, Any?>("lastReadAt" to ServerTime)), store.matchUpdates)
     }
@@ -126,130 +327,6 @@ class RemoteChatRepositoryTest {
     fun deleteAll_hidesChatsOnServer() = runRemoteTest { scope ->
         repository(scope).deleteAll()
         assertEquals(1, api.hideChatsCalls)
-    }
-
-    private fun apiMessage(id: String, author: String, text: String, at: String) =
-        ApiMessage(id, "thor", author, text, at, fictional = author == "CHARACTER")
-
-    @Test
-    fun regenerateLast_callsTheApiAndClearsTyping() = runRemoteTest { scope ->
-        store.matches.value = listOf(matchDoc("thor"))
-        api.onRegenerate = { ApiRegenerated(apiMessage("c1", "CHARACTER", "Outra resposta", "2026-10-04T12:00:05Z")) }
-        val chat = repository(scope)
-
-        chat.regenerateLast("thor")
-
-        assertEquals(listOf("thor"), api.regenerateCalls)
-        assertEquals(emptySet<String>(), chat.typingConnectionIds.value)
-        assertEquals(listOf("Outra resposta"), chat.observeMessages("thor").first().map { it.text })
-    }
-
-    @Test
-    fun regenerateLast_failureClearsTypingAndPropagates() = runRemoteTest { scope ->
-        store.matches.value = listOf(matchDoc("thor"))
-        val chat = repository(scope)
-
-        try {
-            chat.regenerateLast("thor")
-            fail("esperava IOException")
-        } catch (_: IOException) {
-            assertEquals(emptySet<String>(), chat.typingConnectionIds.value)
-        }
-    }
-
-    @Test
-    fun rewindTo_dropsLocalCopiesOfTheDeletedMessages() = runRemoteTest { scope ->
-        store.matches.value = listOf(matchDoc("thor"))
-        var turn = 0
-        api.onSend = { _, text, _ ->
-            turn++
-            val minute = "2026-10-04T12:0$turn"
-            ApiCharacterReply(
-                userMessage = apiMessage("u$turn", "USER", text, "$minute:00Z"),
-                reply = apiMessage("c$turn", "CHARACTER", "Resposta $turn", "$minute:05Z"),
-            )
-        }
-        val chat = repository(scope)
-        chat.send("thor", "Primeira")
-        chat.send("thor", "Segunda")
-        assertEquals(listOf("u1", "c1", "u2", "c2"), chat.observeMessages("thor").first().map { it.id })
-
-        chat.rewindTo("thor", "c1")
-
-        assertEquals(listOf("thor" to "c1"), api.rewinds)
-        assertEquals(listOf("u1", "c1"), chat.observeMessages("thor").first().map { it.id })
-    }
-
-    @Test
-    fun rewindTo_failureKeepsTheLocalMessages() = runRemoteTest { scope ->
-        store.matches.value = listOf(matchDoc("thor"))
-        api.onSend = { _, text, _ -> reply("thor", text) }
-        api.onRewind = { _, _ -> throw IOException("sem rede") }
-        val chat = repository(scope)
-        chat.send("thor", "Oi")
-
-        try {
-            chat.rewindTo("thor", "c1")
-            fail("esperava IOException")
-        } catch (_: IOException) {
-            assertEquals(listOf("u1", "c1"), chat.observeMessages("thor").first().map { it.id })
-        }
-    }
-
-    @Test
-    fun send_thatTimedOutButWasProcessed_isNotShownTwice() = runRemoteTest { scope ->
-        store.matches.value = listOf(matchDoc("thor"))
-        api.onSend = { _, _, _ -> throw IOException("tempo esgotado") }
-        val chat = repository(scope)
-
-        chat.send("thor", "Oi")
-        assertEquals(listOf(MessageStatus.Failed), chat.observeMessages("thor").first().map { it.status })
-
-        // O servidor terminou o pedido depois do tempo esgotado: o Firestore traz a mensagem com a mesma chave.
-        store.messages.value = mapOf(
-            "thor" to listOf(
-                Document("m_1", mapOf("createdAt" to TestNow, "author" to "USER", "text" to "Oi", "idempotencyKey" to "key-1")),
-                Document("m_2", mapOf("createdAt" to TestNow.plusSeconds(1), "author" to "CHARACTER", "text" to "Olá")),
-            ),
-        )
-
-        assertEquals(listOf("m_1", "m_2"), chat.observeMessages("thor").first().map { it.id })
-    }
-
-    @Test
-    fun regenerateLast_marksTheConversationWhileWaitingAndShowsTheNewTextAtOnce() = runRemoteTest { scope ->
-        store.matches.value = listOf(matchDoc("thor"))
-        store.messages.value = mapOf(
-            "thor" to listOf(Document("c1", mapOf("createdAt" to TestNow, "author" to "CHARACTER", "text" to "Resposta antiga"))),
-        )
-        lateinit var chat: RemoteChatRepository
-        var markedWhileWaiting = false
-        api.onRegenerate = {
-            markedWhileWaiting = "thor" in chat.regeneratingConnectionIds.value
-            ApiRegenerated(apiMessage("c1", "CHARACTER", "Resposta nova", "2026-10-04T12:00:00Z"))
-        }
-        chat = repository(scope)
-
-        chat.regenerateLast("thor")
-
-        assertTrue(markedWhileWaiting)
-        assertEquals(emptySet<String>(), chat.regeneratingConnectionIds.value)
-        // O Firestore ainda tem o texto antigo; o texto novo vale já.
-        assertEquals(listOf("Resposta nova"), chat.observeMessages("thor").first().map { it.text })
-    }
-
-    @Test
-    fun mergeMessages_serverWinsAndBlockedEchoReplacesLocalCopy() {
-        val server = listOf(
-            message("u1", MessageAuthor.User, seconds = 0),
-            message("s-blocked", MessageAuthor.User, seconds = 30, text = "", status = MessageStatus.Blocked),
-        )
-        val confirmed = listOf(message("u1", MessageAuthor.User, seconds = 0), message("c1", MessageAuthor.Character, seconds = 5))
-        val local = listOf(message("pending-x", MessageAuthor.User, seconds = 29, status = MessageStatus.Blocked))
-
-        val merged = mergeMessages(server, confirmed, local)
-
-        assertEquals(listOf("u1", "c1", "s-blocked"), merged.map { it.id })
     }
 
     private fun message(

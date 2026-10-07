@@ -29,5 +29,8 @@ interface UserDataStore {
     /** Mensagens de uma conexão, em ordem de criação. */
     fun observeMessages(uid: String, connectionId: String): Flow<List<Document>>
 
+    /** Decisão sobre um personagem (`users/{uid}/decisions/{id}`); null enquanto não existir. */
+    fun observeDecision(uid: String, characterId: String): Flow<Map<String, Any?>?>
+
     suspend fun updateMatch(uid: String, connectionId: String, fields: Map<String, Any?>)
 }

@@ -20,8 +20,8 @@ val CharacterReplyDelay: Duration = 2_500.milliseconds
 /**
  * Regra de Assemble compartilhada pelo Discover e pelo CharacterPreview. O card sai na hora;
  * a resposta do personagem (match ou não) chega depois, em [scope], para sobreviver à tela.
- * Quem decide é o [DeckSource]: o cálculo local ou o backend. Com backend, a própria chamada
- * leva alguns segundos (a fala de abertura é gerada antes da resposta), então [replyDelay] é zero.
+ * Quem decide é o [DeckSource]: o cálculo local ou o backend. Com backend, a espera já é real (a
+ * fila do backend decide o match e grava a fala de abertura), então [replyDelay] é zero.
  */
 class AssembleService(
     private val deckSource: DeckSource,

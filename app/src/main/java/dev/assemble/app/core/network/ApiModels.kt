@@ -37,18 +37,22 @@ data class ApiPhotoSignature(val uploadUrl: String, val fields: Map<String, Stri
 @Serializable
 internal data class ApiTasteSignalRequest(val liked: Boolean)
 
-@Serializable
-data class ApiMatchCharacter(val characterId: String, val name: String, val imageUrl: String? = null)
+/** Estados de um Assemble e de uma mensagem do usuário (contrato §3). */
+object ApiStatus {
+    const val PENDING = "pending"
+    const val SENT = "sent"
+    const val BLOCKED = "blocked"
+    const val FAILED = "failed"
+    const val MATCHED = "matched"
+    const val NOT_MATCHED = "not_matched"
+}
 
-/** Sem match, só `matched = false`: nem score nem motivos. */
+/**
+ * Assemble aceito (202). Num Assemble novo vem `pending`: a fila decide o match e, com match, a
+ * conexão aparece em `matches/{id}` no Firestore.
+ */
 @Serializable
-data class ApiMatchResult(
-    val matched: Boolean,
-    val connectionId: String? = null,
-    val character: ApiMatchCharacter? = null,
-    val score: Int? = null,
-    val reasons: List<String> = emptyList(),
-)
+data class ApiAssembleAccepted(val characterId: String, val status: String)
 
 @Serializable
 internal data class ApiDecisionRequest(val characterId: String, val choice: String)
@@ -65,18 +69,16 @@ data class ApiMessage(
     val createdAt: String,
     val fictional: Boolean = false,
     val blocked: Boolean = false,
+    val status: String = ApiStatus.SENT,
 )
 
+/** Mensagem aceita (202): a resposta do personagem chega depois, pelo Firestore. */
 @Serializable
-data class ApiCharacterReply(
-    val userMessage: ApiMessage,
-    val reply: ApiMessage,
-    val suggestions: List<String> = emptyList(),
-)
+data class ApiAcceptedMessage(val userMessage: ApiMessage)
 
-/** Resposta de "gerar outra resposta": a mesma mensagem (mesmo id), com texto novo. */
+/** "Gerar outra resposta" aceito (202): o texto novo chega pelo Firestore, na mesma mensagem. */
 @Serializable
-data class ApiRegenerated(val reply: ApiMessage, val suggestions: List<String> = emptyList())
+data class ApiRegenerationAccepted(val reply: ApiMessage)
 
 @Serializable
 internal data class ApiRewindRequest(val messageId: String)
