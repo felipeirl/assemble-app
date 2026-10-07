@@ -2,6 +2,18 @@
 
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/). As versões contam como um odômetro: cada release é uma grande adição e o número sobe de um em um (`0.0.8`, `0.0.9`, `0.1.0`, `0.1.1`...). Ao chegar em 9, avança a casa seguinte. Correções pequenas entram na release seguinte.
 
+## [0.1.2] - 2026-10-07
+
+### Adicionado
+- Conquistas v2: 16 conquistas (antes 6) em quatro categorias (Conexões, Conversas, Descoberta e Perfil) e três raridades (Bronze, Prata e Ouro). As novas medem conversas com personagens diferentes, dias com o app aberto e o perfil completo.
+- Cada conquista libera uma recompensa para o perfil: títulos (Recruta, Quebra-gelo, Explorador, Diplomata, Lenda viva e Alter ego), molduras (Escudo, Cósmica e Raio), capas (Manchete, Planta e Cosmos) e cores (Esmeralda e Prata). Molduras, capas e cores que já eram livres continuam livres.
+- Título no perfil, escolhido no Editar perfil e exibido abaixo do nome.
+
+### Alterado
+- A tela de conquistas agrupa por categoria, mostra o anel da raridade, uma barra de progresso e a recompensa de cada conquista. Tocar numa conquista desbloqueada abre o Editar perfil já na recompensa.
+- O aviso de conquista desbloqueada cita a recompensa.
+- No Editar perfil, capas, cores e títulos bloqueados aparecem com cadeado e a conquista que os libera, como já acontecia com as molduras.
+
 ## [0.1.1] - 2026-10-07
 
 ### Adicionado

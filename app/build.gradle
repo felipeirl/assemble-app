@@ -36,8 +36,8 @@ android {
         applicationId = 'dev.assemble.app'
         minSdk = 26
         targetSdk = 36
-        versionCode = 9
-        versionName = '0.1.1'
+        versionCode = 10
+        versionName = '0.1.2'
         buildConfigField 'String', 'BACKEND_URL', '"' + backendUrl + '"'
         buildConfigField 'String', 'FIREBASE_API_KEY', '"' + firebaseApiKey + '"'
         buildConfigField 'String', 'FIREBASE_APP_ID', '"' + firebaseAppId + '"'
