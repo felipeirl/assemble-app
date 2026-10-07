@@ -2,6 +2,21 @@
 
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/). As versões contam como um odômetro: cada release é uma grande adição e o número sobe de um em um (`0.0.8`, `0.0.9`, `0.1.0`, `0.1.1`...). Ao chegar em 9, avança a casa seguinte. Correções pequenas entram na release seguinte.
 
+## [0.1.4] - 2026-10-07
+
+**Exige a API 0.1.3 ou mais nova.**
+
+### Adicionado
+- Aviso "fulano quer dar Assemble com você": quando um personagem tenta uma conexão, aparece o aviso dentro do app (uma vez por proposta a cada abertura). Tocar abre a pré-visualização, onde dar Assemble sempre vira conexão. Respeita Configurações → Notificações → Novas conexões.
+- Foto do perfil com três ações do mesmo tamanho, com ícone: escolher, ajustar e remover. Ajustar e remover ficam apagados quando não valem.
+
+### Alterado
+- A tela de entrar tem o mesmo topo da de criar conta: o logo no alto e o título "Encontre seus personagens." com a descrição embaixo, ocupando o espaço acima do formulário, também em telas baixas.
+- Um listener do Firestore por conversa (antes, a tela, a lista, o badge e o "digitando" abriam um cada): com muitas conversas, trocar de aba trava menos.
+
+### Corrigido
+- A conversa desce até a mensagem mais recente quando você envia, e acompanha as novas se você já estava no fim.
+
 ## [0.1.3] - 2026-10-07
 
 **Exige a API 0.1.3 ou mais nova:** o envio de mensagem, "gerar outra resposta" e o Assemble seguem a fila do backend.
