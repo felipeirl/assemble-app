@@ -2,6 +2,15 @@
 
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/). As versões contam como um odômetro: cada release é uma grande adição e o número sobe de um em um (`0.0.8`, `0.0.9`, `0.1.0`, `0.1.1`...). Ao chegar em 9, avança a casa seguinte. Correções pequenas entram na release seguinte.
 
+## [0.1.1] - 2026-10-07
+
+### Adicionado
+- Login v2: botão "Continuar com Google" com o logo "G" e as cores oficiais do Google, no tema claro e no escuro.
+
+### Alterado
+- A tela de login não rola mais em repouso: logo e título usam o espaço que sobra acima do formulário e encolhem ou somem em telas baixas. Com o teclado aberto, o topo sai e a tela rola, para o campo em uso ficar visível. "Esqueci minha senha" fica logo abaixo do campo de senha.
+- Onboarding: a barra de progresso ficou vermelha sólida, sem o gradiente para violeta, e os personagens do duelo aparecem enquadrados pelo topo da imagem, onde costuma estar o rosto.
+
 ## [0.1.0] - 2026-10-07
 
 ### Adicionado
