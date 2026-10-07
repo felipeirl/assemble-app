@@ -7,7 +7,7 @@ import androidx.compose.ui.unit.dp
 internal enum class HeroVariant { Full, Compact, Hidden }
 
 /** Logo 72dp + título displayXl em até 3 linhas + subtítulo. */
-internal val FullHeroMinHeight = 320.dp
+internal val FullHeroMinHeight = 260.dp
 
 /** Logo 40dp + título displayMd em até 2 linhas. */
 internal val CompactHeroMinHeight = 112.dp

@@ -56,6 +56,12 @@ object AssembleIcons {
             nonZero = listOf("M12 21s-8.5-5.3-8.5-11.2A4.8 4.8 0 0 1 12 7a4.8 4.8 0 0 1 8.5 2.8C20.5 15.7 12 21 12 21z"),
         )
     }
+    val Camera: ImageVector by lazy {
+        lineIcon("Camera", "M4 8h3l2-2h6l2 2h3v11H4z", "M15.2 13a3.2 3.2 0 1 1-6.4 0 3.2 3.2 0 0 1 6.4 0z")
+    }
+    val Crop: ImageVector by lazy {
+        lineIcon("Crop", "M7 3v14h14", "M3 7h14v14")
+    }
     val Undo: ImageVector by lazy {
         lineIcon("Undo", "M9 14L4 9l5-5", "M4 9h10.5a5.5 5.5 0 0 1 0 11H11")
     }

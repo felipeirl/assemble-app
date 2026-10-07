@@ -132,7 +132,7 @@ fun LoginScreen(state: LoginUiState, actions: LoginActions, modifier: Modifier =
         if (!keyboardOpen) {
             BoxWithConstraints(
                 modifier = Modifier.fillMaxWidth().weight(1f),
-                contentAlignment = Alignment.BottomStart,
+                contentAlignment = Alignment.TopStart,
             ) {
                 LoginHero(heroVariantFor(maxHeight))
             }
@@ -141,14 +141,21 @@ fun LoginScreen(state: LoginUiState, actions: LoginActions, modifier: Modifier =
     }
 }
 
-/** Logo, título e subtítulo; a versão compacta troca o título por displayMd e tira o subtítulo. */
+/**
+ * Logo no topo e título com subtítulo embaixo, ocupando toda a sobra acima das ações: o hero é o
+ * mesmo em Entrar e em Criar conta. A versão compacta (telas muito baixas) usa o título menor e
+ * mantém o subtítulo junto dele.
+ */
 @Composable
 private fun LoginHero(variant: HeroVariant) {
     if (variant == HeroVariant.Hidden) return
     val colors = AssembleTheme.colors
     val typography = AssembleTheme.typography
     val full = variant == HeroVariant.Full
-    Column(verticalArrangement = Arrangement.spacedBy(AssembleTheme.spacing.space3)) {
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.SpaceBetween,
+    ) {
         Image(
             painter = painterResource(R.drawable.ic_assemble_logo),
             contentDescription = stringResource(R.string.app_name),
@@ -156,13 +163,13 @@ private fun LoginHero(variant: HeroVariant) {
                 .height(if (full) LogoHeight else CompactLogoHeight)
                 .logoAnchor(LocalLogoAnchor.current),
         )
-        Text(
-            text = stringResource(R.string.login_headline),
-            style = if (full) typography.displayXl else typography.displayMd,
-            color = colors.text,
-            modifier = Modifier.semantics { heading() },
-        )
-        if (full) {
+        Column(verticalArrangement = Arrangement.spacedBy(AssembleTheme.spacing.space3)) {
+            Text(
+                text = stringResource(R.string.login_headline),
+                style = if (full) typography.displayXl else typography.displayMd,
+                color = colors.text,
+                modifier = Modifier.semantics { heading() },
+            )
             Text(
                 text = stringResource(R.string.login_subtitle),
                 style = typography.body,

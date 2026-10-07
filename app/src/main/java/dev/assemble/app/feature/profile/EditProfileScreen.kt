@@ -4,16 +4,17 @@ import android.graphics.Bitmap
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.platform.LocalContext
 import dev.assemble.app.core.designsystem.component.LocalUserPhoto
-import dev.assemble.app.core.designsystem.component.SecondaryButton
 import dev.assemble.app.core.media.AvatarImage
 import java.io.IOException
 import kotlinx.coroutines.launch
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.clickable
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -279,8 +280,53 @@ private fun ProfileForm(form: EditProfileUiState.Form, actions: EditProfileActio
     }
 }
 
+private enum class PhotoActionKind { Main, Plain, Danger }
+
+/** Ação da foto: ícone sobre o rótulo, mesma altura e largura nas três. */
+@Composable
+private fun PhotoAction(
+    text: String,
+    icon: ImageVector,
+    kind: PhotoActionKind,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+) {
+    val colors = AssembleTheme.colors
+    val shape = AssembleTheme.shapes.md
+    val content = when (kind) {
+        PhotoActionKind.Main -> Color.White
+        PhotoActionKind.Plain -> colors.text
+        PhotoActionKind.Danger -> colors.error
+    }
+    Column(
+        modifier = modifier
+            .height(PhotoActionHeight)
+            .alpha(if (enabled) 1f else DisabledAlpha)
+            .clip(shape)
+            .background(if (kind == PhotoActionKind.Main) colors.actionAssemble else colors.surface)
+            .border(1.dp, if (kind == PhotoActionKind.Main) colors.actionAssemble else colors.border, shape)
+            .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
+            .padding(horizontal = AssembleTheme.spacing.space2),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(AssembleTheme.spacing.space1, Alignment.CenterVertically),
+    ) {
+        Icon(imageVector = icon, contentDescription = null, tint = content, modifier = Modifier.size(PhotoActionIconSize))
+        Text(
+            text = text,
+            style = AssembleTheme.typography.small.copy(fontWeight = FontWeight.SemiBold),
+            color = content,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
+private val PhotoActionHeight = 64.dp
+private val PhotoActionIconSize = 20.dp
+private const val DisabledAlpha = 0.4f
+
 /** Foto da galeria (seletor do sistema, sem permissão): passa pela tela de ajuste e é guardada no próprio perfil. */
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun PhotoPicker(form: EditProfileUiState.Form, actions: EditProfileActions) {
     val colors = AssembleTheme.colors
@@ -298,21 +344,31 @@ private fun PhotoPicker(form: EditProfileUiState.Form, actions: EditProfileActio
         }
     }
     Column(verticalArrangement = Arrangement.spacedBy(AssembleTheme.spacing.space2)) {
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(AssembleTheme.spacing.space3)) {
-            SecondaryButton(
+        // Três ações do mesmo tamanho, sempre as três: ajustar e remover só ficam apagadas quando não valem.
+        Row(horizontalArrangement = Arrangement.spacedBy(AssembleTheme.spacing.space2)) {
+            PhotoAction(
                 text = stringResource(R.string.edit_profile_photo_choose),
+                icon = AssembleIcons.Camera,
+                kind = PhotoActionKind.Main,
                 onClick = { picker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
+                modifier = Modifier.weight(1f),
             )
-            if (form.canAdjustPhoto) {
-                TextButton(onClick = actions.onAdjustPhoto) {
-                    Text(stringResource(R.string.photo_crop_title), color = colors.accentText)
-                }
-            }
-            if (form.photo != null) {
-                TextButton(onClick = actions.onRemovePhoto) {
-                    Text(stringResource(R.string.edit_profile_photo_remove), color = colors.error)
-                }
-            }
+            PhotoAction(
+                text = stringResource(R.string.photo_crop_title),
+                icon = AssembleIcons.Crop,
+                kind = PhotoActionKind.Plain,
+                enabled = form.canAdjustPhoto,
+                onClick = actions.onAdjustPhoto,
+                modifier = Modifier.weight(1f),
+            )
+            PhotoAction(
+                text = stringResource(R.string.edit_profile_photo_remove),
+                icon = AssembleIcons.Trash,
+                kind = PhotoActionKind.Danger,
+                enabled = form.photo != null,
+                onClick = actions.onRemovePhoto,
+                modifier = Modifier.weight(1f),
+            )
         }
         Text(
             text = stringResource(if (form.showPhotoError) R.string.edit_profile_photo_error else R.string.edit_profile_photo_hint),
