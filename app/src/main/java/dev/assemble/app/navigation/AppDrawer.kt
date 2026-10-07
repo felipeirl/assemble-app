@@ -155,10 +155,11 @@ private fun DrawerHeader(
 ) {
     val colors = AssembleTheme.colors
     val spacing = AssembleTheme.spacing
-    // Capas de cor lisa (Halftone, Comic) seguem o destaque: dourado e azul pedem texto escuro.
+    // Capas de cor lisa (Halftone, Comic) seguem o destaque: dourado e azul pedem texto escuro. Manchete é papel claro.
     val onCover = when (style.cover) {
         ProfileCover.Halftone, ProfileCover.Comic -> style.accent.onColor(colors)
-        ProfileCover.Energy, ProfileCover.Night -> Color.White
+        ProfileCover.Headline -> colors.midnight
+        ProfileCover.Energy, ProfileCover.Night, ProfileCover.Blueprint, ProfileCover.Cosmos -> Color.White
     }
     Box(Modifier.fillMaxWidth().clickable(role = Role.Button, onClick = onClick)) {
         ProfileCoverArt(style.cover, style.accent, Modifier.matchParentSize())

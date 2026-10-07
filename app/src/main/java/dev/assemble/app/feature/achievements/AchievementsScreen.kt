@@ -73,10 +73,20 @@ internal data class AchievementInfo(@StringRes val title: Int, @StringRes val de
 internal fun Achievement.info(): AchievementInfo = when (this) {
     Achievement.FirstConnection -> AchievementInfo(R.string.achievement_first_connection, R.string.achievement_first_connection_desc, AssembleIcons.HeartOutline)
     Achievement.TeamUp -> AchievementInfo(R.string.achievement_team_up, R.string.achievement_team_up_desc, AssembleIcons.Users)
+    Achievement.FullRoster -> AchievementInfo(R.string.achievement_full_roster, R.string.achievement_full_roster_desc, AssembleIcons.Star)
+    Achievement.Legion -> AchievementInfo(R.string.achievement_legion, R.string.achievement_legion_desc, AssembleIcons.Crown)
     Achievement.IceBreaker -> AchievementInfo(R.string.achievement_ice_breaker, R.string.achievement_ice_breaker_desc, AssembleIcons.Chat)
+    Achievement.RoundOfIntros -> AchievementInfo(R.string.achievement_round_of_intros, R.string.achievement_round_of_intros_desc, AssembleIcons.ChatPlus)
     Achievement.Storyteller -> AchievementInfo(R.string.achievement_storyteller, R.string.achievement_storyteller_desc, AssembleIcons.Send)
+    Achievement.Diplomat -> AchievementInfo(R.string.achievement_diplomat, R.string.achievement_diplomat_desc, AssembleIcons.Chats)
+    Achievement.Veteran -> AchievementInfo(R.string.achievement_veteran, R.string.achievement_veteran_desc, AssembleIcons.Book)
     Achievement.Explorer -> AchievementInfo(R.string.achievement_explorer, R.string.achievement_explorer_desc, AssembleIcons.Compass)
+    Achievement.Scout -> AchievementInfo(R.string.achievement_scout, R.string.achievement_scout_desc, AssembleIcons.Eye)
+    Achievement.Cartographer -> AchievementInfo(R.string.achievement_cartographer, R.string.achievement_cartographer_desc, AssembleIcons.Map)
     Achievement.Crossover -> AchievementInfo(R.string.achievement_crossover, R.string.achievement_crossover_desc, AssembleIcons.Shield)
+    Achievement.Multiverse -> AchievementInfo(R.string.achievement_multiverse, R.string.achievement_multiverse_desc, AssembleIcons.Globe)
+    Achievement.SecretIdentity -> AchievementInfo(R.string.achievement_secret_identity, R.string.achievement_secret_identity_desc, AssembleIcons.Mask)
+    Achievement.Sentinel -> AchievementInfo(R.string.achievement_sentinel, R.string.achievement_sentinel_desc, AssembleIcons.Bolt)
 }
 
 private const val GridColumns = 2

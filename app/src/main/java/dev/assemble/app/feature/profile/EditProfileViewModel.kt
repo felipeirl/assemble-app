@@ -8,6 +8,7 @@ import dev.assemble.app.core.data.UserRepository
 import dev.assemble.app.core.domain.Achievement
 import dev.assemble.app.core.domain.Archetype
 import dev.assemble.app.core.domain.ProfileRules
+import dev.assemble.app.core.domain.Reward
 import dev.assemble.app.core.model.AvatarFrame
 import dev.assemble.app.core.model.ProfileAccent
 import dev.assemble.app.core.model.ProfileCover
@@ -107,7 +108,7 @@ class EditProfileViewModel(
 
     /** Moldura bloqueada não é aplicada. */
     fun onFrameChange(frame: AvatarFrame) = updateForm { form ->
-        if (ProfileRules.isFrameUnlocked(frame, form.unlocked)) form.copy(style = form.style.copy(frame = frame)) else form
+        if (ProfileRules.isUnlocked(Reward.Frame(frame), form.unlocked)) form.copy(style = form.style.copy(frame = frame)) else form
     }
 
     fun onPromptChange(prompt: ProfilePrompt) = updateStyle { it.copy(prompt = prompt) }

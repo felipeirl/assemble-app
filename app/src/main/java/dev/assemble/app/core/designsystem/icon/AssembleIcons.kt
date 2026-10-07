@@ -131,6 +131,43 @@ object AssembleIcons {
     val HeartOutline: ImageVector by lazy {
         lineIcon("HeartOutline", "M12 20s-7.5-4.7-7.5-10A4.2 4.2 0 0 1 12 7.5a4.2 4.2 0 0 1 7.5 2.5c0 5.3-7.5 10-7.5 10z")
     }
+
+    // Insígnias das conquistas.
+    val Star: ImageVector by lazy {
+        lineIcon("Star", "M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z")
+    }
+    val Crown: ImageVector by lazy {
+        lineIcon("Crown", "M4 8l4 4 4-6 4 6 4-4-1.5 10h-13z", "M5.5 21h13")
+    }
+    val ChatPlus: ImageVector by lazy {
+        lineIcon("ChatPlus", "M12 3a8.5 8.5 0 1 1-4 16l-4 1.2 1.2-3.8A8.5 8.5 0 0 1 12 3z", "M12 8.5v7M8.5 12h7")
+    }
+    val Chats: ImageVector by lazy {
+        lineIcon(
+            "Chats",
+            "M14.5 4H5a2 2 0 0 0-2 2v7l3-2.5h8.5a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z",
+            "M19 9.5a2 2 0 0 1 2 2v7l-3-2.5h-6.5a2 2 0 0 1-2-2v-1",
+        )
+    }
+    val Book: ImageVector by lazy {
+        lineIcon("Book", "M5 4.5A1.5 1.5 0 0 1 6.5 3H19v15H6.5A1.5 1.5 0 0 0 5 19.5z", "M5 19.5A1.5 1.5 0 0 0 6.5 21H19v-3")
+    }
+    val Map: ImageVector by lazy {
+        lineIcon("Map", "M3 6.5l6-2.5 6 2.5 6-2.5v13.5l-6 2.5-6-2.5-6 2.5z", "M9 4v13.5M15 6.5V20")
+    }
+    val Globe: ImageVector by lazy {
+        lineIcon("Globe", circle(12f, 12f, 9.5f), "M2.5 12h19", "M12 2.5a14.5 14.5 0 0 1 0 19a14.5 14.5 0 0 1 0-19z")
+    }
+    val Mask: ImageVector by lazy {
+        lineIcon(
+            "Mask",
+            "M2.5 9c3-2 6.5-2 9.5 0 3-2 6.5-2 9.5 0-1 6-4 8.5-7 8.5-1.6 0-2.5-1.5-2.5-2.5 0 1-.9 2.5-2.5 2.5-3 0-6-2.5-7-8.5z",
+            "M7 11.5h2.5M14.5 11.5H17",
+        )
+    }
+    val Bolt: ImageVector by lazy {
+        lineIcon("Bolt", "M13 2.5L4.5 13.5H12l-1 8 8.5-11H12z")
+    }
     val Bell: ImageVector by lazy {
         lineIcon("Bell", "M6 16v-5a6 6 0 0 1 12 0v5l1.5 2h-15z", "M10 20.5a2 2 0 0 0 4 0")
     }

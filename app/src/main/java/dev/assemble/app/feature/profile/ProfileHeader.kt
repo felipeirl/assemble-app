@@ -39,6 +39,7 @@ import dev.assemble.app.core.model.ProfileAccent
 import dev.assemble.app.core.model.ProfileCover
 import dev.assemble.app.core.model.ProfilePrompt
 import dev.assemble.app.core.model.ProfileStyle
+import dev.assemble.app.core.model.ProfileTitle
 import dev.assemble.app.core.model.UserProfile
 import dev.assemble.app.core.ui.traitLabel
 
@@ -140,6 +141,9 @@ internal val ProfileCover.label: Int
         ProfileCover.Halftone -> R.string.profile_cover_halftone
         ProfileCover.Comic -> R.string.profile_cover_comic
         ProfileCover.Night -> R.string.profile_cover_night
+        ProfileCover.Headline -> R.string.profile_cover_headline
+        ProfileCover.Blueprint -> R.string.profile_cover_blueprint
+        ProfileCover.Cosmos -> R.string.profile_cover_cosmos
     }
 
 @get:StringRes
@@ -150,6 +154,8 @@ internal val ProfileAccent.label: Int
         ProfileAccent.Blue -> R.string.profile_accent_blue
         ProfileAccent.Violet -> R.string.profile_accent_violet
         ProfileAccent.Gold -> R.string.profile_accent_gold
+        ProfileAccent.Emerald -> R.string.profile_accent_emerald
+        ProfileAccent.Silver -> R.string.profile_accent_silver
     }
 
 @get:StringRes
@@ -159,4 +165,18 @@ internal val AvatarFrame.label: Int
         AvatarFrame.Ring -> R.string.profile_frame_ring
         AvatarFrame.Hexagon -> R.string.profile_frame_hexagon
         AvatarFrame.Burst -> R.string.profile_frame_burst
+        AvatarFrame.Shield -> R.string.profile_frame_shield
+        AvatarFrame.Cosmic -> R.string.profile_frame_cosmic
+        AvatarFrame.Lightning -> R.string.profile_frame_lightning
+    }
+
+@get:StringRes
+internal val ProfileTitle.label: Int
+    get() = when (this) {
+        ProfileTitle.Recruit -> R.string.profile_title_recruit
+        ProfileTitle.IceBreaker -> R.string.profile_title_ice_breaker
+        ProfileTitle.Explorer -> R.string.profile_title_explorer
+        ProfileTitle.Diplomat -> R.string.profile_title_diplomat
+        ProfileTitle.LivingLegend -> R.string.profile_title_living_legend
+        ProfileTitle.AlterEgo -> R.string.profile_title_alter_ego
     }

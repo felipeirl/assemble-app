@@ -74,6 +74,7 @@ import dev.assemble.app.core.designsystem.icon.AssembleIcons
 import dev.assemble.app.core.designsystem.theme.AssembleTheme
 import dev.assemble.app.core.domain.Achievement
 import dev.assemble.app.core.domain.ProfileRules
+import dev.assemble.app.core.domain.Reward
 import dev.assemble.app.core.model.AvatarFrame
 import dev.assemble.app.core.model.ProfileAccent
 import dev.assemble.app.core.model.ProfileCover
@@ -410,8 +411,8 @@ private fun FramePicker(form: EditProfileUiState.Form, onChange: (AvatarFrame) -
             verticalArrangement = Arrangement.spacedBy(spacing.space3),
         ) {
             AvatarFrame.entries.forEach { frame ->
-                val required = ProfileRules.requiredAchievement(frame)
-                val locked = !ProfileRules.isFrameUnlocked(frame, form.unlocked)
+                val required = ProfileRules.requiredAchievement(Reward.Frame(frame))
+                val locked = !ProfileRules.isUnlocked(Reward.Frame(frame), form.unlocked)
                 val label = stringResource(frame.label)
                 val lockText = required?.takeIf { locked }?.let {
                     stringResource(R.string.edit_profile_frame_locked, stringResource(it.info().title))
