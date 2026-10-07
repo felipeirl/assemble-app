@@ -27,7 +27,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -41,7 +40,6 @@ import dev.assemble.app.core.designsystem.component.AssembleTopBar
 import dev.assemble.app.core.designsystem.component.PrimaryButton
 import dev.assemble.app.core.designsystem.component.TopBarNavigation
 import dev.assemble.app.core.designsystem.component.TopBarTitle
-import dev.assemble.app.core.designsystem.theme.AssemblePalette
 import dev.assemble.app.core.designsystem.theme.AssembleTheme
 import dev.assemble.app.core.model.PreferenceCategory
 import dev.assemble.app.core.model.Preferences
@@ -166,11 +164,11 @@ internal fun OnboardingTopBar(showBack: Boolean, onBack: () -> Unit, onSkip: (()
     )
 }
 
-/** Barra em segmentos: cada passo concluído enche com o gradiente da marca. */
+/** Barra em segmentos: cada passo concluído enche de vermelho. */
 @Composable
 internal fun StepProgress(current: Int, total: Int, modifier: Modifier = Modifier) {
     val colors = AssembleTheme.colors
-    val fill = Brush.horizontalGradient(listOf(colors.logoRed, AssemblePalette.AccentViolet))
+    val fill = colors.logoRed
     Row(modifier = modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(AssembleTheme.spacing.space1)) {
         repeat(total) { index ->
             val fraction by animateFloatAsState(

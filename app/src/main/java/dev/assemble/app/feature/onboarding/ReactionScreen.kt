@@ -268,6 +268,7 @@ private fun DuelCard(
             imageUrl = card.imageUrl,
             modifier = Modifier.fillMaxSize(),
             initialsStyle = AssembleTheme.typography.displayXl,
+            imageAlignment = Alignment.TopCenter,
         )
         Box(
             Modifier
