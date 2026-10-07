@@ -2,6 +2,24 @@
 
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/). As versões contam como um odômetro: cada release é uma grande adição e o número sobe de um em um (`0.0.8`, `0.0.9`, `0.1.0`, `0.1.1`...). Ao chegar em 9, avança a casa seguinte. Correções pequenas entram na release seguinte.
 
+## [0.1.3] - 2026-10-07
+
+**Exige a API 0.1.3 ou mais nova:** o envio de mensagem, "gerar outra resposta" e o Assemble seguem a fila do backend.
+
+### Adicionado
+- Ajuste da foto do perfil antes de salvar: arrastar, zoom com pinça e rotação.
+- Pass sem rede vai para uma fila local e é reenviado em segundo plano com a mesma chave; o card não volta mais ao baralho.
+- Repetição automática: leituras e pedidos com Idempotency-Key são repetidos até 3 vezes quando a rede cai ou o backend está ocupado (`503`), respeitando o `Retry-After`.
+
+### Alterado
+- Chat: a mensagem é aceita na hora e a resposta do personagem chega pelo Firestore. "Digitando", falha e bloqueio vêm do estado da mensagem no servidor; uma resposta perdida num reinício do servidor vira "tentar de novo" depois de 3 minutos. Acaba o erro de "tentar de novo" em mensagens que o servidor já tinha recebido.
+- "Gerar outra resposta": a conversa fica marcada até o texto novo aparecer.
+- Assemble: o pop-up de conexão abre a partir da conexão gravada no Firestore. Se a decisão demorar, nada aparece e a conexão, quando vier, fica na lista de conversas.
+- Tempo limite de leitura das chamadas ao backend: 30 s (antes, 90 s).
+
+### Removido
+- Escolha de avatar pré-definido: o perfil usa foto.
+
 ## [0.1.2] - 2026-10-07
 
 ### Adicionado
