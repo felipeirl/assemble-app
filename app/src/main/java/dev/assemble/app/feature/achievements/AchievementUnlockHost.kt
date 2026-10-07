@@ -103,6 +103,11 @@ private fun UnlockToast(achievement: Achievement, onClick: () -> Unit) {
                 style = AssembleTheme.typography.body.copy(fontWeight = FontWeight.SemiBold),
                 color = dark.text,
             )
+            Text(
+                text = stringResource(R.string.achievement_reward, rewardText(achievement.reward)),
+                style = AssembleTheme.typography.small,
+                color = dark.text.copy(alpha = LabelAlpha),
+            )
         }
     }
 }

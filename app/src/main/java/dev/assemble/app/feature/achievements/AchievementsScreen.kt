@@ -6,10 +6,15 @@ import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.EaseInOut
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -37,10 +42,15 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -53,12 +63,17 @@ import dev.assemble.app.core.designsystem.component.StateView
 import dev.assemble.app.core.designsystem.component.StateViewType
 import dev.assemble.app.core.designsystem.component.energyGradientBrush
 import dev.assemble.app.core.designsystem.icon.AssembleIcons
+import dev.assemble.app.core.designsystem.theme.AssemblePalette
 import dev.assemble.app.core.designsystem.theme.AssembleTheme
 import dev.assemble.app.core.designsystem.theme.rememberAnimationsEnabled
+import dev.assemble.app.core.domain.Achievement
+import dev.assemble.app.core.domain.AchievementCategory
+import dev.assemble.app.core.domain.AchievementProgress
+import dev.assemble.app.core.domain.AchievementTier
+import dev.assemble.app.core.domain.Reward
 import dev.assemble.app.core.feedback.Cue
 import dev.assemble.app.core.feedback.LocalFeedback
-import dev.assemble.app.core.domain.Achievement
-import dev.assemble.app.core.domain.AchievementProgress
+import dev.assemble.app.feature.profile.label
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.StateFlow
 
@@ -103,18 +118,40 @@ private val BadgeHeight = 80.dp
 private const val BadgeIconFraction = 0.42f
 private const val CameraDistanceFactor = 12f
 private val ProgressBarHeight = 6.dp
+private val CardBarHeight = 4.dp
 private val FlipEasing = CubicBezierEasing(0.34f, 1.4f, 0.5f, 1f)
 
+/** Fração da insígnia dentro do anel de raridade. */
+private const val RingInnerFraction = 0.84f
+private const val LockedRingAlpha = 0.35f
+private val TierDotSize = 10.dp
+private val RewardIconSize = 12.dp
+private const val RewardChipAlpha = 0.14f
+private val BronzeRing = Color(0xFFB87333)
+
 @Composable
-fun AchievementsRoute(viewModel: AchievementsViewModel, onBack: () -> Unit, modifier: Modifier = Modifier) {
+fun AchievementsRoute(
+    viewModel: AchievementsViewModel,
+    onBack: () -> Unit,
+    onOpenReward: (Reward) -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val progress by viewModel.progress.collectAsStateWithLifecycle()
-    AchievementsScreen(progress = progress, onBack = onBack, modifier = modifier)
+    AchievementsScreen(progress = progress, onBack = onBack, onOpenReward = onOpenReward, modifier = modifier)
 }
 
-/** Conquistas em insígnias hexagonais; as desbloqueadas viram e brilham ao abrir a tela. */
+/**
+ * Conquistas por categoria, em insígnias hexagonais com o anel da raridade. As desbloqueadas viram e brilham
+ * ao abrir a tela; tocar numa delas leva à recompensa no Editar perfil.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AchievementsScreen(progress: List<AchievementProgress>?, onBack: () -> Unit, modifier: Modifier = Modifier) {
+fun AchievementsScreen(
+    progress: List<AchievementProgress>?,
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier,
+    onOpenReward: (Reward) -> Unit = {},
+) {
     val spacing = AssembleTheme.spacing
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     Scaffold(
@@ -138,13 +175,30 @@ fun AchievementsScreen(progress: List<AchievementProgress>?, onBack: () -> Unit,
         ) {
             Summary(progress)
             var unlockedIndex = 0
-            progress.chunked(GridColumns).forEach { row ->
-                Row(horizontalArrangement = Arrangement.spacedBy(spacing.space3)) {
-                    row.forEach { item ->
-                        val order = if (item.unlocked) unlockedIndex++ else 0
-                        BadgeCard(item, revealOrder = order, modifier = Modifier.weight(1f))
+            AchievementCategory.entries.forEach { category ->
+                val items = progress.filter { it.achievement.category == category }
+                if (items.isEmpty()) return@forEach
+                Column(verticalArrangement = Arrangement.spacedBy(spacing.space3)) {
+                    Text(
+                        text = stringResource(category.label).uppercase(),
+                        style = AssembleTheme.typography.eyebrow,
+                        color = AssembleTheme.colors.textMuted,
+                        modifier = Modifier.semantics { heading() },
+                    )
+                    items.chunked(GridColumns).forEach { row ->
+                        Row(Modifier.height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(spacing.space3)) {
+                            row.forEach { item ->
+                                val order = if (item.unlocked) unlockedIndex++ else 0
+                                BadgeCard(
+                                    item = item,
+                                    revealOrder = order,
+                                    onOpenReward = onOpenReward,
+                                    modifier = Modifier.weight(1f).fillMaxHeight(),
+                                )
+                            }
+                            if (row.size < GridColumns) Box(Modifier.weight(1f))
+                        }
                     }
-                    if (row.size < GridColumns) Box(Modifier.weight(1f))
                 }
             }
             if (progress.any { it.current == null }) {
@@ -157,60 +211,218 @@ fun AchievementsScreen(progress: List<AchievementProgress>?, onBack: () -> Unit,
 @Composable
 private fun Summary(progress: List<AchievementProgress>) {
     val colors = AssembleTheme.colors
+    val spacing = AssembleTheme.spacing
     val unlocked = progress.count { it.unlocked }
-    Column(verticalArrangement = Arrangement.spacedBy(AssembleTheme.spacing.space2)) {
+    Column(verticalArrangement = Arrangement.spacedBy(spacing.space2)) {
         Text(
             text = stringResource(R.string.achievements_summary, unlocked, progress.size),
             style = AssembleTheme.typography.body.copy(fontWeight = FontWeight.SemiBold),
             color = colors.text,
         )
-        Box(
-            Modifier
-                .fillMaxWidth()
-                .height(ProgressBarHeight)
-                .clip(AssembleTheme.shapes.pill)
-                .background(colors.border),
-        ) {
-            Box(
-                Modifier
-                    .fillMaxWidth(unlocked.toFloat() / progress.size)
-                    .height(ProgressBarHeight)
-                    .background(colors.actionAssemble, AssembleTheme.shapes.pill),
-            )
+        ProgressBar(fraction = unlocked.toFloat() / progress.size, height = ProgressBarHeight)
+        Row(horizontalArrangement = Arrangement.spacedBy(spacing.space2)) {
+            AchievementTier.entries.forEach { tier -> TierCount(tier, progress, Modifier.weight(1f)) }
         }
     }
 }
 
 @Composable
-private fun BadgeCard(item: AchievementProgress, revealOrder: Int, modifier: Modifier = Modifier) {
+private fun TierCount(tier: AchievementTier, progress: List<AchievementProgress>, modifier: Modifier = Modifier) {
     val colors = AssembleTheme.colors
-    val info = item.achievement.info()
+    val ofTier = progress.filter { it.achievement.tier == tier }
+    Row(
+        modifier = modifier
+            .clip(AssembleTheme.shapes.pill)
+            .background(colors.surface)
+            .padding(horizontal = AssembleTheme.spacing.space3, vertical = AssembleTheme.spacing.space1),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(AssembleTheme.spacing.space1),
+    ) {
+        Box(Modifier.size(TierDotSize).clip(AssembleTheme.shapes.pill).background(tier.ringColor()))
+        Text(
+            text = stringResource(R.string.achievements_tier_count, stringResource(tier.label), ofTier.count { it.unlocked }, ofTier.size),
+            style = AssembleTheme.typography.small.copy(fontWeight = FontWeight.SemiBold),
+            color = colors.text,
+            maxLines = 1,
+        )
+    }
+}
+
+@Composable
+private fun ProgressBar(fraction: Float, height: Dp, modifier: Modifier = Modifier) {
+    val colors = AssembleTheme.colors
+    Box(
+        modifier
+            .fillMaxWidth()
+            .height(height)
+            .clip(AssembleTheme.shapes.pill)
+            .background(colors.border),
+    ) {
+        Box(
+            Modifier
+                .fillMaxWidth(fraction.coerceIn(0f, 1f))
+                .height(height)
+                .background(colors.actionAssemble, AssembleTheme.shapes.pill),
+        )
+    }
+}
+
+@Composable
+private fun BadgeCard(
+    item: AchievementProgress,
+    revealOrder: Int,
+    onOpenReward: (Reward) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val colors = AssembleTheme.colors
+    val spacing = AssembleTheme.spacing
+    val achievement = item.achievement
+    val info = achievement.info()
     val title = stringResource(info.title)
     val description = stringResource(info.description)
+    val current = item.current
     val status = when {
         item.unlocked -> stringResource(R.string.achievement_unlocked_state)
-        item.current == null -> stringResource(R.string.achievement_unknown_state)
-        else -> stringResource(R.string.achievement_progress, item.current, item.achievement.target)
+        current == null -> stringResource(R.string.achievement_unknown_state)
+        else -> stringResource(R.string.achievement_progress, current, achievement.target)
     }
+    val reward = rewardText(achievement.reward)
+    val rewardStatus = stringResource(if (item.unlocked) R.string.achievement_reward_unlocked else R.string.achievement_reward, reward)
+    val open = { onOpenReward(achievement.reward) }
     Column(
         modifier = modifier
             .clip(AssembleTheme.shapes.md)
             .background(colors.surface)
-            .padding(AssembleTheme.spacing.space4)
-            .clearAndSetSemantics { contentDescription = "$title. $description. $status" },
+            .then(if (item.unlocked) Modifier.clickable(role = Role.Button, onClick = open) else Modifier)
+            .padding(spacing.space4)
+            .clearAndSetSemantics {
+                contentDescription = "$title. $description. $status. $rewardStatus"
+                if (item.unlocked) {
+                    onClick {
+                        open()
+                        true
+                    }
+                }
+            },
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(AssembleTheme.spacing.space2),
+        verticalArrangement = Arrangement.spacedBy(spacing.space2),
     ) {
-        HexBadge(icon = info.icon, unlocked = item.unlocked, revealOrder = revealOrder, tickOnFlip = true)
+        TierRing(achievement.tier, item.unlocked) {
+            HexBadge(
+                icon = info.icon,
+                unlocked = item.unlocked,
+                revealOrder = revealOrder,
+                badgeSize = BadgeWidth * RingInnerFraction to BadgeHeight * RingInnerFraction,
+                tickOnFlip = true,
+            )
+        }
         Text(title, style = AssembleTheme.typography.body.copy(fontWeight = FontWeight.SemiBold), color = colors.text, textAlign = TextAlign.Center)
         Text(description, style = AssembleTheme.typography.small, color = colors.textMuted, textAlign = TextAlign.Center)
+        Spacer(Modifier.weight(1f))
+        if (item.unlocked || current == null) {
+            Text(
+                text = status,
+                style = AssembleTheme.typography.small.copy(fontWeight = FontWeight.SemiBold),
+                color = if (item.unlocked) colors.accentText else colors.textMuted,
+            )
+        } else {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(spacing.space2)) {
+                ProgressBar(fraction = current.toFloat() / achievement.target, height = CardBarHeight, modifier = Modifier.weight(1f))
+                Text(status, style = AssembleTheme.typography.small.copy(fontWeight = FontWeight.SemiBold), color = colors.textMuted)
+            }
+        }
+        RewardChip(reward, item.unlocked)
+    }
+}
+
+/** Anel hexagonal na cor da raridade; apagado enquanto bloqueada. */
+@Composable
+private fun TierRing(tier: AchievementTier, unlocked: Boolean, badge: @Composable () -> Unit) {
+    val ring = tier.ringColor().let { if (unlocked) it else it.copy(alpha = LockedRingAlpha) }
+    Box(
+        Modifier.size(BadgeWidth, BadgeHeight).clip(HexagonShape).background(ring),
+        contentAlignment = Alignment.Center,
+    ) { badge() }
+}
+
+/** "Moldura · Escudo": cadeado enquanto bloqueada, fundo no destaque quando já liberada. */
+@Composable
+private fun RewardChip(text: String, unlocked: Boolean) {
+    val colors = AssembleTheme.colors
+    val pill = AssembleTheme.shapes.pill
+    Row(
+        modifier = Modifier
+            .clip(pill)
+            .then(
+                if (unlocked) {
+                    Modifier.background(colors.actionAssemble.copy(alpha = RewardChipAlpha))
+                } else {
+                    Modifier.border(1.dp, colors.border, pill)
+                },
+            )
+            .padding(horizontal = AssembleTheme.spacing.space2, vertical = AssembleTheme.spacing.space1),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(AssembleTheme.spacing.space1),
+    ) {
+        if (!unlocked) Icon(AssembleIcons.Lock, contentDescription = null, tint = colors.textMuted, modifier = Modifier.size(RewardIconSize))
         Text(
-            text = status,
+            text = text,
             style = AssembleTheme.typography.small.copy(fontWeight = FontWeight.SemiBold),
-            color = if (item.unlocked) colors.accentText else colors.textMuted,
+            color = if (unlocked) colors.accentText else colors.textMuted,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
         )
     }
 }
+
+/** Tipo e nome da recompensa ("Moldura · Escudo"). */
+@Composable
+internal fun rewardText(reward: Reward): String = stringResource(
+    R.string.achievement_reward_chip,
+    stringResource(reward.typeLabel),
+    stringResource(reward.nameLabel),
+)
+
+@get:StringRes
+private val Reward.typeLabel: Int
+    get() = when (this) {
+        is Reward.Frame -> R.string.reward_type_frame
+        is Reward.Cover -> R.string.reward_type_cover
+        is Reward.Accent -> R.string.reward_type_accent
+        is Reward.Title -> R.string.reward_type_title
+    }
+
+@get:StringRes
+private val Reward.nameLabel: Int
+    get() = when (this) {
+        is Reward.Frame -> frame.label
+        is Reward.Cover -> cover.label
+        is Reward.Accent -> accent.label
+        is Reward.Title -> title.label
+    }
+
+internal fun AchievementTier.ringColor(): Color = when (this) {
+    AchievementTier.Bronze -> BronzeRing
+    AchievementTier.Silver -> AssemblePalette.AccentSilver
+    AchievementTier.Gold -> AssemblePalette.AccentGold
+}
+
+@get:StringRes
+private val AchievementTier.label: Int
+    get() = when (this) {
+        AchievementTier.Bronze -> R.string.achievements_tier_bronze
+        AchievementTier.Silver -> R.string.achievements_tier_silver
+        AchievementTier.Gold -> R.string.achievements_tier_gold
+    }
+
+@get:StringRes
+private val AchievementCategory.label: Int
+    get() = when (this) {
+        AchievementCategory.Connections -> R.string.achievements_category_connections
+        AchievementCategory.Conversations -> R.string.achievements_category_conversations
+        AchievementCategory.Discovery -> R.string.achievements_category_discovery
+        AchievementCategory.Profile -> R.string.achievements_category_profile
+    }
 
 /** Insígnia: desbloqueada vira (eixo Y) e uma faixa de brilho atravessa; bloqueada fica parada e apagada. */
 @Composable
@@ -277,14 +489,9 @@ internal fun HexBadge(
 private fun AchievementsPreview() {
     AssembleTheme {
         AchievementsScreen(
-            progress = listOf(
-                AchievementProgress(Achievement.FirstConnection, 1),
-                AchievementProgress(Achievement.TeamUp, 3),
-                AchievementProgress(Achievement.IceBreaker, 1),
-                AchievementProgress(Achievement.Storyteller, 12),
-                AchievementProgress(Achievement.Explorer, 30),
-                AchievementProgress(Achievement.Crossover, null),
-            ),
+            progress = Achievement.entries.mapIndexed { index, achievement ->
+                AchievementProgress(achievement, if (index % 3 == 0) achievement.target else achievement.target / 2)
+            },
             onBack = {},
         )
     }

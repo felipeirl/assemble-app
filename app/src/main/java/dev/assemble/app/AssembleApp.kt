@@ -390,6 +390,7 @@ private fun MainFlowContent(container: AppContainer) {
                                 AchievementsRoute(
                                     viewModel = viewModel { AchievementsViewModel(container.achievementTracker) },
                                     onBack = navigator::goBack,
+                                    onOpenReward = { navigator.navigate(EditProfile) },
                                 )
                             }
                         },
