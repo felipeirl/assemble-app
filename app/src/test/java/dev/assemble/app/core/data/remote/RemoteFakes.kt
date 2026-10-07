@@ -137,6 +137,7 @@ internal class InMemoryUserDataStore : UserDataStore {
     val matches = MutableStateFlow<List<Document>>(emptyList())
     val messages = MutableStateFlow<Map<String, List<Document>>>(emptyMap())
     val decisions = MutableStateFlow<Map<String, Map<String, Any?>>>(emptyMap())
+    val overtures = MutableStateFlow<List<Document>>(emptyList())
     val merges = mutableListOf<Map<String, Any?>>()
     val matchUpdates = mutableListOf<Pair<String, Map<String, Any?>>>()
 
@@ -153,6 +154,8 @@ internal class InMemoryUserDataStore : UserDataStore {
 
     override fun observeMessages(uid: String, connectionId: String): Flow<List<Document>> =
         messages.map { it[connectionId].orEmpty() }
+
+    override fun observeOvertures(uid: String): Flow<List<Document>> = overtures
 
     override fun observeDecision(uid: String, characterId: String): Flow<Map<String, Any?>?> =
         decisions.map { it[characterId] }

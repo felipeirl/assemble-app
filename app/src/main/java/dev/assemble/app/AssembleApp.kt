@@ -53,6 +53,7 @@ import dev.assemble.app.feature.chat.ChatListViewModel
 import dev.assemble.app.feature.chat.ConversationRoute
 import dev.assemble.app.feature.chat.ConversationViewModel
 import dev.assemble.app.feature.chat.IncomingMessageToastHost
+import dev.assemble.app.feature.discover.OvertureToastHost
 import dev.assemble.app.feature.discover.DiscoverRoute
 import dev.assemble.app.feature.discover.DiscoverViewModel
 import dev.assemble.app.feature.help.HelpScreen
@@ -411,6 +412,14 @@ private fun MainFlowContent(container: AppContainer) {
             AchievementUnlockHost(
                 tracker = container.achievementTracker,
                 onOpen = { navigator.navigate(Achievements) },
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .windowInsetsPadding(WindowInsets.statusBars)
+                    .padding(top = AssembleTheme.spacing.space2),
+            )
+            OvertureToastHost(
+                container = container,
+                onOpenCharacter = { id, name, imageUrl -> navigator.navigate(CharacterPreview(id, name, imageUrl)) },
                 modifier = Modifier
                     .align(Alignment.TopCenter)
                     .windowInsetsPadding(WindowInsets.statusBars)

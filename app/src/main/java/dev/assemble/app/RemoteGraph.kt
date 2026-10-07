@@ -7,6 +7,7 @@ import dev.assemble.app.core.data.local.SettingsDataStore
 import dev.assemble.app.core.data.remote.RemoteCharacterRepository
 import dev.assemble.app.core.data.remote.RemoteChatRepository
 import dev.assemble.app.core.data.remote.RemoteConnectionRepository
+import dev.assemble.app.core.data.remote.RemoteOvertureSource
 import dev.assemble.app.core.data.remote.RemoteUserRepository
 import dev.assemble.app.core.firebase.FirebaseAuthGateway
 import dev.assemble.app.core.firebase.FirebaseSettings
@@ -54,6 +55,7 @@ class RemoteGraph(
     val characters = RemoteCharacterRepository(api, connections) { backendLanguageTag() }
     val chat = RemoteChatRepository(auth.uid, store, api, connections, scope, clock)
     val deck = RemoteDeckSource(api, characters, users, connections, store, auth.uid, scope)
+    val overtures = RemoteOvertureSource(auth.uid, store)
     val taste = RemoteTasteSource(api)
     val details = RemoteCharacterDetailsSource(api, characters, connections)
 

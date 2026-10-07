@@ -59,6 +59,17 @@ class FirestoreUserDataStore(private val firestore: FirebaseFirestore) : UserDat
         awaitClose { registration.remove() }
     }
 
+    override fun observeOvertures(uid: String): Flow<List<Document>> = callbackFlow {
+        val registration = firestore.collection("users/$uid/overtures").addSnapshotListener { snapshot, error ->
+            if (error != null) {
+                close(IOException("overtures: ${error.code}", error))
+                return@addSnapshotListener
+            }
+            trySend(snapshot?.documents.orEmpty().map { Document(it.id, it.normalizedData().orEmpty()) })
+        }
+        awaitClose { registration.remove() }
+    }
+
     override fun observeDecision(uid: String, characterId: String): Flow<Map<String, Any?>?> = callbackFlow {
         val registration = firestore.document("users/$uid/decisions/$characterId").addSnapshotListener { snapshot, error ->
             if (error != null) {

@@ -25,6 +25,7 @@
     <string name="conversation_input_placeholder">Mensagem</string>
     <string name="conversation_send">Enviar</string>
     <string name="toast_new_message">%1$s mandou uma mensagem</string>
+    <string name="toast_overture">%1$s quer dar Assemble com você</string>
     <plurals name="chat_unread_count">
         <item quantity="one">%d não lida</item>
         <item quantity="many">%d não lidas</item>

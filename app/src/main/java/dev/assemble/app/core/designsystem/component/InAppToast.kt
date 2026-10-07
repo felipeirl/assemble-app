@@ -1,5 +1,6 @@
 package dev.assemble.app.core.designsystem.component
 
+import androidx.annotation.StringRes
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -49,6 +50,7 @@ fun InAppToast(
     onClick: () -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
+    @StringRes message: Int = R.string.toast_new_message,
 ) {
     val currentOnDismiss by rememberUpdatedState(onDismiss)
     LaunchedEffect(visible, characterName) {
@@ -64,12 +66,12 @@ fun InAppToast(
         enter = if (animationsEnabled) slideInVertically { -it } + fadeIn() else fadeIn(),
         exit = if (animationsEnabled) slideOutVertically { -it } + fadeOut() else fadeOut(),
     ) {
-        ToastContent(characterName = characterName, imageUrl = imageUrl, onClick = onClick)
+        ToastContent(characterName = characterName, imageUrl = imageUrl, message = message, onClick = onClick)
     }
 }
 
 @Composable
-private fun ToastContent(characterName: String, imageUrl: String?, onClick: () -> Unit) {
+private fun ToastContent(characterName: String, imageUrl: String?, @StringRes message: Int, onClick: () -> Unit) {
     val colors = AssembleTheme.colors
     val spacing = AssembleTheme.spacing
     val shape = AssembleTheme.shapes.md
@@ -88,7 +90,7 @@ private fun ToastContent(characterName: String, imageUrl: String?, onClick: () -
     ) {
         CharacterAvatar(name = characterName, imageUrl = imageUrl, size = ToastAvatarSize)
         Text(
-            text = stringResource(R.string.toast_new_message, characterName),
+            text = stringResource(message, characterName),
             style = AssembleTheme.typography.body.copy(fontWeight = FontWeight.SemiBold),
             color = colors.text,
         )
@@ -99,6 +101,6 @@ private fun ToastContent(characterName: String, imageUrl: String?, onClick: () -
 @Composable
 private fun InAppToastPreview() {
     PreviewSurface {
-        ToastContent(characterName = "Spider-Man", imageUrl = null, onClick = {})
+        ToastContent(characterName = "Spider-Man", imageUrl = null, message = R.string.toast_new_message, onClick = {})
     }
 }

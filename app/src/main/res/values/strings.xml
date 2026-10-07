@@ -28,6 +28,7 @@
     <string name="conversation_input_placeholder">Message</string>
     <string name="conversation_send">Send</string>
     <string name="toast_new_message">%1$s sent a message</string>
+    <string name="toast_overture">%1$s wants to Assemble with you</string>
     <plurals name="chat_unread_count">
         <item quantity="one">%d unread</item>
         <item quantity="other">%d unread</item>

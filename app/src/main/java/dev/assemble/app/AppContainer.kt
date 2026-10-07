@@ -115,6 +115,9 @@ class AppContainer(context: Context) {
     val deckSource: DeckSource = remote?.deck
         ?: LocalDeckSource(characterRepository, userRepository, connectionRepository, chatRepository)
 
+    /** Personagens que querem dar Assemble com o usuário; só existe com backend. */
+    val overtureSource = remote?.overtures
+
     /** Rodada de reação do cadastro: o backend aprende o gosto; sem ele, só mostra os cards. */
     val tasteSource: TasteSource = remote?.taste ?: LocalTasteSource(characterRepository)
 
