@@ -153,7 +153,7 @@ fun LoginScreen(state: LoginUiState, actions: LoginActions, modifier: Modifier =
 /**
  * Logo no topo e título com subtítulo embaixo, ocupando toda a sobra acima das ações: o hero é o
  * mesmo em Entrar e em Criar conta. O título é medido e fica o maior possível (até o `displayXl`)
- * com o subtítulo sempre junto; só em telas muito baixas o logo encolhe e, por fim, o hero some.
+ * com o subtítulo sempre junto; o logo fica sempre no topo e só encolhe em telas muito baixas.
  */
 @Composable
 private fun LoginHero(maxWidth: Dp, maxHeight: Dp) {
@@ -175,27 +175,23 @@ private fun LoginHero(maxWidth: Dp, maxHeight: Dp) {
             constraints = widthConstraints,
         ).size.height
         val gapPx = with(density) { gap.roundToPx() }
-        listOf(LogoHeight, CompactLogoHeight, 0.dp).mapNotNull { logo ->
-            val logoSpace = if (logo > 0.dp) with(density) { (logo + gap).roundToPx() } else 0
-            val room = with(density) { maxHeight.roundToPx() } - logoSpace
+        // O logo nunca some: o título cede primeiro; só se nem o menor cabe, o logo encolhe.
+        listOf(LogoHeight, CompactLogoHeight).firstNotNullOfOrNull { logo ->
+            val room = with(density) { (maxHeight - logo - gap).roundToPx() }
             largestFittingFontSp(HeroMaxFontSp, HeroMinFontSp, HeroFontStepSp) { sp ->
                 headlineHeight(sp) + gapPx + subtitleHeight <= room
             }?.let { HeroFit(logo, it) }
-        }.maxWithOrNull(compareBy<HeroFit> { it.fontSp }.thenBy { it.logo })
-    } ?: return
+        } ?: HeroFit(CompactLogoHeight, HeroMinFontSp)
+    }
     Column(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.SpaceBetween,
     ) {
-        if (fit.logo > 0.dp) {
-            Image(
-                painter = painterResource(R.drawable.ic_assemble_logo),
-                contentDescription = stringResource(R.string.app_name),
-                modifier = Modifier.height(fit.logo).logoAnchor(LocalLogoAnchor.current),
-            )
-        } else {
-            Box {}
-        }
+        Image(
+            painter = painterResource(R.drawable.ic_assemble_logo),
+            contentDescription = stringResource(R.string.app_name),
+            modifier = Modifier.height(fit.logo).logoAnchor(LocalLogoAnchor.current),
+        )
         Column(verticalArrangement = Arrangement.spacedBy(gap)) {
             Text(
                 text = headline,

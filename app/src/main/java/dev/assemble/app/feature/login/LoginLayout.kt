@@ -3,7 +3,7 @@ package dev.assemble.app.feature.login
 /** Maior tamanho do título do hero (o `displayXl` do tema). */
 internal const val HeroMaxFontSp = 64f
 
-/** Menor tamanho do título antes de o hero perder o logo e, por fim, sumir. */
+/** Menor tamanho do título; antes de passar dele, o logo encolhe. */
 internal const val HeroMinFontSp = 28f
 
 internal const val HeroFontStepSp = 2f

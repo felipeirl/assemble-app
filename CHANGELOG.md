@@ -11,7 +11,7 @@ Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/). 
 - Foto do perfil com três ações do mesmo tamanho, com ícone: escolher, ajustar e remover. Ajustar e remover ficam apagados quando não valem.
 
 ### Alterado
-- A tela de entrar tem o mesmo topo da de criar conta: o logo no alto e o título "Encontre seus personagens." com a descrição embaixo, ocupando o espaço acima do formulário. O título é medido e fica o maior que cabe, com a descrição sempre junto, também em telas baixas.
+- A tela de entrar tem o mesmo topo da de criar conta: o logo no alto e o título "Encontre seus personagens." com a descrição embaixo, ocupando o espaço acima do formulário. O título é medido e fica o maior que cabe, com a descrição sempre junto; o logo fica sempre no topo, também em telas baixas.
 - Um listener do Firestore por conversa (antes, a tela, a lista, o badge e o "digitando" abriam um cada): com muitas conversas, trocar de aba trava menos.
 
 ### Corrigido
