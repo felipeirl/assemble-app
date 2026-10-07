@@ -5,15 +5,18 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
@@ -50,6 +53,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewLightDark
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -63,6 +67,7 @@ import dev.assemble.app.core.designsystem.theme.AssembleTheme
 import dev.assemble.app.core.firebase.requestGoogleIdToken
 
 private val LogoHeight = 72.dp
+private val CompactLogoHeight = 40.dp
 private val TabMinHeight = 40.dp
 
 @Composable
@@ -104,44 +109,78 @@ data class LoginActions(
     val onResetPassword: () -> Unit = {},
 )
 
+/**
+ * Em repouso, não rola: o hero ocupa a sobra acima das ações e encolhe (ou some) conforme ela.
+ * Com o teclado aberto, o hero sai e a coluna rola, para o campo focado não ficar coberto em telas baixas.
+ */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun LoginScreen(state: LoginUiState, actions: LoginActions, modifier: Modifier = Modifier) {
-    val colors = AssembleTheme.colors
     val spacing = AssembleTheme.spacing
+    val keyboardOpen = WindowInsets.isImeVisible
+    val scrollState = rememberScrollState()
     Column(
         modifier = modifier
             .fillMaxSize()
-            .background(colors.bg)
+            .background(AssembleTheme.colors.bg)
             .windowInsetsPadding(WindowInsets.safeDrawing)
             .imePadding()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = spacing.space4, vertical = spacing.space6),
-        verticalArrangement = Arrangement.spacedBy(spacing.space4),
+            .then(if (keyboardOpen) Modifier.verticalScroll(scrollState) else Modifier)
+            .padding(spacing.space4),
+        verticalArrangement = Arrangement.spacedBy(spacing.space4, Alignment.Bottom),
     ) {
-        Spacer(Modifier.height(spacing.space6))
+        if (!keyboardOpen) {
+            BoxWithConstraints(
+                modifier = Modifier.fillMaxWidth().weight(1f),
+                contentAlignment = Alignment.BottomStart,
+            ) {
+                LoginHero(heroVariantFor(maxHeight))
+            }
+        }
+        LoginActionsBlock(state, actions)
+    }
+}
+
+/** Logo, título e subtítulo; a versão compacta troca o título por displayMd e tira o subtítulo. */
+@Composable
+private fun LoginHero(variant: HeroVariant) {
+    if (variant == HeroVariant.Hidden) return
+    val colors = AssembleTheme.colors
+    val typography = AssembleTheme.typography
+    val full = variant == HeroVariant.Full
+    Column(verticalArrangement = Arrangement.spacedBy(AssembleTheme.spacing.space3)) {
         Image(
             painter = painterResource(R.drawable.ic_assemble_logo),
             contentDescription = stringResource(R.string.app_name),
             modifier = Modifier
-                .height(LogoHeight)
+                .height(if (full) LogoHeight else CompactLogoHeight)
                 .logoAnchor(LocalLogoAnchor.current),
         )
         Text(
             text = stringResource(R.string.login_headline),
-            style = AssembleTheme.typography.displayXl,
+            style = if (full) typography.displayXl else typography.displayMd,
             color = colors.text,
             modifier = Modifier.semantics { heading() },
         )
-        Text(
-            text = stringResource(R.string.login_subtitle),
-            style = AssembleTheme.typography.body,
-            color = colors.textMuted,
-        )
-        Spacer(Modifier.height(spacing.space2))
+        if (full) {
+            Text(
+                text = stringResource(R.string.login_subtitle),
+                style = typography.body,
+                color = colors.textMuted,
+            )
+        }
+    }
+}
+
+/** Google, e-mail e o erro do último envio. */
+@Composable
+private fun LoginActionsBlock(state: LoginUiState, actions: LoginActions) {
+    val googleLabel = stringResource(R.string.login_continue_google)
+    Column(verticalArrangement = Arrangement.spacedBy(AssembleTheme.spacing.space3)) {
         if (state.inlineEmailForm) {
             if (state.showGoogle) {
-                PrimaryButton(
-                    text = stringResource(R.string.login_continue_google),
+                GoogleButton(
+                    text = googleLabel,
                     onClick = actions.onContinueWithGoogle,
                     enabled = !state.signingIn,
                     modifier = Modifier.fillMaxWidth(),
@@ -150,8 +189,8 @@ fun LoginScreen(state: LoginUiState, actions: LoginActions, modifier: Modifier =
             }
             EmailCard(state, actions)
         } else {
-            PrimaryButton(
-                text = stringResource(R.string.login_continue_google),
+            GoogleButton(
+                text = googleLabel,
                 onClick = actions.onContinueWithGoogle,
                 loading = state.signingIn,
                 modifier = Modifier.fillMaxWidth(),
@@ -167,7 +206,7 @@ fun LoginScreen(state: LoginUiState, actions: LoginActions, modifier: Modifier =
             Text(
                 text = stringResource(error.message()),
                 style = AssembleTheme.typography.caption,
-                color = colors.error,
+                color = AssembleTheme.colors.error,
                 modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
             )
         }
@@ -250,6 +289,9 @@ private fun EmailCard(state: LoginUiState, actions: LoginActions) {
             colors = fieldColors,
             modifier = Modifier.fillMaxWidth(),
         )
+        if (!state.createAccount) {
+            ForgotPassword(resetSent = state.resetSent, enabled = !state.signingIn, onReset = actions.onResetPassword)
+        }
         PrimaryButton(
             text = stringResource(if (state.createAccount) R.string.login_create_account else R.string.login_sign_in),
             onClick = actions.onSubmitEmail,
@@ -257,18 +299,32 @@ private fun EmailCard(state: LoginUiState, actions: LoginActions) {
             loading = state.signingIn,
             modifier = Modifier.fillMaxWidth(),
         )
-        if (!state.createAccount) {
-            if (state.resetSent) {
+    }
+}
+
+/** Logo abaixo da senha, à direita; depois de pedido, vira a confirmação de envio. */
+@Composable
+private fun ForgotPassword(resetSent: Boolean, enabled: Boolean, onReset: () -> Unit) {
+    val colors = AssembleTheme.colors
+    if (resetSent) {
+        Text(
+            text = stringResource(R.string.login_reset_sent),
+            style = AssembleTheme.typography.caption,
+            color = colors.textMuted,
+            modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+        )
+    } else {
+        Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {
+            TextButton(
+                onClick = onReset,
+                enabled = enabled,
+                contentPadding = PaddingValues(horizontal = AssembleTheme.spacing.space2),
+            ) {
                 Text(
-                    text = stringResource(R.string.login_reset_sent),
-                    style = AssembleTheme.typography.caption,
-                    color = colors.textMuted,
-                    modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+                    text = stringResource(R.string.login_forgot_password),
+                    style = AssembleTheme.typography.small.copy(fontWeight = FontWeight.SemiBold),
+                    color = colors.accentText,
                 )
-            } else {
-                TextButton(onClick = actions.onResetPassword, enabled = !state.signingIn, modifier = Modifier.fillMaxWidth()) {
-                    Text(stringResource(R.string.login_forgot_password), color = colors.accentText)
-                }
             }
         }
     }
@@ -333,6 +389,18 @@ private fun LoginScreenSignInPreview() {
 @PreviewLightDark
 @Composable
 private fun LoginScreenCreateAccountPreview() {
+    AssembleTheme {
+        LoginScreen(
+            LoginUiState(inlineEmailForm = true, createAccount = true, error = LoginError.EmailInUse),
+            PreviewActions,
+        )
+    }
+}
+
+/** Pior caso da spec: tela baixa, Criar conta, com erro. Tudo deve caber sem rolar. */
+@Preview(name = "360x640 criar conta com erro", widthDp = 360, heightDp = 640, showSystemUi = true)
+@Composable
+private fun LoginScreenSmallCreateAccountPreview() {
     AssembleTheme {
         LoginScreen(
             LoginUiState(inlineEmailForm = true, createAccount = true, error = LoginError.EmailInUse),
