@@ -18,6 +18,14 @@ def firebaseApiKey = localProp('FIREBASE_API_KEY')
 def firebaseAppId = localProp('FIREBASE_APP_ID')
 def firebaseProjectId = localProp('FIREBASE_PROJECT_ID')
 def googleWebClientId = localProp('GOOGLE_WEB_CLIENT_ID')
+// Assinatura de release: a keystore fica fora do repositório e as quatro chaves, no
+// local.properties. Faltando qualquer uma (como no CI), o build de release sai sem assinar.
+def releaseStoreFile = localProp('RELEASE_STORE_FILE')
+def releaseStorePassword = localProp('RELEASE_STORE_PASSWORD')
+def releaseKeyAlias = localProp('RELEASE_KEY_ALIAS')
+def releaseKeyPassword = localProp('RELEASE_KEY_PASSWORD')
+def releaseSigned = [releaseStoreFile, releaseStorePassword, releaseKeyAlias, releaseKeyPassword]
+        .every { !it.isEmpty() }
 
 android {
     namespace = 'dev.assemble.app'
@@ -35,6 +43,25 @@ android {
         buildConfigField 'String', 'FIREBASE_APP_ID', '"' + firebaseAppId + '"'
         buildConfigField 'String', 'FIREBASE_PROJECT_ID', '"' + firebaseProjectId + '"'
         buildConfigField 'String', 'GOOGLE_WEB_CLIENT_ID', '"' + googleWebClientId + '"'
+    }
+
+    if (releaseSigned) {
+        signingConfigs {
+            release {
+                storeFile = file(releaseStoreFile)
+                storePassword = releaseStorePassword
+                keyAlias = releaseKeyAlias
+                keyPassword = releaseKeyPassword
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            if (releaseSigned) {
+                signingConfig = signingConfigs.release
+            }
+        }
     }
 
     buildFeatures {
