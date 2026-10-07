@@ -1,5 +1,6 @@
 package dev.assemble.app.feature.profile
 
+import android.graphics.Bitmap
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dev.assemble.app.core.data.CharacterRepository
@@ -9,6 +10,8 @@ import dev.assemble.app.core.domain.Achievement
 import dev.assemble.app.core.domain.Archetype
 import dev.assemble.app.core.domain.ProfileRules
 import dev.assemble.app.core.domain.Reward
+import dev.assemble.app.core.media.AvatarImage
+import dev.assemble.app.core.media.PhotoCrop
 import dev.assemble.app.core.model.AvatarFrame
 import dev.assemble.app.core.model.ProfileAccent
 import dev.assemble.app.core.model.ProfileCover
@@ -44,12 +47,17 @@ sealed interface EditProfileUiState {
         val showNameError: Boolean = false,
         val showSaveError: Boolean = false,
         val showPhotoError: Boolean = false,
+        /** Há uma foto ajustada nesta visita: dá para reajustar sem escolher de novo na galeria. */
+        val canAdjustPhoto: Boolean = false,
     ) : EditProfileUiState {
         val profile: UserProfile get() = UserProfile(name = name, bio = bio, avatarPreset = avatarPreset, style = style, photo = photo)
     }
 
     data object Error : EditProfileUiState
 }
+
+/** Foto aberta na tela de ajuste, a partir de [crop]. */
+data class PhotoCropRequest(val source: Bitmap, val crop: PhotoCrop)
 
 class EditProfileViewModel(
     private val userRepository: UserRepository,
@@ -59,6 +67,14 @@ class EditProfileViewModel(
 ) : ViewModel() {
     private val state = MutableStateFlow<EditProfileUiState>(EditProfileUiState.Loading)
     val uiState: StateFlow<EditProfileUiState> = state.asStateFlow()
+
+    private val cropRequest = MutableStateFlow<PhotoCropRequest?>(null)
+
+    /** Não nulo enquanto a tela de ajuste da foto está aberta. */
+    val photoCrop: StateFlow<PhotoCropRequest?> = cropRequest.asStateFlow()
+
+    /** Última foto ajustada nesta visita (só em memória): é o que "Ajustar foto" reabre. */
+    private var lastCrop: PhotoCropRequest? = null
 
     init {
         load()
@@ -96,7 +112,39 @@ class EditProfileViewModel(
 
     fun onBioChange(bio: String) = updateForm { it.copy(bio = bio) }
 
-    fun onPhotoChange(photo: String?) = updateForm { it.copy(photo = photo, showPhotoError = false) }
+    /** Foto escolhida na galeria: abre o ajuste do zero. */
+    fun onPhotoPicked(source: Bitmap) {
+        updateForm { it.copy(showPhotoError = false) }
+        cropRequest.value = PhotoCropRequest(source, PhotoCrop())
+    }
+
+    fun onAdjustPhoto() {
+        cropRequest.value = lastCrop
+    }
+
+    /** Cancelar mantém a foto que já estava no formulário. */
+    fun onCropCancel() {
+        cropRequest.value = null
+    }
+
+    fun onCropConfirm(crop: PhotoCrop) {
+        val request = cropRequest.value ?: return
+        cropRequest.value = null
+        viewModelScope.launch {
+            try {
+                val photo = AvatarImage.encode(request.source, crop)
+                lastCrop = request.copy(crop = crop)
+                updateForm { it.copy(photo = photo, canAdjustPhoto = true, showPhotoError = false) }
+            } catch (_: IOException) {
+                updateForm { it.copy(showPhotoError = true) }
+            }
+        }
+    }
+
+    fun onRemovePhoto() {
+        lastCrop = null
+        updateForm { it.copy(photo = null, canAdjustPhoto = false, showPhotoError = false) }
+    }
 
     fun onPhotoError() = updateForm { it.copy(showPhotoError = true) }
 

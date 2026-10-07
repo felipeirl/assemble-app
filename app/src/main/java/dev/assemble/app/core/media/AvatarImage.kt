@@ -3,7 +3,9 @@ package dev.assemble.app.core.media
 import android.content.ContentResolver
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Canvas
 import android.graphics.ImageDecoder
+import android.graphics.Paint
 import android.net.Uri
 import android.os.Build
 import android.util.Base64
@@ -25,10 +27,22 @@ object AvatarImage {
     private const val MIN_QUALITY = 45
     private const val QUALITY_STEP = 10
 
-    /** Lê a imagem de [uri], recorta o centro, reduz e codifica. Falha em [IOException]. */
-    suspend fun encode(resolver: ContentResolver, uri: Uri): String = withContext(Dispatchers.IO) {
+    /** Lado menor que a foto precisa ter para o zoom máximo ainda render [SIZE_PX] pixels de verdade. */
+    private val CROP_SOURCE_PX = (SIZE_PX * PhotoCrop.MAX_ZOOM).toInt()
+
+    /** Lê a imagem de [uri] para a tela de ajuste, reduzida só até onde o zoom máximo continua nítido. */
+    suspend fun decodeForCrop(resolver: ContentResolver, uri: Uri): Bitmap = withContext(Dispatchers.IO) {
         try {
-            val square = squareThumbnail(decode(resolver, uri))
+            decode(resolver, uri)
+        } catch (error: RuntimeException) {
+            throw IOException("Imagem ilegível", error)
+        }
+    }
+
+    /** Desenha o recorte ajustado em [SIZE_PX] e codifica. Falha em [IOException]. */
+    suspend fun encode(source: Bitmap, crop: PhotoCrop): String = withContext(Dispatchers.Default) {
+        try {
+            val square = render(source, crop)
             var quality = FIRST_QUALITY
             var text = jpegBase64(square, quality)
             while (text.length > AVATAR_PHOTO_MAX_CHARS && quality > MIN_QUALITY) {
@@ -68,13 +82,22 @@ object AvatarImage {
             ?: throw IOException("Imagem ilegível")
     }
 
-    private fun sampleSize(shortSide: Int): Int = (shortSide / SIZE_PX).coerceAtLeast(1)
+    private fun sampleSize(shortSide: Int): Int = (shortSide / CROP_SOURCE_PX).coerceAtLeast(1)
 
-    private fun squareThumbnail(source: Bitmap): Bitmap {
-        val side = minOf(source.width, source.height)
-        val cropped = Bitmap.createBitmap(source, (source.width - side) / 2, (source.height - side) / 2, side, side)
-        return Bitmap.createScaledBitmap(cropped, SIZE_PX, SIZE_PX, true)
+    /** Mesma transformação da tela de ajuste: o círculo de 1 diâmetro vira o quadrado de [SIZE_PX]. */
+    private fun render(source: Bitmap, crop: PhotoCrop): Bitmap {
+        val output = Bitmap.createBitmap(SIZE_PX, SIZE_PX, Bitmap.Config.ARGB_8888)
+        val k = CropMath.scale(source.width, source.height, crop) * SIZE_PX
+        Canvas(output).apply {
+            translate(SIZE_PX / 2f + crop.offsetX * SIZE_PX, SIZE_PX / 2f + crop.offsetY * SIZE_PX)
+            rotate(QUARTER_DEGREES * crop.quarterTurns)
+            scale(k, k)
+            drawBitmap(source, -source.width / 2f, -source.height / 2f, Paint(Paint.FILTER_BITMAP_FLAG))
+        }
+        return output
     }
+
+    private const val QUARTER_DEGREES = 90f
 
     private fun jpegBase64(bitmap: Bitmap, quality: Int): String {
         val output = ByteArrayOutputStream()

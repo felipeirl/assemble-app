@@ -1,5 +1,6 @@
 package dev.assemble.app.feature.profile
 
+import android.graphics.Bitmap
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -106,7 +107,9 @@ private const val LockedAlpha = 0.4f
 data class EditProfileActions(
     val onNameChange: (String) -> Unit = {},
     val onBioChange: (String) -> Unit = {},
-    val onPhotoChange: (String?) -> Unit = {},
+    val onPhotoPicked: (Bitmap) -> Unit = {},
+    val onAdjustPhoto: () -> Unit = {},
+    val onRemovePhoto: () -> Unit = {},
     val onPhotoError: () -> Unit = {},
     val onCoverChange: (ProfileCover) -> Unit = {},
     val onAccentChange: (ProfileAccent) -> Unit = {},
@@ -135,7 +138,9 @@ fun EditProfileRoute(
         actions = EditProfileActions(
             onNameChange = viewModel::onNameChange,
             onBioChange = viewModel::onBioChange,
-            onPhotoChange = viewModel::onPhotoChange,
+            onPhotoPicked = viewModel::onPhotoPicked,
+            onAdjustPhoto = viewModel::onAdjustPhoto,
+            onRemovePhoto = viewModel::onRemovePhoto,
             onPhotoError = viewModel::onPhotoError,
             onCoverChange = viewModel::onCoverChange,
             onAccentChange = viewModel::onAccentChange,
@@ -150,6 +155,15 @@ fun EditProfileRoute(
         onRetry = viewModel::load,
         modifier = modifier,
     )
+    val photoCrop by viewModel.photoCrop.collectAsStateWithLifecycle()
+    photoCrop?.let { request ->
+        PhotoCropDialog(
+            source = request.source,
+            initial = request.crop,
+            onCancel = viewModel::onCropCancel,
+            onConfirm = viewModel::onCropConfirm,
+        )
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -265,7 +279,7 @@ private fun ProfileForm(form: EditProfileUiState.Form, actions: EditProfileActio
     }
 }
 
-/** Foto da galeria (seletor do sistema, sem permissão): reduzida e guardada no próprio perfil. */
+/** Foto da galeria (seletor do sistema, sem permissão): passa pela tela de ajuste e é guardada no próprio perfil. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun PhotoPicker(form: EditProfileUiState.Form, actions: EditProfileActions) {
@@ -276,7 +290,7 @@ private fun PhotoPicker(form: EditProfileUiState.Form, actions: EditProfileActio
         if (uri != null) {
             scope.launch {
                 try {
-                    actions.onPhotoChange(AvatarImage.encode(context.contentResolver, uri))
+                    actions.onPhotoPicked(AvatarImage.decodeForCrop(context.contentResolver, uri))
                 } catch (_: IOException) {
                     actions.onPhotoError()
                 }
@@ -289,8 +303,13 @@ private fun PhotoPicker(form: EditProfileUiState.Form, actions: EditProfileActio
                 text = stringResource(R.string.edit_profile_photo_choose),
                 onClick = { picker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
             )
+            if (form.canAdjustPhoto) {
+                TextButton(onClick = actions.onAdjustPhoto) {
+                    Text(stringResource(R.string.photo_crop_title), color = colors.accentText)
+                }
+            }
             if (form.photo != null) {
-                TextButton(onClick = { actions.onPhotoChange(null) }) {
+                TextButton(onClick = actions.onRemovePhoto) {
                     Text(stringResource(R.string.edit_profile_photo_remove), color = colors.error)
                 }
             }

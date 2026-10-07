@@ -435,4 +435,13 @@
     <string name="edit_profile_photo_remove">Remover foto</string>
     <string name="edit_profile_photo_hint">Só você vê a sua foto.</string>
     <string name="edit_profile_photo_error">Não foi possível usar essa imagem. Tente outra.</string>
+    <string name="photo_crop_title">Ajustar foto</string>
+    <string name="photo_crop_reset">Redefinir</string>
+    <string name="photo_crop_area">Foto a recortar. Arraste para mover e use dois dedos para dar zoom.</string>
+    <string name="photo_crop_hint">Arraste para posicionar. Toque duas vezes para aproximar.</string>
+    <string name="photo_crop_zoom">Zoom</string>
+    <string name="photo_crop_zoom_value">%1$.1f×</string>
+    <string name="photo_crop_rotate">Girar</string>
+    <string name="photo_crop_center">Centralizar</string>
+    <string name="photo_crop_apply">Usar foto</string>
 </resources>
