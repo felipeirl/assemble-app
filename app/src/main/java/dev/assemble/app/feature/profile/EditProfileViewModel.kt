@@ -96,9 +96,6 @@ class EditProfileViewModel(
 
     fun onBioChange(bio: String) = updateForm { it.copy(bio = bio) }
 
-    /** Escolher um preset tira a foto. */
-    fun onAvatarChange(preset: Int) = updateForm { it.copy(avatarPreset = preset, photo = null, showPhotoError = false) }
-
     fun onPhotoChange(photo: String?) = updateForm { it.copy(photo = photo, showPhotoError = false) }
 
     fun onPhotoError() = updateForm { it.copy(showPhotoError = true) }

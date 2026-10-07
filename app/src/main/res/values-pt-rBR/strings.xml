@@ -167,7 +167,6 @@
     <string name="profile_preferences_updated">Seus resultados no Descobrir vão ser atualizados</string>
     <string name="user_profile_error_title">Não foi possível carregar seu perfil</string>
     <string name="edit_profile_avatar">Avatar</string>
-    <string name="edit_profile_avatar_option">Avatar %1$d</string>
     <string name="edit_profile_name">Nome</string>
     <string name="edit_profile_name_required">Digite um nome.</string>
     <string name="edit_profile_save_error">Não foi possível salvar seu perfil. Verifique sua conexão e tente de novo.</string>

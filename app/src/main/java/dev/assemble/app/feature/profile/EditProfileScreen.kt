@@ -75,7 +75,6 @@ import dev.assemble.app.core.designsystem.component.ProfileCoverArt
 import dev.assemble.app.core.designsystem.component.StateView
 import dev.assemble.app.core.designsystem.component.StateViewType
 import dev.assemble.app.core.designsystem.component.TraitChip
-import dev.assemble.app.core.designsystem.component.UserAvatar
 import dev.assemble.app.core.designsystem.component.color
 import dev.assemble.app.core.designsystem.icon.AssembleIcons
 import dev.assemble.app.core.designsystem.theme.AssembleTheme
@@ -90,7 +89,6 @@ import dev.assemble.app.core.model.ProfileStyle
 import dev.assemble.app.core.model.ProfileTitle
 import dev.assemble.app.feature.achievements.info
 
-private val PickerAvatarSize = 56.dp
 private val SelectedBorderWidth = 3.dp
 private const val BioMaxLines = 4
 private const val PromptAnswerMaxLines = 2
@@ -108,7 +106,6 @@ private const val LockedAlpha = 0.4f
 data class EditProfileActions(
     val onNameChange: (String) -> Unit = {},
     val onBioChange: (String) -> Unit = {},
-    val onAvatarChange: (Int) -> Unit = {},
     val onPhotoChange: (String?) -> Unit = {},
     val onPhotoError: () -> Unit = {},
     val onCoverChange: (ProfileCover) -> Unit = {},
@@ -138,7 +135,6 @@ fun EditProfileRoute(
         actions = EditProfileActions(
             onNameChange = viewModel::onNameChange,
             onBioChange = viewModel::onBioChange,
-            onAvatarChange = viewModel::onAvatarChange,
             onPhotoChange = viewModel::onPhotoChange,
             onPhotoError = viewModel::onPhotoError,
             onCoverChange = viewModel::onCoverChange,
@@ -307,33 +303,11 @@ private fun PhotoPicker(form: EditProfileUiState.Form, actions: EditProfileActio
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun IdentityFields(form: EditProfileUiState.Form, actions: EditProfileActions, fieldColors: TextFieldColors) {
-    val colors = AssembleTheme.colors
     val spacing = AssembleTheme.spacing
     Column(verticalArrangement = Arrangement.spacedBy(spacing.space4)) {
         FieldTitle(stringResource(R.string.edit_profile_avatar))
-        FlowRow(
-            modifier = Modifier.selectableGroup(),
-            horizontalArrangement = Arrangement.spacedBy(spacing.space3),
-            verticalArrangement = Arrangement.spacedBy(spacing.space3),
-        ) {
-            AvatarPreset.entries.forEachIndexed { index, preset ->
-                val description = stringResource(R.string.edit_profile_avatar_option, index + 1)
-                val selected = form.avatarPreset == index
-                UserAvatar(
-                    preset = preset,
-                    photo = null,
-                    size = PickerAvatarSize,
-                    modifier = Modifier
-                        .border(SelectedBorderWidth, if (selected) colors.text else Color.Transparent, AssembleTheme.shapes.pill)
-                        .clip(AssembleTheme.shapes.pill)
-                        .selectable(selected = selected, role = Role.RadioButton, onClick = { actions.onAvatarChange(index) })
-                        .semantics { contentDescription = description },
-                )
-            }
-        }
         PhotoPicker(form, actions)
         OutlinedTextField(
             value = form.name,

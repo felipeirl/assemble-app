@@ -171,7 +171,6 @@
     <string name="profile_preferences_updated">Your Discover results will update</string>
     <string name="user_profile_error_title">Couldn\'t load your profile</string>
     <string name="edit_profile_avatar">Avatar</string>
-    <string name="edit_profile_avatar_option">Avatar %1$d</string>
     <string name="edit_profile_name">Name</string>
     <string name="edit_profile_name_required">Enter a name.</string>
     <string name="edit_profile_save_error">Couldn\'t save your profile. Check your connection and try again.</string>
