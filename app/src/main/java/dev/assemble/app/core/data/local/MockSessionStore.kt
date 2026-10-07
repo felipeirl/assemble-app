@@ -18,6 +18,7 @@ import dev.assemble.app.core.model.ProfileAccent
 import dev.assemble.app.core.model.ProfileCover
 import dev.assemble.app.core.model.ProfilePrompt
 import dev.assemble.app.core.model.ProfileStyle
+import dev.assemble.app.core.model.ProfileTitle
 import dev.assemble.app.core.model.SessionState
 import dev.assemble.app.core.model.Style
 import dev.assemble.app.core.model.Team
@@ -78,6 +79,7 @@ class MockSessionStore(
             // Listas com ordem (o conjunto do DataStore não guarda ordem): uma linha por item.
             prefs[Keys.FEATURED_CONNECTIONS] = style.featuredConnections.joinToString(LIST_SEPARATOR)
             prefs[Keys.FEATURED_BADGES] = style.featuredBadges.joinToString(LIST_SEPARATOR)
+            style.title?.let { prefs[Keys.TITLE] = it.name } ?: prefs.remove(Keys.TITLE)
         }
     }
 
@@ -104,6 +106,7 @@ class MockSessionStore(
         val PROMPT_ANSWER = stringPreferencesKey("style_prompt_answer")
         val FEATURED_CONNECTIONS = stringPreferencesKey("style_featured_connections")
         val FEATURED_BADGES = stringPreferencesKey("style_featured_badges")
+        val TITLE = stringPreferencesKey("style_title")
     }
 
     private fun StoredPreferences.toStoredSession(): StoredSession = StoredSession(
@@ -135,6 +138,7 @@ class MockSessionStore(
         promptAnswer = this[Keys.PROMPT_ANSWER] ?: fallback.promptAnswer,
         featuredConnections = this[Keys.FEATURED_CONNECTIONS]?.let(::splitList) ?: fallback.featuredConnections,
         featuredBadges = this[Keys.FEATURED_BADGES]?.let(::splitList) ?: fallback.featuredBadges,
+        title = this[Keys.TITLE]?.let { name -> ProfileTitle.entries.firstOrNull { it.name == name } } ?: fallback.title,
     )
 
     private fun splitList(joined: String): List<String> = joined.split(LIST_SEPARATOR).filter { it.isNotBlank() }

@@ -7,6 +7,7 @@ import dev.assemble.app.core.model.PowerFamily
 import dev.assemble.app.core.model.Preferences
 import dev.assemble.app.core.model.ProfileAccent
 import dev.assemble.app.core.model.ProfileStyle
+import dev.assemble.app.core.model.ProfileTitle
 import dev.assemble.app.core.model.Style
 import dev.assemble.app.core.model.Team
 import dev.assemble.app.core.model.UserProfile
@@ -54,10 +55,21 @@ class FirestoreMappingTest {
             styles = setOf(Style.Humor),
             fame = 0.5f,
         )
-        val profile = UserProfile("Kamala", "Jersey City", 3, ProfileStyle(accent = ProfileAccent.entries.last(), promptAnswer = "Embiggen"))
+        val profile = UserProfile(
+            "Kamala", "Jersey City", 3,
+            ProfileStyle(accent = ProfileAccent.entries.last(), promptAnswer = "Embiggen", title = ProfileTitle.AlterEgo),
+        )
         val read = userDocument(profileFields(profile) + mapOf("preferences" to preferencesFields(preferences)), "x")
         assertEquals(preferences, read.preferences)
         assertEquals(profile, read.profile)
+    }
+
+    @Test
+    fun title_isWrittenOnlyWhenSetAndDeletedWhenCleared() {
+        // Sem título antes nem agora, o campo nem entra: não depende das regras novas do Firestore.
+        assertFalse(profileStyleFields(ProfileStyle()).containsKey("title"))
+        assertEquals("Recruit", profileStyleFields(ProfileStyle(title = ProfileTitle.Recruit))["title"])
+        assertEquals(DeleteField, profileStyleFields(ProfileStyle(), previousTitle = ProfileTitle.Recruit)["title"])
     }
 
     @Test

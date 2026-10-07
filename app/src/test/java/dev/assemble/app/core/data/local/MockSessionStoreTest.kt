@@ -11,6 +11,7 @@ import dev.assemble.app.core.model.ProfileAccent
 import dev.assemble.app.core.model.ProfileCover
 import dev.assemble.app.core.model.ProfilePrompt
 import dev.assemble.app.core.model.ProfileStyle
+import dev.assemble.app.core.model.ProfileTitle
 import dev.assemble.app.core.model.SessionState
 import dev.assemble.app.core.model.Style
 import dev.assemble.app.core.model.Team
@@ -69,6 +70,7 @@ class MockSessionStoreTest {
                     promptAnswer = "X-Men, com a Storm na liderança",
                     featuredConnections = listOf("storm", "rocket", "jean-grey"),
                     featuredBadges = listOf("Crossover", "FirstConnection"),
+                    title = ProfileTitle.Diplomat,
                 ),
             ),
         )

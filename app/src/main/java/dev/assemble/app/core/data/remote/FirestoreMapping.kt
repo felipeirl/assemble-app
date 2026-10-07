@@ -12,6 +12,7 @@ import dev.assemble.app.core.model.ProfileAccent
 import dev.assemble.app.core.model.ProfileCover
 import dev.assemble.app.core.model.ProfilePrompt
 import dev.assemble.app.core.model.ProfileStyle
+import dev.assemble.app.core.model.ProfileTitle
 import dev.assemble.app.core.model.Style
 import dev.assemble.app.core.model.Team
 import dev.assemble.app.core.model.UserProfile
@@ -125,12 +126,12 @@ fun messageFrom(document: Document, connectionId: String, lastReadAt: Instant?):
  * Campos do perfil. A foto só entra quando existe, ou quando é removida ([previousPhoto] não nulo):
  * assim, quem nunca usou foto não depende das regras novas do Firestore para salvar o perfil.
  */
-fun profileFields(profile: UserProfile, previousPhoto: String? = null): Map<String, Any?> {
+fun profileFields(profile: UserProfile, previousPhoto: String? = null, previousTitle: ProfileTitle? = null): Map<String, Any?> {
     val fields = mapOf(
         "displayName" to profile.name.trim().take(DISPLAY_NAME_MAX),
         "bio" to profile.bio.take(BIO_MAX),
         "avatarPreset" to profile.avatarPreset.coerceIn(0, AVATAR_PRESET_MAX),
-        "profileStyle" to profileStyleFields(profile.style),
+        "profileStyle" to profileStyleFields(profile.style, previousTitle),
     )
     return when {
         profile.photo != null -> fields + ("avatarPhoto" to profile.photo)
@@ -147,15 +148,26 @@ fun preferencesFields(preferences: Preferences): Map<String, Any?> = mapOf(
     "fame" to preferences.fame.toDouble(),
 )
 
-fun profileStyleFields(style: ProfileStyle): Map<String, Any?> = mapOf(
-    "cover" to style.cover.name,
-    "accent" to style.accent.name,
-    "frame" to style.frame.name,
-    "prompt" to style.prompt.name,
-    "promptAnswer" to style.promptAnswer.take(ProfileStyle.PROMPT_ANSWER_MAX),
-    "featuredConnections" to style.featuredConnections.take(ProfileStyle.FEATURED_MAX),
-    "featuredBadges" to style.featuredBadges.distinct().take(ProfileStyle.FEATURED_MAX),
-)
+/**
+ * O título só entra quando existe; tirado, vai [DeleteField] (a gravação mescla, então omitir manteria o antigo).
+ * Sem título antes nem agora, o campo nem entra: não depende das regras novas do Firestore.
+ */
+fun profileStyleFields(style: ProfileStyle, previousTitle: ProfileTitle? = null): Map<String, Any?> {
+    val fields = mapOf(
+        "cover" to style.cover.name,
+        "accent" to style.accent.name,
+        "frame" to style.frame.name,
+        "prompt" to style.prompt.name,
+        "promptAnswer" to style.promptAnswer.take(ProfileStyle.PROMPT_ANSWER_MAX),
+        "featuredConnections" to style.featuredConnections.take(ProfileStyle.FEATURED_MAX),
+        "featuredBadges" to style.featuredBadges.distinct().take(ProfileStyle.FEATURED_MAX),
+    )
+    return when {
+        style.title != null -> fields + ("title" to style.title.name)
+        previousTitle != null -> fields + ("title" to DeleteField)
+        else -> fields
+    }
+}
 
 private fun preferences(map: Map<*, *>?): Preferences {
     if (map == null) return Preferences.Any
@@ -180,6 +192,7 @@ private fun profileStyle(map: Map<*, *>?): ProfileStyle {
         promptAnswer = (map["promptAnswer"] as? String)?.take(ProfileStyle.PROMPT_ANSWER_MAX) ?: "",
         featuredConnections = (map["featuredConnections"] as? List<*>).orEmpty().filterIsInstance<String>(),
         featuredBadges = (map["featuredBadges"] as? List<*>).orEmpty().filterIsInstance<String>(),
+        title = enumOrNull(map["title"], ProfileTitle.entries),
     )
 }
 

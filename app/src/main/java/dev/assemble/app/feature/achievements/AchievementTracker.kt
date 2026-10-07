@@ -11,6 +11,7 @@ import dev.assemble.app.core.domain.AchievementStats
 import dev.assemble.app.core.model.Character
 import dev.assemble.app.core.model.MessageAuthor
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -31,6 +32,8 @@ class AchievementTracker(
     connectionRepository: ConnectionRepository,
     chatRepository: ChatRepository,
     userRepository: UserRepository,
+    /** Dias distintos com o app aberto ([dev.assemble.app.core.data.local.ActiveDaysStore.count]). */
+    activeDays: Flow<Int>,
     scope: CoroutineScope,
     /**
      * Com backend, o app não tem o catálogo completo: equipes distintas e personagens vistos vêm
@@ -56,18 +59,27 @@ class AchievementTracker(
         }
     }
 
+    /** Hábitos do próprio aparelho: dias ativos e perfil completo. */
+    private val habits = combine(activeDays, userRepository.currentProfile) { days, profile ->
+        days to AchievementRules.isProfileComplete(profile.style)
+    }
+
     val progress: StateFlow<List<AchievementProgress>?> = combine(
         connectionRepository.observeConnections(),
         chatRepository.allMessages,
         userRepository.seenCharacterIds,
         totals,
-    ) { connections, messages, seen, totals ->
+        habits,
+    ) { connections, messages, seen, totals, (days, profileComplete) ->
         AchievementRules.evaluate(
             AchievementStats(
                 connections = connections.size,
                 messagesSent = messages.count { it.author == MessageAuthor.User },
                 charactersSeen = maxOf(seen.size, totals?.charactersSeen ?: 0),
                 distinctTeams = totals?.distinctTeams,
+                charactersChatted = AchievementRules.charactersChatted(messages),
+                activeDays = days,
+                profileComplete = profileComplete,
             ),
         )
     }.stateIn(scope, SharingStarted.Eagerly, null)

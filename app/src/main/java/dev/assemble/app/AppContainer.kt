@@ -5,7 +5,9 @@ import dev.assemble.app.core.data.CharacterRepository
 import dev.assemble.app.core.data.ChatRepository
 import dev.assemble.app.core.data.ConnectionRepository
 import dev.assemble.app.core.data.UserRepository
+import dev.assemble.app.core.data.local.ActiveDaysStore
 import dev.assemble.app.core.data.local.MockSessionStore
+import dev.assemble.app.core.data.local.activityDataStore
 import dev.assemble.app.core.data.local.SettingsDataStore
 import dev.assemble.app.core.data.local.StoredSession
 import dev.assemble.app.core.data.local.mockSessionDataStore
@@ -130,11 +132,15 @@ class AppContainer(context: Context) {
         replyDelay = if (remote != null) Duration.ZERO else CharacterReplyDelay,
     )
 
+    /** Dias com o app aberto, para "Sentinela". Marcado pela MainActivity a cada vez que o app aparece. */
+    val activeDays = ActiveDaysStore(appContext.activityDataStore, clock)
+
     val achievementTracker = AchievementTracker(
         characterRepository = characterRepository,
         connectionRepository = connectionRepository,
         chatRepository = chatRepository,
         userRepository = userRepository,
+        activeDays = activeDays.count,
         scope = applicationScope,
         remoteStats = remote?.let { graph -> { graph.totals() } },
     )

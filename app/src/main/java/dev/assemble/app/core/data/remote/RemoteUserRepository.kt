@@ -207,7 +207,10 @@ class RemoteUserRepository(
 
     override suspend fun updateProfile(profile: UserProfile) {
         val saved = profile.copy(photo = hostedPhoto(profile.photo))
-        store.mergeUser(requireUid(), profileFields(saved, previousPhoto = currentProfile.value.photo))
+        store.mergeUser(
+            requireUid(),
+            profileFields(saved, previousPhoto = currentProfile.value.photo, previousTitle = currentProfile.value.style.title),
+        )
     }
 
     /**

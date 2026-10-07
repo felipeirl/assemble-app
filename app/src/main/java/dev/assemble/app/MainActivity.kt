@@ -22,6 +22,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.lifecycleScope
 import dev.assemble.app.core.designsystem.component.LocalLogoAnchor
 import dev.assemble.app.core.feedback.LocalFeedback
 import dev.assemble.app.core.designsystem.component.LogoAnchor
@@ -31,6 +32,7 @@ import dev.assemble.app.core.designsystem.theme.ThemeRevealHost
 import dev.assemble.app.core.designsystem.theme.rememberAnimationsEnabled
 import dev.assemble.app.core.model.ThemePreference
 import dev.assemble.app.feature.splash.BrandSplash
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -86,6 +88,13 @@ class MainActivity : ComponentActivity() {
                 ThemePreference.System -> UiModeManager.MODE_NIGHT_AUTO
             },
         )
+    }
+
+    /** Cada vez que o app aparece conta o dia de hoje (uma vez por dia) para a conquista "Sentinela". */
+    override fun onStart() {
+        super.onStart()
+        val container = (application as MyApplication).container
+        lifecycleScope.launch { container.activeDays.markToday() }
     }
 }
 
