@@ -17,6 +17,10 @@ Este repositório é o **app Android**. O servidor fica em outro repositório: [
 - **Configurações:** tema claro, escuro ou do sistema, som, vibração e notificações; excluir conversas e a conta, com 30 dias de carência.
 - Interface em **português e inglês**, com animações que respeitam a configuração do sistema.
 
+## Baixar o app
+
+O APK assinado de cada versão está nos [Releases](https://github.com/felipeirl/assemble-app/releases) (arquivo `assemble-X.Y.Z.apk`). Ele já fala com o backend publicado; para rodar do código-fonte, veja abaixo.
+
 ## Como rodar
 
 Requisitos: Android Studio com suporte ao **AGP 9.0.0**, **JDK 17** e Android 8.0+ (minSdk 26).
@@ -114,7 +118,7 @@ Stack: Kotlin, Jetpack Compose + Material 3, Navigation 3, ViewModel + StateFlow
 
 ## Versões
 
-As versões contam como um odômetro (`0.0.9` → `0.1.0`: ao chegar em 9, avança a casa seguinte), uma por grande adição, e estão no [`CHANGELOG.md`](CHANGELOG.md); cada uma tem uma tag `vX.Y.Z`. A versão atual está em `app/build.gradle` (`versionName` e `versionCode`). Para lançar: atualize a versão e o changelog, faça o commit e crie a tag (`git tag -a v0.0.8 -m "v0.0.8"`).
+As versões contam como um odômetro (`0.0.9` → `0.1.0`: ao chegar em 9, avança a casa seguinte), uma por grande adição, e estão no [`CHANGELOG.md`](CHANGELOG.md); cada uma tem uma tag `vX.Y.Z`. A versão atual está em `app/build.gradle` (`versionName` e `versionCode`). Para lançar: atualize a versão e o changelog, faça o commit e crie a tag (`git tag -a v0.1.0 -m "v0.1.0"`).
 
 ## Fontes e créditos
 

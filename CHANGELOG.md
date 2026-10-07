@@ -2,6 +2,15 @@
 
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/). As versões contam como um odômetro: cada release é uma grande adição e o número sobe de um em um (`0.0.8`, `0.0.9`, `0.1.0`, `0.1.1`...). Ao chegar em 9, avança a casa seguinte. Correções pequenas entram na release seguinte.
 
+## [0.1.0] - 2026-10-07
+
+### Adicionado
+- APK assinado de release, anexado a cada release do GitHub. A assinatura lê a keystore do `local.properties` (`RELEASE_STORE_FILE`, `RELEASE_STORE_PASSWORD`, `RELEASE_KEY_ALIAS`, `RELEASE_KEY_PASSWORD`); sem elas, como no CI, o build de release sai sem assinar.
+- Sons novos para conquista, Assemble, conexão, mensagens e passar de personagem; o som da abertura foi realinhado ao encaixe do logo.
+
+### Alterado
+- O backend passou a rodar na Discloud (`https://assemble.discloud.dev`), em vez do PC com túnel.
+
 ## [0.0.7] - 2026-10-05
 
 ### Adicionado
