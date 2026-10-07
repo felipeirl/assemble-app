@@ -72,6 +72,14 @@ internal fun ProfileHeader(
         }
         Spacer(Modifier.height(avatarSize / 2 + AssembleTheme.spacing.space2))
         Text(profile.name, style = AssembleTheme.typography.h2, color = AssembleTheme.colors.text, textAlign = TextAlign.Center)
+        style.title?.let { title ->
+            Text(
+                text = stringResource(title.label).uppercase(),
+                style = AssembleTheme.typography.eyebrow,
+                color = AssembleTheme.colors.accentText,
+                textAlign = TextAlign.Center,
+            )
+        }
         if (archetype != null) {
             Spacer(Modifier.height(AssembleTheme.spacing.space1))
             ArchetypeChip(archetype, style.accent)

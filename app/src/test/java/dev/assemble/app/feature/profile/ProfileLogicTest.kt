@@ -2,9 +2,14 @@ package dev.assemble.app.feature.profile
 
 import dev.assemble.app.core.data.mock.CHARACTERS_ASSET_PATH
 import dev.assemble.app.core.data.mock.parseMockCharacters
+import dev.assemble.app.core.domain.Reward
+import dev.assemble.app.core.model.AvatarFrame
 import dev.assemble.app.core.model.Connection
 import dev.assemble.app.core.model.Origin
 import dev.assemble.app.core.model.PowerFamily
+import dev.assemble.app.core.model.ProfileAccent
+import dev.assemble.app.core.model.ProfileCover
+import dev.assemble.app.core.model.ProfileTitle
 import dev.assemble.app.core.model.Style
 import dev.assemble.app.core.model.Team
 import org.junit.Assert.assertEquals
@@ -21,6 +26,14 @@ class ProfileLogicTest {
 
     private fun connection(characterId: String, score: Int) =
         Connection("c-$characterId", characterId, score, threshold = 70, createdAt = Instant.EPOCH)
+
+    @Test
+    fun rewardSection_matchesRewardType() {
+        assertEquals(ProfileSection.Frame, Reward.Frame(AvatarFrame.Shield).section())
+        assertEquals(ProfileSection.Cover, Reward.Cover(ProfileCover.Cosmos).section())
+        assertEquals(ProfileSection.Accent, Reward.Accent(ProfileAccent.Silver).section())
+        assertEquals(ProfileSection.Title, Reward.Title(ProfileTitle.Recruit).section())
+    }
 
     @Test
     fun stats_countSeenAndConnectedOnce_andAverageScores() {

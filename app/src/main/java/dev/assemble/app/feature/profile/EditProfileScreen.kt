@@ -12,6 +12,7 @@ import dev.assemble.app.core.designsystem.component.SecondaryButton
 import dev.assemble.app.core.media.AvatarImage
 import java.io.IOException
 import kotlinx.coroutines.launch
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -19,6 +20,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -39,7 +43,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldColors
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -80,6 +87,7 @@ import dev.assemble.app.core.model.ProfileAccent
 import dev.assemble.app.core.model.ProfileCover
 import dev.assemble.app.core.model.ProfilePrompt
 import dev.assemble.app.core.model.ProfileStyle
+import dev.assemble.app.core.model.ProfileTitle
 import dev.assemble.app.feature.achievements.info
 
 private val PickerAvatarSize = 56.dp
@@ -110,15 +118,23 @@ data class EditProfileActions(
     val onPromptAnswerChange: (String) -> Unit = {},
     val onToggleFeaturedConnection: (String) -> Unit = {},
     val onToggleFeaturedBadge: (Achievement) -> Unit = {},
+    val onTitleChange: (ProfileTitle?) -> Unit = {},
     val onSave: () -> Unit = {},
 )
 
+/** [focus]: seção mostrada ao abrir, quando se chega por uma recompensa nas conquistas. */
 @Composable
-fun EditProfileRoute(viewModel: EditProfileViewModel, onBack: () -> Unit, modifier: Modifier = Modifier) {
+fun EditProfileRoute(
+    viewModel: EditProfileViewModel,
+    onBack: () -> Unit,
+    focus: ProfileSection? = null,
+    modifier: Modifier = Modifier,
+) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     EditProfileScreen(
         state = state,
         onBack = onBack,
+        focus = focus,
         actions = EditProfileActions(
             onNameChange = viewModel::onNameChange,
             onBioChange = viewModel::onBioChange,
@@ -132,6 +148,7 @@ fun EditProfileRoute(viewModel: EditProfileViewModel, onBack: () -> Unit, modifi
             onPromptAnswerChange = viewModel::onPromptAnswerChange,
             onToggleFeaturedConnection = viewModel::onToggleFeaturedConnection,
             onToggleFeaturedBadge = viewModel::onToggleFeaturedBadge,
+            onTitleChange = viewModel::onTitleChange,
             onSave = { viewModel.save(onSaved = onBack) },
         ),
         onRetry = viewModel::load,
@@ -147,6 +164,7 @@ fun EditProfileScreen(
     actions: EditProfileActions,
     onRetry: () -> Unit,
     modifier: Modifier = Modifier,
+    focus: ProfileSection? = null,
 ) {
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     Scaffold(
@@ -168,17 +186,24 @@ fun EditProfileScreen(
                 )
                 // A prévia e as molduras mostram a foto ainda não salva.
                 is EditProfileUiState.Form -> CompositionLocalProvider(LocalUserPhoto provides state.photo) {
-                    ProfileForm(state, actions)
+                    ProfileForm(state, actions, focus)
                 }
             }
         }
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun ProfileForm(form: EditProfileUiState.Form, actions: EditProfileActions) {
+private fun ProfileForm(form: EditProfileUiState.Form, actions: EditProfileActions, focus: ProfileSection?) {
     val colors = AssembleTheme.colors
     val spacing = AssembleTheme.spacing
+    val requesters = remember { ProfileSection.entries.associateWith { BringIntoViewRequester() } }
+    LaunchedEffect(focus) {
+        val section = focus ?: return@LaunchedEffect
+        withFrameNanos { } // espera o primeiro layout: antes dele não há onde rolar
+        requesters.getValue(section).bringIntoView()
+    }
     val fieldColors = OutlinedTextFieldDefaults.colors(
         focusedBorderColor = colors.actionAssemble,
         unfocusedBorderColor = colors.border,
@@ -206,9 +231,10 @@ private fun ProfileForm(form: EditProfileUiState.Form, actions: EditProfileActio
         }
 
         IdentityFields(form, actions, fieldColors)
-        CoverPicker(form.style, actions.onCoverChange)
-        AccentPicker(form.style.accent, actions.onAccentChange)
-        FramePicker(form, actions.onFrameChange)
+        TitlePicker(form, actions.onTitleChange, Modifier.bringIntoViewRequester(requesters.getValue(ProfileSection.Title)))
+        CoverPicker(form, actions.onCoverChange, Modifier.bringIntoViewRequester(requesters.getValue(ProfileSection.Cover)))
+        AccentPicker(form, actions.onAccentChange, Modifier.bringIntoViewRequester(requesters.getValue(ProfileSection.Accent)))
+        FramePicker(form, actions.onFrameChange, Modifier.bringIntoViewRequester(requesters.getValue(ProfileSection.Frame)))
         PromptFields(form.style, actions, fieldColors)
         FeaturedPicker(
             title = stringResource(R.string.edit_profile_featured_connections, form.style.featuredConnections.size, ProfileStyle.FEATURED_MAX),
@@ -336,11 +362,41 @@ private fun IdentityFields(form: EditProfileUiState.Form, actions: EditProfileAc
     }
 }
 
+/** "Nenhum" e os títulos; bloqueados aparecem com cadeado, sem ação. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun CoverPicker(style: ProfileStyle, onChange: (ProfileCover) -> Unit) {
+private fun TitlePicker(form: EditProfileUiState.Form, onChange: (ProfileTitle?) -> Unit, modifier: Modifier = Modifier) {
     val spacing = AssembleTheme.spacing
-    Column(verticalArrangement = Arrangement.spacedBy(spacing.space3)) {
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(spacing.space3)) {
+        FieldTitle(stringResource(R.string.edit_profile_title))
+        FlowRow(
+            modifier = Modifier.selectableGroup(),
+            horizontalArrangement = Arrangement.spacedBy(spacing.space2),
+            verticalArrangement = Arrangement.spacedBy(spacing.space2),
+        ) {
+            TraitChip(
+                label = stringResource(R.string.edit_profile_title_none),
+                selected = form.style.title == null,
+                onSelectedChange = { onChange(null) },
+            )
+            ProfileTitle.entries.forEach { title ->
+                val label = stringResource(title.label)
+                val lock = lockText(Reward.Title(title), form.unlocked)
+                if (lock == null) {
+                    TraitChip(label = label, selected = form.style.title == title, onSelectedChange = { onChange(title) })
+                } else {
+                    LockedChip(label, lock)
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun CoverPicker(form: EditProfileUiState.Form, onChange: (ProfileCover) -> Unit, modifier: Modifier = Modifier) {
+    val spacing = AssembleTheme.spacing
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(spacing.space3)) {
         FieldTitle(stringResource(R.string.edit_profile_cover))
         FlowRow(
             modifier = Modifier.selectableGroup(),
@@ -348,22 +404,30 @@ private fun CoverPicker(style: ProfileStyle, onChange: (ProfileCover) -> Unit) {
             verticalArrangement = Arrangement.spacedBy(spacing.space3),
         ) {
             ProfileCover.entries.forEach { cover ->
-                val selected = style.cover == cover
+                val selected = form.style.cover == cover
+                val label = stringResource(cover.label)
+                val lock = lockText(Reward.Cover(cover), form.unlocked)
                 OptionTile(
-                    label = stringResource(cover.label),
+                    label = lock ?: label,
                     selected = selected,
                     onClick = { onChange(cover) },
                     width = CoverOptionWidth,
+                    enabled = lock == null,
+                    description = listOfNotNull(label, lock).joinToString(". "),
                 ) {
-                    ProfileCoverArt(
-                        cover = cover,
-                        accent = style.accent,
-                        modifier = Modifier
-                            .width(CoverOptionWidth)
-                            .height(CoverOptionHeight)
-                            .clip(AssembleTheme.shapes.sm)
-                            .border(SelectedBorderWidth, if (selected) AssembleTheme.colors.text else Color.Transparent, AssembleTheme.shapes.sm),
-                    )
+                    Box(contentAlignment = Alignment.Center) {
+                        ProfileCoverArt(
+                            cover = cover,
+                            accent = form.style.accent,
+                            modifier = Modifier
+                                .width(CoverOptionWidth)
+                                .height(CoverOptionHeight)
+                                .clip(AssembleTheme.shapes.sm)
+                                .border(SelectedBorderWidth, if (selected) AssembleTheme.colors.text else Color.Transparent, AssembleTheme.shapes.sm)
+                                .then(if (lock != null) Modifier.alpha(LockedAlpha) else Modifier),
+                        )
+                        if (lock != null) LockIcon()
+                    }
                 }
             }
         }
@@ -372,28 +436,33 @@ private fun CoverPicker(style: ProfileStyle, onChange: (ProfileCover) -> Unit) {
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun AccentPicker(current: ProfileAccent, onChange: (ProfileAccent) -> Unit) {
+private fun AccentPicker(form: EditProfileUiState.Form, onChange: (ProfileAccent) -> Unit, modifier: Modifier = Modifier) {
     val colors = AssembleTheme.colors
     val spacing = AssembleTheme.spacing
-    Column(verticalArrangement = Arrangement.spacedBy(spacing.space3)) {
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(spacing.space3)) {
         FieldTitle(stringResource(R.string.edit_profile_accent))
         FlowRow(
             modifier = Modifier.selectableGroup(),
             horizontalArrangement = Arrangement.spacedBy(spacing.space3),
+            verticalArrangement = Arrangement.spacedBy(spacing.space3),
         ) {
             ProfileAccent.entries.forEach { accent ->
-                val selected = accent == current
-                val description = stringResource(accent.label)
+                val selected = accent == form.style.accent
+                val lock = lockText(Reward.Accent(accent), form.unlocked)
+                val description = listOfNotNull(stringResource(accent.label), lock).joinToString(". ")
                 Box(
                     Modifier
                         .size(AccentOptionSize)
                         .border(SelectedBorderWidth, if (selected) colors.text else Color.Transparent, AssembleTheme.shapes.pill)
                         .padding(SelectedBorderWidth + 2.dp)
                         .clip(AssembleTheme.shapes.pill)
-                        .background(accent.color(colors))
-                        .selectable(selected = selected, role = Role.RadioButton, onClick = { onChange(accent) })
+                        .background(accent.color(colors).let { if (lock != null) it.copy(alpha = LockedAlpha) else it })
+                        .selectable(selected = selected, enabled = lock == null, role = Role.RadioButton, onClick = { onChange(accent) })
                         .semantics { contentDescription = description },
-                )
+                    contentAlignment = Alignment.Center,
+                ) {
+                    if (lock != null) LockIcon()
+                }
             }
         }
     }
@@ -401,9 +470,9 @@ private fun AccentPicker(current: ProfileAccent, onChange: (ProfileAccent) -> Un
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun FramePicker(form: EditProfileUiState.Form, onChange: (AvatarFrame) -> Unit) {
+private fun FramePicker(form: EditProfileUiState.Form, onChange: (AvatarFrame) -> Unit, modifier: Modifier = Modifier) {
     val spacing = AssembleTheme.spacing
-    Column(verticalArrangement = Arrangement.spacedBy(spacing.space3)) {
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(spacing.space3)) {
         FieldTitle(stringResource(R.string.edit_profile_frame))
         FlowRow(
             modifier = Modifier.selectableGroup(),
@@ -411,19 +480,15 @@ private fun FramePicker(form: EditProfileUiState.Form, onChange: (AvatarFrame) -
             verticalArrangement = Arrangement.spacedBy(spacing.space3),
         ) {
             AvatarFrame.entries.forEach { frame ->
-                val required = ProfileRules.requiredAchievement(Reward.Frame(frame))
-                val locked = !ProfileRules.isUnlocked(Reward.Frame(frame), form.unlocked)
                 val label = stringResource(frame.label)
-                val lockText = required?.takeIf { locked }?.let {
-                    stringResource(R.string.edit_profile_frame_locked, stringResource(it.info().title))
-                }
+                val lock = lockText(Reward.Frame(frame), form.unlocked)
                 OptionTile(
-                    label = lockText ?: label,
+                    label = lock ?: label,
                     selected = form.style.frame == frame,
                     onClick = { onChange(frame) },
                     width = FrameOptionWidth,
-                    enabled = !locked,
-                    description = listOfNotNull(label, lockText).joinToString(". "),
+                    enabled = lock == null,
+                    description = listOfNotNull(label, lock).joinToString(". "),
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         FramedAvatar(
@@ -431,16 +496,44 @@ private fun FramePicker(form: EditProfileUiState.Form, onChange: (AvatarFrame) -
                             frame = frame,
                             accent = form.style.accent,
                             size = FrameOptionAvatarSize,
-                            modifier = if (locked) Modifier.alpha(LockedAlpha) else Modifier,
+                            modifier = if (lock != null) Modifier.alpha(LockedAlpha) else Modifier,
                         )
-                        if (locked) {
-                            Icon(AssembleIcons.Lock, contentDescription = null, tint = AssembleTheme.colors.text, modifier = Modifier.size(LockIconSize))
-                        }
+                        if (lock != null) LockIcon()
                     }
                 }
             }
         }
     }
+}
+
+/** "Libere: Legião" quando a recompensa está bloqueada; null quando é livre ou já foi liberada. */
+@Composable
+private fun lockText(reward: Reward, unlocked: Set<Achievement>): String? =
+    ProfileRules.requiredAchievement(reward)?.takeIf { it !in unlocked }?.let {
+        stringResource(R.string.edit_profile_frame_locked, stringResource(it.info().title))
+    }
+
+@Composable
+private fun LockedChip(label: String, lockText: String) {
+    val colors = AssembleTheme.colors
+    val pill = AssembleTheme.shapes.pill
+    Row(
+        modifier = Modifier
+            .clip(pill)
+            .border(1.dp, colors.border, pill)
+            .padding(horizontal = AssembleTheme.spacing.space3, vertical = AssembleTheme.spacing.space2)
+            .semantics(mergeDescendants = true) { contentDescription = "$label. $lockText" },
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(AssembleTheme.spacing.space1),
+    ) {
+        Icon(AssembleIcons.Lock, contentDescription = null, tint = colors.textMuted, modifier = Modifier.size(LockIconSize))
+        Text(label, style = AssembleTheme.typography.caption, color = colors.textMuted)
+    }
+}
+
+@Composable
+private fun LockIcon() {
+    Icon(AssembleIcons.Lock, contentDescription = null, tint = AssembleTheme.colors.text, modifier = Modifier.size(LockIconSize))
 }
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -557,7 +650,12 @@ private fun EditProfilePreview() {
                 name = "Felipe",
                 bio = "",
                 avatarPreset = 2,
-                style = ProfileStyle(cover = ProfileCover.Comic, accent = ProfileAccent.Violet, promptAnswer = "Flight, obviously"),
+                style = ProfileStyle(
+                    cover = ProfileCover.Comic,
+                    accent = ProfileAccent.Violet,
+                    promptAnswer = "Flight, obviously",
+                    title = ProfileTitle.Recruit,
+                ),
                 unlocked = setOf(Achievement.FirstConnection, Achievement.TeamUp),
                 connections = listOf(ProfileConnection("storm", "Storm", null)),
             ),

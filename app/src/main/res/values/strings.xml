@@ -314,6 +314,8 @@
     <string name="edit_profile_accent">Accent color</string>
     <string name="edit_profile_frame">Avatar frame</string>
     <string name="edit_profile_frame_locked">Unlock: %1$s</string>
+    <string name="edit_profile_title">Title</string>
+    <string name="edit_profile_title_none">None</string>
     <string name="edit_profile_prompt">Your prompt</string>
     <string name="edit_profile_prompt_answer">Your answer</string>
     <string name="edit_profile_counter" translatable="false">%1$d/%2$d</string>

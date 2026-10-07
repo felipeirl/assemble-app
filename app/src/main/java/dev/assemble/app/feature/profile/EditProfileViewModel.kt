@@ -14,6 +14,7 @@ import dev.assemble.app.core.model.ProfileAccent
 import dev.assemble.app.core.model.ProfileCover
 import dev.assemble.app.core.model.ProfilePrompt
 import dev.assemble.app.core.model.ProfileStyle
+import dev.assemble.app.core.model.ProfileTitle
 import dev.assemble.app.core.model.UserProfile
 import dev.assemble.app.feature.achievements.AchievementTracker
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -102,13 +103,16 @@ class EditProfileViewModel(
 
     fun onPhotoError() = updateForm { it.copy(showPhotoError = true) }
 
-    fun onCoverChange(cover: ProfileCover) = updateStyle { it.copy(cover = cover) }
+    /** Capa, cor, moldura e título bloqueados não são aplicados. */
+    fun onCoverChange(cover: ProfileCover) = applyIfUnlocked(Reward.Cover(cover)) { it.copy(cover = cover) }
 
-    fun onAccentChange(accent: ProfileAccent) = updateStyle { it.copy(accent = accent) }
+    fun onAccentChange(accent: ProfileAccent) = applyIfUnlocked(Reward.Accent(accent)) { it.copy(accent = accent) }
 
-    /** Moldura bloqueada não é aplicada. */
-    fun onFrameChange(frame: AvatarFrame) = updateForm { form ->
-        if (ProfileRules.isUnlocked(Reward.Frame(frame), form.unlocked)) form.copy(style = form.style.copy(frame = frame)) else form
+    fun onFrameChange(frame: AvatarFrame) = applyIfUnlocked(Reward.Frame(frame)) { it.copy(frame = frame) }
+
+    /** null tira o título. */
+    fun onTitleChange(title: ProfileTitle?) {
+        if (title == null) updateStyle { it.copy(title = null) } else applyIfUnlocked(Reward.Title(title)) { it.copy(title = title) }
     }
 
     fun onPromptChange(prompt: ProfilePrompt) = updateStyle { it.copy(prompt = prompt) }
@@ -147,6 +151,10 @@ class EditProfileViewModel(
     }
 
     private fun updateStyle(transform: (ProfileStyle) -> ProfileStyle) = updateForm { it.copy(style = transform(it.style)) }
+
+    private fun applyIfUnlocked(reward: Reward, transform: (ProfileStyle) -> ProfileStyle) = updateForm { form ->
+        if (ProfileRules.isUnlocked(reward, form.unlocked)) form.copy(style = transform(form.style)) else form
+    }
 
     private fun updateForm(transform: (EditProfileUiState.Form) -> EditProfileUiState.Form) {
         state.update { current -> if (current is EditProfileUiState.Form) transform(current) else current }

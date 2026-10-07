@@ -1,6 +1,7 @@
 package dev.assemble.app.navigation
 
 import androidx.navigation3.runtime.NavKey
+import dev.assemble.app.feature.profile.ProfileSection
 import kotlinx.serialization.Serializable
 
 // Fluxo de entrada
@@ -17,7 +18,8 @@ import kotlinx.serialization.Serializable
 @Serializable data class CharacterPreview(val characterId: String, val name: String, val imageUrl: String?) : NavKey
 @Serializable data class CharacterProfile(val characterId: String) : NavKey
 @Serializable data class Conversation(val connectionId: String) : NavKey
-@Serializable data object EditProfile : NavKey
+/** [focus]: seção a mostrar ao abrir (recompensa tocada nas conquistas); null abre no topo. */
+@Serializable data class EditProfile(val focus: ProfileSection? = null) : NavKey
 @Serializable data object Settings : NavKey
 @Serializable data object About : NavKey
 @Serializable data object Help : NavKey

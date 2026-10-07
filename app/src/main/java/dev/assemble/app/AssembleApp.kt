@@ -72,6 +72,7 @@ import dev.assemble.app.feature.profile.archetypeText
 import dev.assemble.app.feature.profile.EditProfileViewModel
 import dev.assemble.app.feature.profile.ProfileRoute
 import dev.assemble.app.feature.profile.ProfileViewModel
+import dev.assemble.app.feature.profile.section
 import dev.assemble.app.feature.settings.SettingsRoute
 import dev.assemble.app.feature.settings.SettingsViewModel
 import dev.assemble.app.navigation.About
@@ -355,12 +356,13 @@ private fun MainFlowContent(container: AppContainer) {
                                         )
                                     },
                                     onOpenMenu = openDrawer,
-                                    onEditProfile = { navigator.navigate(EditProfile) },
+                                    onEditProfile = { navigator.navigate(EditProfile()) },
                                     onOpenCharacter = { id -> navigator.navigate(CharacterProfile(id)) },
                                 )
                             }
-                            entry<EditProfile> {
+                            entry<EditProfile> { key ->
                                 EditProfileRoute(
+                                    focus = key.focus,
                                     viewModel = viewModel {
                                         EditProfileViewModel(
                                             userRepository = container.userRepository,
@@ -390,7 +392,7 @@ private fun MainFlowContent(container: AppContainer) {
                                 AchievementsRoute(
                                     viewModel = viewModel { AchievementsViewModel(container.achievementTracker) },
                                     onBack = navigator::goBack,
-                                    onOpenReward = { navigator.navigate(EditProfile) },
+                                    onOpenReward = { reward -> navigator.navigate(EditProfile(reward.section())) },
                                 )
                             }
                         },

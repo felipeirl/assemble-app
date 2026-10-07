@@ -307,6 +307,8 @@
     <string name="edit_profile_accent">Cor de destaque</string>
     <string name="edit_profile_frame">Moldura do avatar</string>
     <string name="edit_profile_frame_locked">Libere: %1$s</string>
+    <string name="edit_profile_title">Título</string>
+    <string name="edit_profile_title_none">Nenhum</string>
     <string name="edit_profile_prompt">Sua frase</string>
     <string name="edit_profile_prompt_answer">Sua resposta</string>
     <string name="edit_profile_featured_connections">Conexões em destaque (%1$d/%2$d)</string>
