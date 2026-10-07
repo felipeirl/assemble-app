@@ -11,6 +11,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
@@ -27,6 +28,7 @@ import java.time.Clock
 import java.time.Duration
 import java.time.Instant
 import java.util.UUID
+import java.util.concurrent.ConcurrentHashMap
 
 /**
  * Pendente no servidor por mais que isto: o servidor reiniciou e a fila em memória se perdeu.
@@ -36,6 +38,9 @@ internal val PENDING_STALE_AFTER: Duration = Duration.ofMinutes(3)
 
 /** Quanto esperar o Firestore mostrar "gerar outra resposta" antes de soltar o aviso local. */
 private const val REGENERATE_ECHO_TIMEOUT_MILLIS = 10_000L
+
+/** O listener de uma conversa fica ligado um pouco depois da última tela, para trocar de aba sem religar. */
+private const val THREAD_LISTENER_KEEP_MILLIS = 30_000L
 
 private const val FIELD_AUTHOR = "author"
 private const val FIELD_STATUS = "status"
@@ -68,13 +73,16 @@ class RemoteChatRepository(
     private val store: UserDataStore,
     private val api: AssembleApi,
     private val connections: RemoteConnectionRepository,
-    scope: CoroutineScope,
+    private val scope: CoroutineScope,
     private val clock: Clock,
     private val newKey: () -> String = { UUID.randomUUID().toString() },
     private val regenerateEchoTimeoutMillis: Long = REGENERATE_ECHO_TIMEOUT_MILLIS,
 ) : ChatRepository {
 
     private val pending = MutableStateFlow<List<PendingMessage>>(emptyList())
+
+    /** Um listener do Firestore por conversa, dividido entre a conversa, a lista, o badge e o "digitando". */
+    private val sharedThreads = ConcurrentHashMap<String, Flow<Result<List<Document>>>>()
 
     /** "Gerar outra resposta" pedido, até o Firestore mostrar a mensagem sendo gerada. */
     private val regenerating = MutableStateFlow<Set<String>>(emptySet())
@@ -200,9 +208,17 @@ class RemoteChatRepository(
         pending.value = emptyList()
     }
 
-    private fun serverDocuments(connectionId: String): Flow<List<Document>> = uid.flatMapLatest { current ->
-        if (current == null) flowOf(emptyList()) else store.observeMessages(current, connectionId)
-    }
+    private fun serverDocuments(connectionId: String): Flow<List<Document>> = sharedThreads
+        .getOrPut(connectionId) {
+            uid.flatMapLatest { current ->
+                if (current == null) flowOf(emptyList()) else store.observeMessages(current, connectionId)
+            }
+                .map { Result.success(it) }
+                // A falha vira valor para quem escuta (a conversa mostra o erro) sem derrubar o escopo.
+                .catch { emit(Result.failure(it)) }
+                .shareIn(scope, SharingStarted.WhileSubscribed(THREAD_LISTENER_KEEP_MILLIS, replayExpirationMillis = 0), replay = 1)
+        }
+        .map { it.getOrThrow() }
 
     private suspend fun deliver(key: String) {
         val item = pending.value.firstOrNull { it.key == key } ?: return
