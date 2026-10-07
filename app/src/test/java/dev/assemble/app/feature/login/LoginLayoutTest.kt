@@ -1,26 +1,28 @@
 package dev.assemble.app.feature.login
 
-import androidx.compose.ui.unit.dp
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Test
 
 class LoginLayoutTest {
 
     @Test
-    fun heroVariantFor_fullFromItsMinimumUp() {
-        assertEquals(HeroVariant.Full, heroVariantFor(FullHeroMinHeight))
-        assertEquals(HeroVariant.Full, heroVariantFor(600.dp))
+    fun largestFittingFontSp_takesTheMaximumWhenItFits() {
+        assertEquals(64f, largestFittingFontSp(64f, 28f, 2f) { true })
     }
 
     @Test
-    fun heroVariantFor_compactBetweenTheLimits() {
-        assertEquals(HeroVariant.Compact, heroVariantFor(FullHeroMinHeight - 1.dp))
-        assertEquals(HeroVariant.Compact, heroVariantFor(CompactHeroMinHeight))
+    fun largestFittingFontSp_shrinksUntilItFits() {
+        assertEquals(46f, largestFittingFontSp(64f, 28f, 2f) { it <= 47f })
     }
 
     @Test
-    fun heroVariantFor_hiddenBelowCompactMinimum() {
-        assertEquals(HeroVariant.Hidden, heroVariantFor(CompactHeroMinHeight - 1.dp))
-        assertEquals(HeroVariant.Hidden, heroVariantFor(0.dp))
+    fun largestFittingFontSp_acceptsTheMinimum() {
+        assertEquals(28f, largestFittingFontSp(64f, 28f, 2f) { it <= 28f })
+    }
+
+    @Test
+    fun largestFittingFontSp_isNullWhenNothingFits() {
+        assertNull(largestFittingFontSp(64f, 28f, 2f) { false })
     }
 }

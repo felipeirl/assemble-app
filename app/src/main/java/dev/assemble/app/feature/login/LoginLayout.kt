@@ -1,20 +1,27 @@
 package dev.assemble.app.feature.login
 
-import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
+/** Maior tamanho do título do hero (o `displayXl` do tema). */
+internal const val HeroMaxFontSp = 64f
 
-/** Quanto do hero (logo, título, subtítulo) cabe acima das ações do login. */
-internal enum class HeroVariant { Full, Compact, Hidden }
+/** Menor tamanho do título antes de o hero perder o logo e, por fim, sumir. */
+internal const val HeroMinFontSp = 28f
 
-/** Logo 72dp + título displayXl em até 3 linhas + subtítulo. */
-internal val FullHeroMinHeight = 260.dp
+internal const val HeroFontStepSp = 2f
 
-/** Logo 40dp + título displayMd em até 2 linhas. */
-internal val CompactHeroMinHeight = 112.dp
-
-/** [available] é a altura que sobra para o hero depois das ações, já sem as barras do sistema. */
-internal fun heroVariantFor(available: Dp): HeroVariant = when {
-    available >= FullHeroMinHeight -> HeroVariant.Full
-    available >= CompactHeroMinHeight -> HeroVariant.Compact
-    else -> HeroVariant.Hidden
+/**
+ * Maior tamanho de fonte entre [max] e [min] (de [step] em [step]) para o qual [fits] diz que o
+ * título e o subtítulo cabem na sobra acima das ações; null se nem o menor cabe.
+ */
+internal fun largestFittingFontSp(
+    max: Float,
+    min: Float,
+    step: Float,
+    fits: (Float) -> Boolean,
+): Float? {
+    var size = max
+    while (size >= min) {
+        if (fits(size)) return size
+        size -= step
+    }
+    return null
 }

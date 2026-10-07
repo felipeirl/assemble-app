@@ -35,11 +35,13 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -49,13 +51,17 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.tooling.preview.PreviewLightDark
+import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import dev.assemble.app.R
 import dev.assemble.app.core.designsystem.component.LocalLogoAnchor
@@ -66,8 +72,11 @@ import dev.assemble.app.core.designsystem.icon.AssembleIcons
 import dev.assemble.app.core.designsystem.theme.AssembleTheme
 import dev.assemble.app.core.firebase.requestGoogleIdToken
 
-private val LogoHeight = 72.dp
+private val LogoHeight = 56.dp
 private val CompactLogoHeight = 40.dp
+
+/** Logo e tamanho do título que cabem juntos na sobra acima das ações. */
+private data class HeroFit(val logo: Dp, val fontSp: Float)
 private val TabMinHeight = 40.dp
 
 @Composable
@@ -134,7 +143,7 @@ fun LoginScreen(state: LoginUiState, actions: LoginActions, modifier: Modifier =
                 modifier = Modifier.fillMaxWidth().weight(1f),
                 contentAlignment = Alignment.TopStart,
             ) {
-                LoginHero(heroVariantFor(maxHeight))
+                LoginHero(maxWidth, maxHeight)
             }
         }
         LoginActionsBlock(state, actions)
@@ -143,30 +152,57 @@ fun LoginScreen(state: LoginUiState, actions: LoginActions, modifier: Modifier =
 
 /**
  * Logo no topo e título com subtítulo embaixo, ocupando toda a sobra acima das ações: o hero é o
- * mesmo em Entrar e em Criar conta. A versão compacta (telas muito baixas) usa o título menor e
- * mantém o subtítulo junto dele.
+ * mesmo em Entrar e em Criar conta. O título é medido e fica o maior possível (até o `displayXl`)
+ * com o subtítulo sempre junto; só em telas muito baixas o logo encolhe e, por fim, o hero some.
  */
 @Composable
-private fun LoginHero(variant: HeroVariant) {
-    if (variant == HeroVariant.Hidden) return
+private fun LoginHero(maxWidth: Dp, maxHeight: Dp) {
     val colors = AssembleTheme.colors
     val typography = AssembleTheme.typography
-    val full = variant == HeroVariant.Full
+    val gap = AssembleTheme.spacing.space3
+    val headline = stringResource(R.string.login_headline)
+    val subtitle = stringResource(R.string.login_subtitle)
+    val measurer = rememberTextMeasurer()
+    val density = LocalDensity.current
+    val fit = remember(maxWidth, maxHeight, headline, subtitle, typography, density) {
+        val widthConstraints = Constraints(maxWidth = with(density) { maxWidth.roundToPx() })
+        val subtitleHeight = measurer.measure(subtitle, typography.body, constraints = widthConstraints).size.height
+        val base = typography.displayXl
+        val lineRatio = base.lineHeight.value / base.fontSize.value
+        fun headlineHeight(sp: Float) = measurer.measure(
+            headline,
+            base.copy(fontSize = sp.sp, lineHeight = (sp * lineRatio).sp),
+            constraints = widthConstraints,
+        ).size.height
+        val gapPx = with(density) { gap.roundToPx() }
+        listOf(LogoHeight, CompactLogoHeight, 0.dp).mapNotNull { logo ->
+            val logoSpace = if (logo > 0.dp) with(density) { (logo + gap).roundToPx() } else 0
+            val room = with(density) { maxHeight.roundToPx() } - logoSpace
+            largestFittingFontSp(HeroMaxFontSp, HeroMinFontSp, HeroFontStepSp) { sp ->
+                headlineHeight(sp) + gapPx + subtitleHeight <= room
+            }?.let { HeroFit(logo, it) }
+        }.maxWithOrNull(compareBy<HeroFit> { it.fontSp }.thenBy { it.logo })
+    } ?: return
     Column(
         modifier = Modifier.fillMaxSize(),
         verticalArrangement = Arrangement.SpaceBetween,
     ) {
-        Image(
-            painter = painterResource(R.drawable.ic_assemble_logo),
-            contentDescription = stringResource(R.string.app_name),
-            modifier = Modifier
-                .height(if (full) LogoHeight else CompactLogoHeight)
-                .logoAnchor(LocalLogoAnchor.current),
-        )
-        Column(verticalArrangement = Arrangement.spacedBy(AssembleTheme.spacing.space3)) {
+        if (fit.logo > 0.dp) {
+            Image(
+                painter = painterResource(R.drawable.ic_assemble_logo),
+                contentDescription = stringResource(R.string.app_name),
+                modifier = Modifier.height(fit.logo).logoAnchor(LocalLogoAnchor.current),
+            )
+        } else {
+            Box {}
+        }
+        Column(verticalArrangement = Arrangement.spacedBy(gap)) {
             Text(
-                text = stringResource(R.string.login_headline),
-                style = if (full) typography.displayXl else typography.displayMd,
+                text = headline,
+                style = typography.displayXl.copy(
+                    fontSize = fit.fontSp.sp,
+                    lineHeight = (fit.fontSp * typography.displayXl.lineHeight.value / typography.displayXl.fontSize.value).sp,
+                ),
                 color = colors.text,
                 modifier = Modifier.semantics { heading() },
             )
