@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -81,6 +82,9 @@ import java.time.Instant
 
 private const val SendingAlpha = 0.6f
 private const val TypingItemKey = "typing"
+
+// Até este item a partir do fim, o usuário está "no fim da conversa" e acompanha o que chega.
+private const val FollowNewestWithin = 2
 private val TopBarAvatarSize = 36.dp
 private val ErrorIconSize = 16.dp
 private val MinTouchTarget = 48.dp
@@ -272,8 +276,20 @@ private fun MessageList(
     val animationsEnabled = rememberAnimationsEnabled()
     val shownIds = remember { content.messages.mapTo(mutableSetOf()) { it.id } }
     val feedback = LocalFeedback.current
+    val listState = rememberLazyListState()
+    // Na lista invertida, o Compose segura o item que estava embaixo e o novo nasce fora da tela.
+    // Desce até o mais recente quando o próprio usuário envia, ou quando ele já estava no fim.
+    val newestKey: Any? = if (content.typing) TypingItemKey else newestFirst.firstOrNull()?.id
+    LaunchedEffect(newestKey) {
+        if (newestKey == null) return@LaunchedEffect
+        val sentByUser = !content.typing && newestFirst.first().author == MessageAuthor.User
+        if (sentByUser || listState.firstVisibleItemIndex <= FollowNewestWithin) {
+            listState.animateScrollToItem(0)
+        }
+    }
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
+        state = listState,
         reverseLayout = true,
         contentPadding = PaddingValues(spacing.space4),
         verticalArrangement = Arrangement.spacedBy(spacing.space3),
