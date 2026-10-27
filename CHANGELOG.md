@@ -2,6 +2,16 @@
 
 Formato baseado em [Keep a Changelog](https://keepachangelog.com/pt-BR/1.1.0/). As versões contam como um odômetro: cada release é uma grande adição e o número sobe de um em um (`0.0.8`, `0.0.9`, `0.1.0`, `0.1.1`...). Ao chegar em 9, avança a casa seguinte. Correções pequenas entram na release seguinte.
 
+## [0.1.5] - 2026-10-27
+
+**Exige a API 0.1.3 ou mais nova.**
+
+### Corrigido
+- A tela de entrar mantém o logo no alto em telas baixas, e o título usa o maior tamanho que cabe, com a descrição sempre junto.
+
+### Alterado
+- O README foi reescrito, com guias de contribuição (`CONTRIBUTING.md`) e de segurança (`SECURITY.md`). As capturas do app estão em `screenshots/`.
+
 ## [0.1.4] - 2026-10-07
 
 **Exige a API 0.1.3 ou mais nova.**
